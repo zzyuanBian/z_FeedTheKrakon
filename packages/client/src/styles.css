@@ -277,6 +277,96 @@ button:disabled { cursor: not-allowed; }
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- preset chips (recommended faction layouts) ---------- */
+
+.preset-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 4px;
+}
+.preset-chip {
+  flex: 1 1 auto;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-deep);
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.preset-chip:hover:not(:disabled) { border-color: var(--gold); color: var(--ink); }
+.preset-chip--on {
+  background: rgba(212, 167, 74, 0.18);
+  border-color: var(--gold);
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+
+/* ---------- faction sliders (sailor / pirate / cult) ---------- */
+
+.faction-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+.faction-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-deep);
+}
+.faction-slider__head {
+  display: grid;
+  grid-template-columns: 28px 1fr 36px;
+  gap: 8px;
+  align-items: center;
+}
+.faction-slider__glyph { font-size: 20px; text-align: center; }
+.faction-slider__label {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+.faction-slider__value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: right;
+}
+.faction-slider--gold { border-color: rgba(212, 167, 74, 0.4); }
+.faction-slider--gold .faction-slider__value { color: var(--gold-bright); }
+.faction-slider--blood { border-color: rgba(178, 58, 72, 0.4); }
+.faction-slider--blood .faction-slider__value { color: #f5b0b8; }
+.faction-slider--cult { border-color: rgba(122, 58, 138, 0.4); }
+.faction-slider--cult .faction-slider__value { color: #d7a4e4; }
+
+.faction-total {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: flex-end;
+  padding: 6px 14px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+}
+.faction-total strong {
+  font-size: 18px;
+  color: var(--teal-bright);
+  font-variant-numeric: tabular-nums;
+}
+.faction-total--bad strong { color: var(--blood); }
+.faction-total__hint { font-size: 12px; color: var(--blood); font-family: var(--font-sans); }
+
 /* ---------- CTA buttons (wide, icon + title + hint) ---------- */
 
 .menu-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
@@ -543,6 +633,38 @@ button:disabled { cursor: not-allowed; }
   font-style: italic;
   margin: 0;
 }
+
+/* Config summary card inside the waiting room. */
+.waiting__config {
+  background: var(--bg-panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  text-align: center;
+}
+.waiting__config-title {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin-bottom: 4px;
+}
+.waiting__config-line {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 0.08em;
+}
+.waiting__config-sub {
+  font-size: 12px;
+  color: var(--ink-ghost);
+  margin-top: 2px;
+}
+
+/* Host's "开始游戏" CTA at the bottom of the waiting room. */
+.waiting__start { width: 100%; margin-top: 8px; }
 .waiting__leave {
   align-self: center;
   margin-top: 8px;

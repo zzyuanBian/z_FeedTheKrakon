@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Client, LobbyClient } from 'boardgame.io/client';
 import { SocketIO } from 'boardgame.io/multiplayer';
 import { FtkGame, type FtkSetupData } from '@ftk/game';
-import type { PlayerView } from '@ftk/engine';
+import type { FactionCounts, PlayerView } from '@ftk/engine';
 import { GAME_NAME, SERVER_ORIGIN } from './config.js';
 import { clearSession, loadSession, saveSession, type Session } from './session.js';
 
@@ -35,6 +35,9 @@ export interface CreateOptions {
   playerCount: number;
   seed?: number;
   fivePlayerTwoPirates?: boolean;
+  /** Optional host override: explicit sailor / pirate / cult counts. When
+   *  set, the rulebook table and fivePlayerTwoPirates are bypassed. */
+  factionCounts?: FactionCounts;
 }
 
 /** Create a match, take seat 0, and return the session. */
@@ -44,6 +47,7 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
     playerCount: opts.playerCount,
     map: 'short',
     fivePlayerTwoPirates: opts.fivePlayerTwoPirates ?? false,
+    ...(opts.factionCounts ? { factionCounts: opts.factionCounts } : {}),
   };
   const { matchID } = await lobby.createMatch(GAME_NAME, {
     numPlayers: opts.playerCount,
@@ -59,6 +63,7 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
     credentials: playerCredentials,
     playerName: opts.playerName,
     playerCount: opts.playerCount,
+    ...(opts.factionCounts ? { factionCounts: opts.factionCounts } : {}),
   };
   saveSession(session);
   return session;
@@ -92,6 +97,9 @@ export interface GameConnection {
   /** Convenience wrapper for `moves.confirmRole()` — the only move that is
    *  legal during the pre-game role-reveal gate. */
   confirmRole: () => void;
+  /** Convenience wrapper for `moves.hostStartGame()` — only the host (seat 0)
+   *  may call this; other seats will be rejected by the reducer. */
+  hostStartGame: () => void;
   connected: boolean;
   isActive: boolean;
   gameover: unknown;
@@ -196,7 +204,12 @@ export function useGame(
     fn?.();
   }, []);
 
-  return { view, moves, chat, sendChat, confirmRole, connected, isActive, gameover, leave };
+  const hostStartGame = useCallback(() => {
+    const fn = clientRef.current?.moves.hostStartGame as ((...a: unknown[]) => void) | undefined;
+    fn?.();
+  }, []);
+
+  return { view, moves, chat, sendChat, confirmRole, hostStartGame, connected, isActive, gameover, leave };
 }
 
 export { loadSession, clearSession };

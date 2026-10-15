@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { TEAM_COMPOSITIONS, type FactionCounts } from '@ftk/engine';
 import { CODE_LENGTH, isRoomCode, normalizeRoomCode } from '@ftk/room-code';
 import { MAX_PLAYERS, MIN_PLAYERS } from './config.js';
 import { createMatch, joinMatch } from './useGame.js';
@@ -245,6 +246,55 @@ function MainMenu({
 
 // ------------------------------ create -----------------------------------
 
+/** Read the rulebook preset for a given player count. Returns null for counts
+ *  outside the TEAM_COMPOSITIONS table — the host is then forced to pick
+ *  custom factionCounts. */
+function presetFor(count: number) {
+  return TEAM_COMPOSITIONS.find((c) => c.players === count) ?? null;
+}
+
+function FactionSlider({
+  label,
+  glyph,
+  value,
+  onChange,
+  min,
+  max,
+  accent,
+}: {
+  label: string;
+  glyph: string;
+  value: number;
+  onChange: (n: number) => void;
+  min: number;
+  max: number;
+  accent: 'gold' | 'blood' | 'cult';
+}) {
+  const cls =
+    accent === 'gold'
+      ? 'faction-slider faction-slider--gold'
+      : accent === 'blood'
+      ? 'faction-slider faction-slider--blood'
+      : 'faction-slider faction-slider--cult';
+  return (
+    <label className={cls}>
+      <span className="faction-slider__head">
+        <span className="faction-slider__glyph" aria-hidden="true">{glyph}</span>
+        <span className="faction-slider__label">{label}</span>
+        <span className="faction-slider__value">{value}</span>
+      </span>
+      <input
+        className="count-slider"
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </label>
+  );
+}
+
 function CreateRoom({
   name,
   onBack,
@@ -258,15 +308,73 @@ function CreateRoom({
 }) {
   const [count, setCount] = useState(7);
   const [twoPirates, setTwoPirates] = useState(false);
+  const [sailor, setSailor] = useState(() => presetFor(7)?.sailor ?? 4);
+  const [pirate, setPirate] = useState(() => presetFor(7)?.pirate ?? 2);
+  const [cult, setCult] = useState(() => presetFor(7)?.cult ?? 1);
+  const [custom, setCustom] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Reset faction counts whenever the player count changes. If there's a
+  // rulebook preset for the new count, snap to it; otherwise force custom
+  // mode and try to preserve sensible defaults.
+  useEffect(() => {
+    const p = presetFor(count);
+    if (p) {
+      const s = count === 5 && twoPirates ? p.sailor - 1 : p.sailor;
+      const pi = count === 5 && twoPirates ? p.pirate + 1 : p.pirate;
+      setSailor(s);
+      setPirate(pi);
+      setCult(p.cult);
+    } else {
+      setCustom(true);
+      // Safe fallback: 1 cult, rest split roughly 60/40 sailor/pirate.
+      setCult(1);
+      const rest = Math.max(2, count - 1);
+      setSailor(Math.ceil(rest * 0.6));
+      setPirate(Math.floor(rest * 0.4));
+    }
+  }, [count, twoPirates]);
+
+  const applyPreset = (variant: 'default' | 'twoPirates') => {
+    const p = presetFor(count);
+    if (!p) return;
+    setCustom(false);
+    if (variant === 'twoPirates' && count === 5) {
+      setTwoPirates(true);
+      setSailor(p.sailor - 1);
+      setPirate(p.pirate + 1);
+      setCult(p.cult);
+    } else {
+      setTwoPirates(false);
+      setSailor(p.sailor);
+      setPirate(p.pirate);
+      setCult(p.cult);
+    }
+  };
+
+  // Drift into custom mode as soon as the user nudges a slider away from the
+  // preset values.
+  const touchSailor = (n: number) => { setCustom(true); setSailor(n); };
+  const touchPirate = (n: number) => { setCustom(true); setPirate(n); };
+  const touchCult = (n: number) => { setCustom(true); setCult(n); };
+
+  const preset = presetFor(count);
+  const total = sailor + pirate + cult;
+  const valid = sailor >= 1 && pirate >= 1 && cult >= 0 && total === count;
+  const factionCounts: FactionCounts | undefined =
+    custom || (count === 5 && twoPirates)
+      ? { sailor, pirate, cult }
+      : undefined;
+
   const create = async () => {
+    if (!valid) return;
     setBusy(true);
     try {
       const session = await createMatch({
         playerName: name.trim(),
         playerCount: count,
         fivePlayerTwoPirates: count === 5 ? twoPirates : false,
+        ...(factionCounts ? { factionCounts } : {}),
       });
       onReady(session);
     } catch (e) {
@@ -275,6 +383,8 @@ function CreateRoom({
       setBusy(false);
     }
   };
+
+  const maxPerFaction = Math.max(1, count - 2); // leave room for >=1 in each of the others
 
   return (
     <>
@@ -298,31 +408,84 @@ function CreateRoom({
           </div>
         </label>
 
-        {count === 5 && (
-          <label className="check-line">
-            <input
-              type="checkbox"
-              checked={twoPirates}
-              onChange={(e) => setTwoPirates(e.target.checked)}
-            />
-            <span>5 人局启用 2 海盗 / 2 水手（否则 3 水手 / 1 海盗）</span>
-          </label>
+        {preset && (
+          <div className="preset-row">
+            <button
+              type="button"
+              className={
+                'preset-chip' + (!custom && !twoPirates ? ' preset-chip--on' : '')
+              }
+              onClick={() => applyPreset('default')}
+            >
+              推荐：{preset.sailor}⚓ {preset.pirate}☠️ {preset.cult}🐙
+            </button>
+            {count === 5 && (
+              <button
+                type="button"
+                className={
+                  'preset-chip' + (!custom && twoPirates ? ' preset-chip--on' : '')
+                }
+                onClick={() => applyPreset('twoPirates')}
+              >
+                5 人变体：2⚓ 2☠️ 1🐙
+              </button>
+            )}
+          </div>
         )}
 
+        <div className="faction-grid">
+          <FactionSlider
+            label="水手"
+            glyph="⚓"
+            value={sailor}
+            onChange={touchSailor}
+            min={1}
+            max={maxPerFaction}
+            accent="gold"
+          />
+          <FactionSlider
+            label="海盗"
+            glyph="☠️"
+            value={pirate}
+            onChange={touchPirate}
+            min={1}
+            max={maxPerFaction}
+            accent="blood"
+          />
+          <FactionSlider
+            label="邪教徒"
+            glyph="🐙"
+            value={cult}
+            onChange={touchCult}
+            min={0}
+            max={Math.max(0, count - 2)}
+            accent="cult"
+          />
+        </div>
+
+        <div className={'faction-total' + (valid ? '' : ' faction-total--bad')}>
+          <span>合计</span>
+          <strong>
+            {total} / {count}
+          </strong>
+          {!valid && (
+            <span className="faction-total__hint">
+              {total !== count
+                ? `还差 ${count - total} 人`
+                : '水手和海盗至少各 1 人'}
+            </span>
+          )}
+        </div>
+
         <div className="card-actions">
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={onBack}
-            disabled={busy}
-          >
+          <button type="button" className="btn-ghost" onClick={onBack} disabled={busy}>
             ← 返回
           </button>
           <button
             type="button"
             className="btn-cthulhu btn-cthulhu--gold"
             onClick={create}
-            disabled={busy}
+            disabled={busy || !valid}
           >
             <span className="btn-cthulhu__glyph">🐙</span>
             <span className="btn-cthulhu__body">

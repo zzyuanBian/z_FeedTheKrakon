@@ -71,6 +71,7 @@ export function reduce(prev: GameState, action: Action): GameState {
 function handle(s: GameState, a: Action): void {
   switch (a.type) {
     case 'confirmRole':       return confirmRole(s, a);
+    case 'hostStartGame':     return hostStartGame(s, a);
     case 'appointTeam':     return appointTeam(s, a);
     case 'mutinyPledge':    return mutinyPledge(s, a);
     case 'mutinyTieBreak':  return mutinyTieBreak(s, a);
@@ -103,6 +104,13 @@ function confirmRole(s: GameState, a: Extract<Action, { type: 'confirmRole' }>):
   if (!s.confirmedRole.includes(a.actor)) {
     s.confirmedRole.push(a.actor);
   }
+}
+
+/** Only the room host may flip the "开始游戏" switch. Idempotent: repeated
+ *  clicks are no-ops, which keeps the move safe to retry on a laggy link. */
+function hostStartGame(s: GameState, a: Extract<Action, { type: 'hostStartGame' }>): void {
+  assert(a.actor === s.host, `only the host (${s.host}) may start; got ${a.actor}`);
+  s.hostStarted = true;
 }
 
 /* ============================ phase 1: appoint ========================== */

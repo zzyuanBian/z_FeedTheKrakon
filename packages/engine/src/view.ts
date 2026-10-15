@@ -92,6 +92,9 @@ export interface PlayerView {
   /** Per-seat role-confirm status, in seatOrder. Lets the role-reveal screen
    *  show "X / Y 已准备" without a separate lobby poll. */
   roleConfirmations: { confirmed: number; total: number; bySeat: boolean[] };
+  /** Whether the host has clicked "开始游戏". The waiting screen gates the
+   *  transition to role-reveal on this. */
+  hostStarted: boolean;
   ship: { spaceId: number; emergency: boolean };
   officers: OfficersView;
   /** Whose input the game is currently waiting on, and for what. */
@@ -182,6 +185,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     },
     others,
     roleConfirmations,
+    hostStarted: state.hostStarted,
     ship: { ...state.ship },
     officers: { ...state.officers },
     pending: state.pending

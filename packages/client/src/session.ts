@@ -20,6 +20,10 @@ export interface Session {
    *  show "X / N" before the first game state arrives. Optional because older
    *  sessions predate the field. */
   playerCount?: number;
+  /** Host's chosen faction breakdown. Optional because older sessions predate
+   *  the field, and because a host who accepted the rulebook preset leaves
+   *  this unset (WaitingRoom falls back to TEAM_COMPOSITIONS). */
+  factionCounts?: { sailor: number; pirate: number; cult: number };
 }
 
 function parse(raw: string | null): Session | null {
@@ -33,6 +37,15 @@ function parse(raw: string | null): Session | null {
       credentials: parsed.credentials,
       playerName: parsed.playerName ?? 'Player',
       ...(typeof parsed.playerCount === 'number' ? { playerCount: parsed.playerCount } : {}),
+      ...(parsed.factionCounts
+        ? {
+            factionCounts: {
+              sailor: parsed.factionCounts.sailor,
+              pirate: parsed.factionCounts.pirate,
+              cult: parsed.factionCounts.cult,
+            },
+          }
+        : {}),
     };
   } catch {
     return null;

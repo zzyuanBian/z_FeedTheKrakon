@@ -11,6 +11,9 @@ import type { NavCardId, PlayerId, RitualCardId } from './state.js';
 export type Action =
   /* pre-game: role reveal confirmation (Avalon-style gate before phase 1) */
   | { type: 'confirmRole'; actor: PlayerId }
+  /* pre-game: host flips the "开始游戏" switch in the waiting room. Only the
+   *  host (seat 0) may fire this; reducer asserts actor === state.host. */
+  | { type: 'hostStartGame'; actor: PlayerId }
   /* phase 1 — appointing the navigation team */
   | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId; navigator: PlayerId }
   /* phase 2 — a question of loyalty */

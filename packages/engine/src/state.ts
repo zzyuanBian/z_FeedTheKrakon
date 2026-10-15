@@ -128,6 +128,16 @@ export interface TeamComposition {
   cult: number;
 }
 
+/** Custom faction sizes the host can supply to override the TEAM_COMPOSITIONS
+ *  table. Must satisfy sailor + pirate + cult === playerCount with sailor
+ *  and pirate each >= 1 (there must be an officer corps and a mutiny threat).
+ *  cult may be 0 for a "no cult" variant. */
+export interface FactionCounts {
+  sailor: number;
+  pirate: number;
+  cult: number;
+}
+
 /** Rulebook "TEAM COMPOSITIONS OVERVIEW" (pp.5/7). 5-player games vary and are
  *  a host choice (3S/1P or 2S/2P); the entry below is the 3S/1P variant. */
 export const TEAM_COMPOSITIONS: readonly TeamComposition[] = [
@@ -143,8 +153,12 @@ export const TEAM_COMPOSITIONS: readonly TeamComposition[] = [
 export interface GameSettings {
   playerCount: number;
   map: 'short' | 'long';
-  /** 5-player only: false = 3 Sailors / 1 Pirate, true = 2 Sailors / 2 Pirates. */
+  /** 5-player only: false = 3 Sailors / 1 Pirate, true = 2 Sailors / 2 Pirates.
+   *  Ignored when `factionCounts` is supplied. */
   fivePlayerTwoPirates: boolean;
+  /** Optional override: explicit sailor / pirate / cult counts. When set,
+   *  the TEAM_COMPOSITIONS table and `fivePlayerTwoPirates` are bypassed. */
+  factionCounts?: FactionCounts;
 }
 
 export const STARTING_GUNS = 3;
@@ -296,6 +310,10 @@ export interface GameState {
   /** Players who have acknowledged their role card at game start. Until this
    *  set equals `seatOrder`, every non-`confirmRole` move is gated out. */
   confirmedRole: PlayerId[];
+  /** Host's explicit "开始游戏" gate. The waiting-room UI blocks the
+   *  transition to role-reveal until this flips true, so the host can hold
+   *  the start until everyone is actually at their keyboard. */
+  hostStarted: boolean;
 
   ship: Ship;
   officers: Officers;

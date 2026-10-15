@@ -31,22 +31,46 @@ export function createGame(opts: NewGameOptions): GameState {
     throw new Error(`createGame: ${names.length} names for ${settings.playerCount} players`);
   }
   const comp = TEAM_COMPOSITIONS.find((c) => c.players === settings.playerCount);
-  if (!comp) throw new Error(`unsupported player count ${settings.playerCount}`);
+  if (!comp && !settings.factionCounts) {
+    throw new Error(`unsupported player count ${settings.playerCount}`);
+  }
 
   const rng = makeRng(seed);
   const { def, movement } = loadMap(map);
 
   // --- team chips ---
+  // Custom factionCounts (host override) takes precedence over the rulebook
+  // table + fivePlayerTwoPirates variant. Validation catches bogus input
+  // before we allocate anything.
+  const sailorCount: number = (() => {
+    if (settings.factionCounts) return settings.factionCounts.sailor;
+    if (settings.fivePlayerTwoPirates && settings.playerCount === 5) return comp!.sailor - 1;
+    return comp!.sailor;
+  })();
+  const pirateCount: number = (() => {
+    if (settings.factionCounts) return settings.factionCounts.pirate;
+    if (settings.fivePlayerTwoPirates && settings.playerCount === 5) return comp!.pirate + 1;
+    return comp!.pirate;
+  })();
+  const cultCount: number = (() => {
+    if (settings.factionCounts) return settings.factionCounts.cult;
+    return comp!.cult;
+  })();
+  if (settings.factionCounts) {
+    const fc = settings.factionCounts;
+    if (fc.sailor < 1) throw new Error(`factionCounts.sailor must be >= 1 (got ${fc.sailor})`);
+    if (fc.pirate < 1) throw new Error(`factionCounts.pirate must be >= 1 (got ${fc.pirate})`);
+    if (fc.cult < 0) throw new Error(`factionCounts.cult must be >= 0 (got ${fc.cult})`);
+    if (fc.sailor + fc.pirate + fc.cult !== settings.playerCount) {
+      throw new Error(
+        `factionCounts ${fc.sailor}+${fc.pirate}+${fc.cult} != playerCount ${settings.playerCount}`,
+      );
+    }
+  }
   const chips: Faction[] = [];
-  const sailorCount = settings.fivePlayerTwoPirates && settings.playerCount === 5
-    ? comp.sailor - 1
-    : comp.sailor;
-  const pirateCount = settings.fivePlayerTwoPirates && settings.playerCount === 5
-    ? comp.pirate + 1
-    : comp.pirate;
   for (let i = 0; i < sailorCount; i++) chips.push('sailor');
   for (let i = 0; i < pirateCount; i++) chips.push('pirate');
-  for (let i = 0; i < comp.cult; i++) chips.push('cult');
+  for (let i = 0; i < cultCount; i++) chips.push('cult');
   if (chips.length !== settings.playerCount) {
     throw new Error(`chip count ${chips.length} != ${settings.playerCount}`);
   }
@@ -103,6 +127,7 @@ export function createGame(opts: NewGameOptions): GameState {
     seatOrder,
     host: seatOrder[0]!,
     confirmedRole: [],
+    hostStarted: false,
     ship: { spaceId: startSpace.id, emergency: false },
     officers: { captain: firstCaptain, lieutenant: null, navigator: null },
     navigation: {

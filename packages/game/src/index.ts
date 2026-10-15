@@ -25,7 +25,7 @@ import { ActivePlayers, INVALID_MOVE } from 'boardgame.io/core';
 import type { Game, Move } from 'boardgame.io';
 import {
   SHORT_MAP, createGame, reduce, spectatorView, viewFor,
-  type Action, type GameState, type PlayerId,
+  type Action, type FactionCounts, type GameState, type PlayerId,
 } from '@ftk/engine';
 
 export interface FtkSetupData {
@@ -33,8 +33,12 @@ export interface FtkSetupData {
   playerCount: number;
   /** 'short' | 'long' — only 'short' ships a bundled map today. */
   map?: 'short' | 'long';
-  /** 5-player only: 2 Sailors / 2 Pirates instead of the 3/1 default. */
+  /** 5-player only: 2 Sailors / 2 Pirates instead of the 3/1 default.
+   *  Ignored when `factionCounts` is supplied. */
   fivePlayerTwoPirates?: boolean;
+  /** Optional host override: explicit sailor / pirate / cult counts. When
+   *  set, TEAM_COMPOSITIONS and `fivePlayerTwoPirates` are bypassed. */
+  factionCounts?: FactionCounts;
   /** Optional display names, indexed by seat. Defaults to "Player 1"… */
   names?: string[];
 }
@@ -65,9 +69,10 @@ function move(create: (actor: PlayerId, ...args: unknown[]) => Action): Move<Gam
       if (!isFtkGame(G)) return INVALID_MOVE;
       if (playerID === null || playerID === undefined) return INVALID_MOVE;
       const action = create(idForIndex(Number(playerID)), ...args);
-      // Role-confirm gate: exempt `confirmRole` itself; block every other
-      // action until every seat is in G.confirmedRole.
-      if (action.type !== 'confirmRole') {
+      // Role-confirm gate: exempt `confirmRole` and `hostStartGame`; block
+      // every other action until every seat is in G.confirmedRole. Both
+      // exempt moves are pre-game — the gate is the gate they lift.
+      if (action.type !== 'confirmRole' && action.type !== 'hostStartGame') {
         const allConfirmed = G.confirmedRole.length >= G.seatOrder.length
           && G.seatOrder.every((id) => G.confirmedRole.includes(id));
         if (!allConfirmed) return INVALID_MOVE;
@@ -98,6 +103,8 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     // Without this, a bogus createMatch payload would throw from deep inside
     // createGame and tear the whole server process down. The offending client
     // still gets a broken match, but the server stays up for everyone else.
+    // Exception: when the host supplies factionCounts, the table is bypassed
+    // so custom counts work for any total within the engine's range.
     const min = FtkGame.minPlayers ?? 5;
     const max = FtkGame.maxPlayers ?? 11;
     const playerCount = Math.min(max, Math.max(min, requested));
@@ -110,6 +117,7 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
         playerCount,
         map: setupData?.map ?? 'short',
         fivePlayerTwoPirates: setupData?.fivePlayerTwoPirates ?? false,
+        ...(setupData?.factionCounts ? { factionCounts: setupData.factionCounts } : {}),
       },
       names,
       map: SHORT_MAP,
@@ -122,6 +130,10 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
   },
 
   moves: {
+    /** Pre-game: host flips the "开始游戏" switch. Exempt from the role-
+     *  confirm gate (otherwise the host couldn't start at all). */
+    hostStartGame: move((actor) => as('hostStartGame', actor)),
+
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal
      *  until every seat confirms. */

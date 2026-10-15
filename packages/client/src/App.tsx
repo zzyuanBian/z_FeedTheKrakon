@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { CODE_LENGTH } from '@ftk/room-code';
+import { TEAM_COMPOSITIONS } from '@ftk/engine';
 import { Lobby } from './Lobby.js';
 import { Board } from './Board.js';
 import { Roster } from './Roster.js';
@@ -85,9 +86,9 @@ function RoomId({ matchID }: { matchID: string }) {
  *  instead so it's obvious who's still missing. */
 interface RosterSeat { id: string; name: string | null; }
 
-/** Shown right after the host creates the room: big room code, copy button,
- *  live roster of who has joined. Polls the lobby API every 1.5s until either
- *  all seats are filled or the game state starts arriving via the socket.
+/** Shown after the host creates the room: big room code, copy button, live
+ *  roster of who has joined, a read-only summary of the host's config, and a
+ *  "开始游戏" button the host flips once everyone is at their keyboard.
  *
  *  When `liveView` is supplied, we're past the first socket sync: the seat
  *  list comes from the live GameState instead of the lobby API, and empty
@@ -95,18 +96,25 @@ interface RosterSeat { id: string; name: string | null; }
 function WaitingRoom({
   session,
   onLeave,
+  onStart,
   playerCount,
   liveView,
   waitingLabel = '航线已开辟',
+  canStart,
+  isHost,
 }: {
   session: Session;
   onLeave: () => void;
+  onStart: () => void;
   playerCount: number;
   liveView?: { filled: number; seats: { id: string; name: string }[] };
   waitingLabel?: string;
+  canStart: boolean;
+  isHost: boolean;
 }) {
   const [polledSeats, setPolledSeats] = useState<RosterSeat[]>([]);
   const [copied, setCopied] = useState(false);
+  const [startRequested, setStartRequested] = useState(false);
 
   // Only poll the lobby API while we don't have a live GameState to read
   // from. Once `liveView` is present, bgio's own state sync keeps the seat
@@ -147,6 +155,12 @@ function WaitingRoom({
     window.setTimeout(() => setCopied(false), 1400);
   }, [session.matchID]);
 
+  const handleStart = () => {
+    if (!canStart || startRequested) return;
+    setStartRequested(true);
+    onStart();
+  };
+
   // Live-seat rendering (after first socket sync): "Player N" placeholders
   // stand in for empty seats — bgio's @ftk/game setup names seats that way
   // until a human joins and overwrites the name via the lobby API.
@@ -161,6 +175,16 @@ function WaitingRoom({
   const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
   const letters = session.matchID.padEnd(CODE_LENGTH, ' ').split('');
 
+  // Config summary: explicit factionCounts from the session if the host
+  // picked custom numbers, otherwise fall back to the rulebook preset.
+  const fc = session.factionCounts;
+  const preset = TEAM_COMPOSITIONS.find((c) => c.players === playerCount);
+  const configLine = fc
+    ? `${fc.sailor}⚓  ${fc.pirate}☠️  ${fc.cult}🐙`
+    : preset
+    ? `${preset.sailor}⚓  ${preset.pirate}☠️  ${preset.cult}🐙（规则书预设）`
+    : '';
+
   return (
     <div className="waiting">
       <div className="waiting__hero">
@@ -168,7 +192,7 @@ function WaitingRoom({
         <h2 className="waiting__title">{waitingLabel}</h2>
         <p className="waiting__sub">
           {liveView
-            ? '还差几位船员，先把房间码发给他们'
+            ? '把房间码发给船员，等他们登船'
             : '把房间码发给船员，等他们登船'}
         </p>
       </div>
@@ -183,6 +207,14 @@ function WaitingRoom({
         </div>
         <span className="waiting__copy-hint">{copied ? '✓ 已复制' : '点击复制'}</span>
       </button>
+
+      {configLine && (
+        <div className="waiting__config">
+          <div className="waiting__config-title">本局配置</div>
+          <div className="waiting__config-line">{configLine}</div>
+          <div className="waiting__config-sub">{playerCount} 人局</div>
+        </div>
+      )}
 
       <div className="waiting__roster">
         <div className="waiting__roster-head">
@@ -209,7 +241,30 @@ function WaitingRoom({
         </ul>
       </div>
 
-      <p className="waiting__hint">人齐后进入身份确认阶段</p>
+      {isHost ? (
+        <button
+          type="button"
+          className="btn-cthulhu btn-cthulhu--gold waiting__start"
+          onClick={handleStart}
+          disabled={!canStart || startRequested}
+        >
+          <span className="btn-cthulhu__glyph">🐙</span>
+          <span className="btn-cthulhu__body">
+            <span className="btn-cthulhu__title">
+              {startRequested ? '正在发号…' : !canStart ? `等人齐 (${filled}/${playerCount})` : '开始游戏'}
+            </span>
+            <span className="btn-cthulhu__hint">
+              {canStart ? '所有人将看到自己的身份' : '船员到齐后才能发号'}
+            </span>
+          </span>
+        </button>
+      ) : (
+        <p className="waiting__hint">
+          {filled < playerCount
+            ? `等待其他船员 (${filled}/${playerCount})`
+            : '等待房主发号施令'}
+        </p>
+      )}
 
       <button type="button" className="btn-ghost waiting__leave" onClick={onLeave}>
         放弃这条航线
@@ -256,7 +311,10 @@ export function App() {
           <WaitingRoom
             session={session}
             onLeave={resetToLobby}
+            onStart={() => {}}
             playerCount={session.playerCount}
+            canStart={false}
+            isHost={false}
           />
         ) : (
           <ConnectingScreen matchID={session.matchID} onCancel={resetToLobby} />
@@ -274,25 +332,32 @@ export function App() {
   // Step 1 — waiting for seats to fill. Empty bgio seats are named "Player N"
   // by @ftk/game's setup (no names passed to createMatch). A seat with such a
   // placeholder name has no real human behind it yet, so we stay on the
-  // waiting screen regardless of whether you're the host or a joiner. Once
-  // every seat has a real name we fall through to role-reveal.
+  // waiting screen regardless of whether you're the host or a joiner.
   const unfilledSeats = view.others.filter((p) => /^Player \d+$/.test(p.name)).length;
   const realPlayers = playerCount - unfilledSeats;
-  if (unfilledSeats > 0) {
+  const allSeatsFilled = unfilledSeats === 0;
+
+  // Step 2 — all seats filled, but the host hasn't flipped the "开始游戏"
+  // switch yet. Stay on the waiting screen; the host sees a gold CTA, other
+  // seats see a "等待房主开始" hint.
+  if (!allSeatsFilled || !view.hostStarted) {
     return (
       <div className="app app--lobby">
         <WaitingRoom
           session={session}
           onLeave={resetToLobby}
+          onStart={game.hostStartGame}
           playerCount={playerCount}
           liveView={{ filled: realPlayers, seats: [view.you, ...view.others] }}
-          waitingLabel="等待船员登船"
+          waitingLabel={allSeatsFilled ? '船员到齐，等待房主发号' : '等待船员登船'}
+          canStart={allSeatsFilled && view.isHost}
+          isHost={view.isHost}
         />
       </div>
     );
   }
 
-  // Step 2 — role-reveal gate: every seat must acknowledge their role card
+  // Step 3 — role-reveal gate: every seat must acknowledge their role card
   // before any in-game move is legal. Until this player has done so, render
   // the flip-card screen in place of the board + side panels.
   if (!view.you.roleConfirmed) {
