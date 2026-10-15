@@ -1,47 +1,47 @@
 # Railway deployment for Feed the Kraken.
 #
-# Forces the legacy Nixpacks builder explicitly — Railway's default Railpack
-# (as of 2025) doesn't yet handle npm workspaces monorepos reliably. Nixpacks
-# auto-detects Node from `engines.node` and honours workspaces: a single
-# `npm ci` at the root installs every package under packages/*.
+# Forces the legacy Nixpacks builder (Railway's default Railpack as of 2025
+# doesn't yet handle npm-workspaces monorepos reliably). The config below
+# uses Nixpacks' own schema — `[phases.*]`, `[start]`, `[variables]` — which
+# is what Nixpacks v1.x actually reads. (The `[build] / [deploy]` schema that
+# older Railway docs show is ignored by Nixpacks.)
 #
-# The production server runs TypeScript source directly via tsx (promoted to
-# a regular dependency in packages/server/package.json). tsx is fast enough
-# for a friends-only game server and keeps the deploy pipeline trivial.
+# Pipeline:
+#   install → npm ci           (workspace-aware, installs all 5 packages)
+#   build   → npm run build    (runs each workspace's build; only @ftk/client
+#                               actually produces artefacts: Vite → dist/)
+#   start   → npm start -w @ftk/server   (tsx runs TS source directly —
+#                               promoted to a regular dep in that package)
 #
 # The built client is served by the same Node process via CLIENT_DIR — bgio's
 # koa app doubles as a static file host with an SPA fallback (see
 # packages/server/src/index.ts serveStatic).
 
-[build]
-builder = "NIXPACKS"
+[phases.install]
+dependsOn = ["setup"]
+cmds = ["npm ci"]
 
-# `npm ci` at the root installs every workspace package (engine, game,
-# room-code, client, server). `npm run build` runs each workspace's build —
-# in practice that's the Vite client build producing packages/client/dist;
-# the other workspaces only run `tsc --noEmit`.
-build = "npm ci && npm run build"
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npm run build"]
 
-# tsx reads workspace packages directly from node_modules/@ftk/*, where npm
-# hoisted symlinks point to the source. No separate compile step needed.
-start = "npm start -w @ftk/server"
+[start]
+cmd = "npm start -w @ftk/server"
 
-[deploy]
-# Railway injects PORT; main.ts reads it and the bgio server binds to 0.0.0.0
-# on that port. Socket.IO upgrades work out of the box on Railway's router.
-healthcheckPath = "/games"
-healthcheckTimeout = 120
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+[variables]
+# Pin Node 20. Nixpacks would otherwise auto-pick the newest LTS (Node 24 at
+# time of writing), which has known ESM/loader quirks that occasionally break
+# tsx and boardgame.io's dual-package CJS/ESM setup.
+NODE_VERSION = "20"
 
 # The client build lands in packages/client/dist/ relative to the repo root.
 # main.ts picks it up via this absolute path so the static middleware doesn't
 # depend on CWD.
-[deploy.env]
 CLIENT_DIR = "/app/packages/client/dist"
 
-# main.ts reads ORIGINS to feed bgio's CORS layer. Leaving it unset here on
-# purpose: Railway users must set this to their service URL (e.g.
+# bgio's CORS layer reads this in main.ts. Leaving it empty here: Railway
+# users must set this to their service URL (e.g.
 # `https://feed-the-kraken.up.railway.app`) via the dashboard variables panel
-# — bgio rejects cross-origin Socket.IO handshakes from any other origin, and
-# a forgotten default would open the server to any domain in production.
+# — otherwise cross-origin Socket.IO handshakes from the deployed domain are
+# rejected and the client stays stuck on "连接中…".
+ORIGINS = ""
