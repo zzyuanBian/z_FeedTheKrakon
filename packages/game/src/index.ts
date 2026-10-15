@@ -173,9 +173,6 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     ritualConversion: move((actor, target) => as('ritualConversion', actor, { target })),
     ritualGunsStash: move((actor, grants) => as('ritualGunsStash', actor, { grants })),
     ritualAck: move((actor) => as('ritualAck', actor)),
-
-    /** Host escape hatch for an AFK/stuck player. */
-    forceAdvance: move((actor) => as('forceAdvance', actor)),
   },
 
   /** The engine's whitelist projection is the only thing a client ever sees. */

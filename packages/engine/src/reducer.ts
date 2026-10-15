@@ -139,8 +139,9 @@ function appointTeam(s: GameState, a: Extract<Action, { type: 'appointTeam' }>):
   s.officers.navigator = a.navigator;
   s.log.push({ t: 'officers', lieutenant: a.lieutenant, navigator: a.navigator });
 
-  // Phase 2: any crew member may mutiny (action 'mutinyPledge'). The host, or
-  // a crew member declaring no mutiny, advances via forceAdvance below.
+  // Phase 2: any crew member may mutiny (action 'mutinyPledge') or stand down
+  // by pledging zero guns. Once every living seat has pledged, resolveMutiny
+  // advances the phase.
   s.phase = 'loyalty';
   s.mutiny = {
     active: true, pledges: {}, revealed: false, success: false,
@@ -577,7 +578,11 @@ function applyOffDuty(s: GameState): void {
   s.phase = 'appointTeam';
 }
 
-/* ============================= host / AFK =============================== */
+/* ======================= test-only AFK resolution ======================= */
+/* forceAdvance is NOT registered as a bgio move (cut from the product), so
+ * clients can never send it. It remains reachable only from direct reducer
+ * calls — @ftk/engine's test helper autoResolve() uses it to deterministically
+ * drain pendings without scripting every player's choice. */
 
 function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>): void {
   assert(a.actor === s.host, 'only the host may force-advance');

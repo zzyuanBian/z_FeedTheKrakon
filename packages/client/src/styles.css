@@ -348,6 +348,11 @@ button:disabled { cursor: not-allowed; }
 .faction-slider--cult { border-color: rgba(122, 58, 138, 0.4); }
 .faction-slider--cult .faction-slider__value { color: #d7a4e4; }
 
+/* Locked variant shown in the waiting room: same layout, muted interaction. */
+.faction-slider--locked { opacity: 0.75; }
+.faction-slider--locked .count-slider::-webkit-slider-thumb { cursor: default; }
+.faction-slider--locked .count-slider::-moz-range-thumb { cursor: default; }
+
 .faction-total {
   display: flex;
   gap: 10px;
@@ -632,13 +637,12 @@ button:disabled { cursor: not-allowed; }
   margin: 0;
 }
 
-/* Config summary card inside the waiting room. */
+/* Config panel inside the waiting room (locked sliders + title). */
 .waiting__config {
   background: var(--bg-panel);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   padding: 12px 16px;
-  text-align: center;
 }
 .waiting__config-title {
   font-family: var(--font-serif);
@@ -646,20 +650,10 @@ button:disabled { cursor: not-allowed; }
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-ghost);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  text-align: center;
 }
-.waiting__config-line {
-  font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--gold-bright);
-  letter-spacing: 0.08em;
-}
-.waiting__config-sub {
-  font-size: 12px;
-  color: var(--ink-ghost);
-  margin-top: 2px;
-}
+.waiting__config .faction-grid { margin: 0; }
 
 /* Host's "开始游戏" CTA at the bottom of the waiting room. */
 .waiting__start { width: 100%; margin-top: 8px; }

@@ -233,7 +233,10 @@ function presetFor(count: number) {
   return TEAM_COMPOSITIONS.find((c) => c.players === count) ?? null;
 }
 
-function FactionSlider({
+/** Shared faction-count slider. Used by CreateRoom (editable) and by the
+ *  waiting room (disabled — the host's locked config), so both pages read
+ *  as one continuous flow. */
+export function FactionSlider({
   label,
   glyph,
   value,
@@ -241,6 +244,7 @@ function FactionSlider({
   min,
   max,
   accent,
+  disabled,
 }: {
   label: string;
   glyph: string;
@@ -249,6 +253,7 @@ function FactionSlider({
   min: number;
   max: number;
   accent: 'gold' | 'blood' | 'cult';
+  disabled?: boolean;
 }) {
   const cls =
     accent === 'gold'
@@ -257,7 +262,7 @@ function FactionSlider({
       ? 'faction-slider faction-slider--blood'
       : 'faction-slider faction-slider--cult';
   return (
-    <label className={cls}>
+    <label className={cls + (disabled ? ' faction-slider--locked' : '')}>
       <span className="faction-slider__head">
         <span className="faction-slider__glyph" aria-hidden="true">{glyph}</span>
         <span className="faction-slider__label">{label}</span>
@@ -269,6 +274,7 @@ function FactionSlider({
         min={min}
         max={max}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </label>
@@ -341,10 +347,11 @@ function CreateRoom({
   const preset = presetFor(count);
   const total = sailor + pirate + cult;
   const valid = sailor >= 1 && pirate >= 1 && cult >= 0 && total === count;
-  const factionCounts: FactionCounts | undefined =
-    custom || (count === 5 && twoPirates)
-      ? { sailor, pirate, cult }
-      : undefined;
+  // Always send explicit factionCounts — even when the host kept the rulebook
+  // preset. This seals the exact breakdown into setupData, so every joiner's
+  // session (and the waiting room's config panel) shows the same numbers the
+  // host sees, with no preset-vs-custom distinction anywhere downstream.
+  const factionCounts: FactionCounts = { sailor, pirate, cult };
 
   const create = async () => {
     if (!valid) return;
@@ -354,7 +361,7 @@ function CreateRoom({
         playerName: name.trim(),
         playerCount: count,
         fivePlayerTwoPirates: count === 5 ? twoPirates : false,
-        ...(factionCounts ? { factionCounts } : {}),
+        factionCounts,
       });
       onReady(session);
     } catch (e) {

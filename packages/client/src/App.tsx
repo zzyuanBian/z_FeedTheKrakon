@@ -5,8 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { TEAM_COMPOSITIONS } from '@ftk/engine';
-import { Lobby } from './Lobby.js';
+import { Lobby, FactionSlider } from './Lobby.js';
 import { Board } from './Board.js';
 import { Roster } from './Roster.js';
 import { ActionPanel } from './ActionPanel.js';
@@ -160,50 +159,37 @@ function WaitingRoom({
     onStart();
   };
 
-  // Live-seat rendering (after first socket sync): "Player N" placeholders
-  // stand in for empty seats — bgio's @ftk/game setup names seats that way
-  // until a human joins and overwrites the name via the lobby API.
+  // Seat rendering. Empty/placeholder seats are FILTERED OUT — the crew list
+  // grows as people join instead of pre-rendering N rows of 空位 (the
+  // "X / N" counter in the header still shows the target size).
   //
   // NB: the two branches produce different id namespaces:
   //   - liveView.seats[*].id is the ENGINE PlayerId ("p1", "p2", ...)
   //   - polledSeats[*].id is the bgio seat index as a string ("0", "1", ...)
   // So "am I this seat?" can't just be `s.id === session.playerID` — we
   // precompute `isMe` in the shape itself.
-  const seats: { id: string; name: string | null; isPlaceholder: boolean; isMe: boolean }[] = liveView
-    ? liveView.seats.map((s) => ({
-        id: s.id,
-        name: /^Player \d+$/.test(s.name) ? null : s.name,
-        isPlaceholder: /^Player \d+$/.test(s.name),
-        isMe: !!s.isMe,
-      }))
-    : polledSeats.map((s) => ({
-        ...s,
-        isPlaceholder: false,
-        isMe: s.id === session.playerID,
-      }));
+  const seats: { id: string; name: string; isMe: boolean }[] = liveView
+    ? liveView.seats
+        .filter((s) => !/^Player \d+$/.test(s.name))
+        .map((s) => ({ id: s.id, name: s.name, isMe: !!s.isMe }))
+    : polledSeats
+        .filter((s) => s.name)
+        .map((s) => ({ id: s.id, name: s.name!, isMe: s.id === session.playerID }));
 
   const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
 
-  // Config summary: explicit factionCounts from the session if the host
-  // picked custom numbers, otherwise fall back to the rulebook preset.
-  const fc = session.factionCounts;
-  const preset = TEAM_COMPOSITIONS.find((c) => c.players === playerCount);
-  const configLine = fc
-    ? `${fc.sailor}⚓  ${fc.pirate}☠️  ${fc.cult}🐙`
-    : preset
-    ? `${preset.sailor}⚓  ${preset.pirate}☠️  ${preset.cult}🐙（规则书预设）`
-    : '';
+  // Config panel: the host's exact faction breakdown. createMatch always
+  // seals factionCounts into setupData and joinMatch copies it into every
+  // joiner's session, so this is always present and always what the host
+  // configured — no rulebook-preset guesswork anywhere.
+  const fc = session.factionCounts ?? { sailor: 0, pirate: 0, cult: 0 };
 
   return (
     <div className="waiting">
       <div className="waiting__hero">
         <div className="waiting__ornament" aria-hidden="true">⚓</div>
         <h2 className="waiting__title">{waitingLabel}</h2>
-        <p className="waiting__sub">
-          {liveView
-            ? '把房间码发给船员，等他们登船'
-            : '把房间码发给船员，等他们登船'}
-        </p>
+        <p className="waiting__sub">把房间码发给船员，等他们登船</p>
       </div>
 
       <button type="button" className="room-code" onClick={copy} aria-label="点击复制房间码">
@@ -212,13 +198,16 @@ function WaitingRoom({
         <span className="room-code__icon" aria-hidden="true">{copied ? '✓' : '⧉'}</span>
       </button>
 
-      {configLine && (
-        <div className="waiting__config">
-          <div className="waiting__config-title">本局配置</div>
-          <div className="waiting__config-line">{configLine}</div>
-          <div className="waiting__config-sub">{playerCount} 人局</div>
+      {/* Locked config panel — same visual as CreateRoom's sliders, disabled,
+          so the create page and the waiting page read as one continuous flow. */}
+      <div className="waiting__config">
+        <div className="waiting__config-title">本局配置 · {playerCount} 人局</div>
+        <div className="faction-grid">
+          <FactionSlider label="水手" glyph="⚓" value={fc.sailor} onChange={() => {}} min={0} max={11} accent="gold" disabled />
+          <FactionSlider label="海盗" glyph="☠️" value={fc.pirate} onChange={() => {}} min={0} max={11} accent="blood" disabled />
+          <FactionSlider label="邪教徒" glyph="🐙" value={fc.cult} onChange={() => {}} min={0} max={11} accent="cult" disabled />
         </div>
-      )}
+      </div>
 
       <div className="waiting__roster">
         <div className="waiting__roster-head">
@@ -229,19 +218,16 @@ function WaitingRoom({
           {seats.length === 0 && (
             <li className="waiting__roster-loading">读取船员名单中…</li>
           )}
-          {seats.map((s, i) => {
-            const empty = !s.name || s.isPlaceholder;
-            return (
-              <li key={s.id} className={'waiting__roster-row' + (empty ? ' waiting__roster-row--empty' : '')}>
-                <span className="waiting__roster-seat">{i + 1}</span>
-                <span className="waiting__roster-name">
-                  {empty ? '空位' : s.name}
-                  {s.isMe && ' (你)'}
-                </span>
-                {s.isMe && isHost && <span className="waiting__roster-you">房主</span>}
-              </li>
-            );
-          })}
+          {seats.map((s, i) => (
+            <li key={s.id} className="waiting__roster-row">
+              <span className="waiting__roster-seat">{i + 1}</span>
+              <span className="waiting__roster-name">
+                {s.name}
+                {s.isMe && ' (你)'}
+              </span>
+              {s.isMe && isHost && <span className="waiting__roster-you">房主</span>}
+            </li>
+          ))}
         </ul>
       </div>
 

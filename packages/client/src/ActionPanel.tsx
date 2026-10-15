@@ -196,25 +196,12 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
     return <PendingForm view={view} moves={moves} kind={p.kind} />;
   }
 
-  // 5. Host escape hatch.
-  if (view.isHost) {
-    return (
-      <div className="panel panel--quiet">
-        <p className="hint">
-          {p
-            ? `等待 ${name(view, p.by)} 操作…`
-            : '等待其他玩家…'}
-        </p>
-        <button className="btn btn--ghost" onClick={() => moves.forceAdvance!()}>
-          ⏭ 房主强制推进
-        </button>
-      </div>
-    );
-  }
-
+  // 5. Nothing actionable for this player right now.
   return (
     <div className="panel panel--quiet">
-      <p className="hint">{p ? `等待 ${name(view, p.by)} 操作…` : `当前阶段：${PHASE_LABEL[view.phase]}`}</p>
+      <p className="hint">
+        {p ? `等待 ${name(view, p.by)} 操作…` : `当前阶段：${PHASE_LABEL[view.phase]}`}
+      </p>
     </div>
   );
 }

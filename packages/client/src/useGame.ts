@@ -88,19 +88,22 @@ export async function joinMatch(matchID: string, playerName: string): Promise<Se
     playerID: open.id.toString(),
     playerName,
   });
-  // Seal the host's chosen playerCount into the session so App.tsx can render
-  // the WaitingRoom (with correct "X / N") before the first socket sync lands.
-  // Without this the joiner falls into the ConnectingScreen branch for a few
-  // hundred milliseconds — long enough to look broken to a human.
-  const setupPlayerCount =
-    (match.setupData as { playerCount?: number } | undefined)?.playerCount ??
-    match.players.length;
+  // Seal the host's chosen playerCount + factionCounts into the session so
+  // App.tsx can render the WaitingRoom (with the correct "X / N" and the
+  // host's exact faction breakdown) before the first socket sync lands.
+  // Without this the joiner would show a rulebook-preset guess instead of
+  // what the host actually configured.
+  const setup = (match.setupData ?? {}) as {
+    playerCount?: number;
+    factionCounts?: { sailor: number; pirate: number; cult: number };
+  };
   const session: Session = {
     matchID,
     playerID,
     credentials: playerCredentials,
     playerName,
-    playerCount: setupPlayerCount,
+    playerCount: setup.playerCount ?? match.players.length,
+    ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
   };
   saveSession(session);
   return session;
