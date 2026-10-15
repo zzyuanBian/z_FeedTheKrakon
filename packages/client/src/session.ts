@@ -21,8 +21,8 @@ export interface Session {
    *  sessions predate the field. */
   playerCount?: number;
   /** Host's chosen faction breakdown. Optional because older sessions predate
-   *  the field, and because a host who accepted the rulebook preset leaves
-   *  this unset (WaitingRoom falls back to TEAM_COMPOSITIONS). */
+   *  the field; WaitingRoom falls back to the 7-player rulebook preset when
+   *  absent (pre-sync display only). */
   factionCounts?: { sailor: number; pirate: number; cult: number };
 }
 

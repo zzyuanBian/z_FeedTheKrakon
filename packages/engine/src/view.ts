@@ -14,9 +14,10 @@
  */
 
 import type {
-  ArrowColor, Faction, GameState, LogEntry, NavCardId, Pending, PhaseId, PlayerId,
-  RitualCardId, Ship,
+  ArrowColor, Faction, FactionCounts, GameState, LogEntry, NavCardId, Pending, PhaseId,
+  PlayerId, RitualCardId, Ship,
 } from './state.js';
+import { effectiveFactionCounts } from './setup.js';
 
 /* --------------------------- public sub-views --------------------------- */
 
@@ -89,6 +90,10 @@ export interface PlayerView {
     knownCultists: PlayerId[];
   };
   others: OtherPlayerView[];
+  /** Public: the faction breakdown this game is configured with — what the
+   *  waiting-room config panel shows. Follows a host's `setFactionConfig`
+   *  re-seal. Never secret. */
+  factionCounts: FactionCounts;
   /** Per-seat role-confirm status, in seatOrder. Lets the role-reveal screen
    *  show "X / Y 已准备" without a separate lobby poll. */
   roleConfirmations: { confirmed: number; total: number; bySeat: boolean[] };
@@ -184,6 +189,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       knownCultists,
     },
     others,
+    factionCounts: effectiveFactionCounts(state.settings),
     roleConfirmations,
     hostStarted: state.hostStarted,
     ship: { ...state.ship },

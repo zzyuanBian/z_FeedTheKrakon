@@ -78,6 +78,7 @@ function move(create: (actor: PlayerId, ...args: unknown[]) => Action): Move<Gam
         action.type !== 'confirmRole'
         && action.type !== 'hostStartGame'
         && action.type !== 'syncName'
+        && action.type !== 'setFactionConfig'
       ) {
         const allConfirmed = G.confirmedRole.length >= G.seatOrder.length
           && G.seatOrder.every((id) => G.confirmedRole.includes(id));
@@ -145,6 +146,13 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
      *  connects — without it, the live-view roster would show placeholder
      *  names forever. */
     syncName: move((actor, name) => as('syncName', actor, { name })),
+
+    /** Pre-game: the host re-seals the faction breakdown in the waiting room
+     *  (every team is re-dealt — legal while no role card has been seen).
+     *  Exempt from the role-confirm gate: the host tunes the config exactly
+     *  while everyone is still unconfirmed. */
+    setFactionConfig: move((actor, factionCounts) =>
+      as('setFactionConfig', actor, { factionCounts })),
 
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal

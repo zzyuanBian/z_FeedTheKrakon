@@ -6,6 +6,11 @@
  * prominent action buttons, and a small "still here?" reconnect affordance
  * when the browser has a live session from the last visit.
  *
+ * 「开辟新航线」creates the match immediately and lands the host in the
+ * waiting room — the old pre-create config page is gone; the config lives in
+ * the waiting room now (see WaitingRoom in App.tsx), where the host can keep
+ * tuning it while people board.
+ *
  * Visual language: deep-ocean palette, gold serif titles, a faint kraken
  * silhouette rendered as inline SVG so the build stays single-file.
  */
@@ -13,13 +18,66 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TEAM_COMPOSITIONS, type FactionCounts } from '@ftk/engine';
 import { CODE_LENGTH, isRoomCode, normalizeRoomCode } from '@ftk/room-code';
-import { MAX_PLAYERS, MIN_PLAYERS } from './config.js';
 import { createMatch, joinMatch } from './useGame.js';
 import type { Session } from './session.js';
 
-type Screen = 'menu' | 'create' | 'join';
+type Screen = 'menu' | 'join';
+
+/** Player count a fresh「开辟新航线」starts with. The rulebook's 7-player
+ *  entry (4⚓ 2☠️ 1🐙) — the host can retune it in the waiting room. */
+export const DEFAULT_PLAYER_COUNT = 7;
 
 const NAME_STORAGE_KEY = 'ftk.name.v1';
+
+// --------------------------- faction-count math ---------------------------
+
+export type FactionName = 'sailor' | 'pirate' | 'cult';
+
+/** Per-faction floors: the engine requires >=1 sailor and >=1 pirate (an
+ *  officer corps and a mutiny threat); cult may be 0. */
+const FACTION_MIN: Record<FactionName, number> = { sailor: 1, pirate: 1, cult: 0 };
+
+/** Read the rulebook preset for a given player count. Returns null for counts
+ *  outside the TEAM_COMPOSITIONS table. */
+export function presetFor(count: number) {
+  return TEAM_COMPOSITIONS.find((c) => c.players === count) ?? null;
+}
+
+/** Move ONE seat between factions, keeping the total equal to the player
+ *  count — with this primitive a mis-tally is impossible, so the UI needs no
+ *  合计 warning row. `+` takes the seat from the largest other faction;
+ *  `−` hands the freed seat to the largest other faction. Returns `fc`
+ *  unchanged when the shift would break a faction floor. */
+export function shiftSeat(fc: FactionCounts, f: FactionName, delta: 1 | -1): FactionCounts {
+  const others = (['sailor', 'pirate', 'cult'] as const).filter((x) => x !== f);
+  if (delta === 1) {
+    const donors = others.filter((x) => fc[x] > FACTION_MIN[x]);
+    if (donors.length === 0) return fc;
+    const donor = donors.reduce((a, b) => (fc[b]! > fc[a]! ? b : a));
+    return { ...fc, [f]: fc[f] + 1, [donor]: fc[donor]! - 1 };
+  }
+  if (fc[f] <= FACTION_MIN[f]) return fc;
+  const receiver = others.reduce((a, b) => (fc[b]! > fc[a]! ? b : a));
+  return { ...fc, [f]: fc[f] - 1, [receiver]: fc[receiver]! + 1 };
+}
+
+/** Whether `shiftSeat` would actually move a seat — drives the ± disabled
+ *  states so buttons never no-op silently. */
+export function canShift(fc: FactionCounts, f: FactionName, delta: 1 | -1): boolean {
+  return shiftSeat(fc, f, delta) !== fc;
+}
+
+/** Rescale a breakdown for a different player count (no rulebook preset):
+ *  keep the cult, split the rest roughly 60/40 sailor/pirate. Used when the
+ *  host changes the player count and the new count has no preset row. */
+export function scaleCounts(fc: FactionCounts, count: number): FactionCounts {
+  const cult = Math.min(fc.cult, Math.max(0, count - 2));
+  const rest = Math.max(2, count - cult);
+  const pirate = Math.max(1, Math.floor(rest * 0.4));
+  return { sailor: rest - pirate, pirate, cult };
+}
+
+// ------------------------------- decorators -------------------------------
 
 // ------------------------------- decorators -------------------------------
 
@@ -176,12 +234,15 @@ function MainMenu({
   name,
   setName,
   error,
+  onCreate,
   onGo,
   busy,
 }: {
   name: string;
   setName: (v: string) => void;
   error: string | null;
+  /** 「开辟新航线」— creates the match at once and enters the waiting room. */
+  onCreate: () => void;
   onGo: (screen: Screen) => void;
   busy: boolean;
 }) {
@@ -196,12 +257,12 @@ function MainMenu({
             type="button"
             className="btn-cthulhu btn-cthulhu--gold"
             disabled={!nameOk || busy}
-            onClick={() => onGo('create')}
+            onClick={onCreate}
           >
             <span className="btn-cthulhu__glyph">🐙</span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">开辟新航线</span>
-              <span className="btn-cthulhu__hint">创建房间，召唤船员</span>
+              <span className="btn-cthulhu__hint">创建房间，进房后再调配置</span>
             </span>
           </button>
           <button
@@ -224,264 +285,102 @@ function MainMenu({
   );
 }
 
-// ------------------------------ create -----------------------------------
+// ------------------------------- steppers --------------------------------
 
-/** Read the rulebook preset for a given player count. Returns null for counts
- *  outside the TEAM_COMPOSITIONS table — the host is then forced to pick
- *  custom factionCounts. */
-function presetFor(count: number) {
-  return TEAM_COMPOSITIONS.find((c) => c.players === count) ?? null;
-}
-
-/** Shared faction-count slider. Used by CreateRoom (editable) and by the
- *  waiting room (disabled — the host's locked config), so both pages read
- *  as one continuous flow. */
-export function FactionSlider({
+/** ± stepper for a faction size. Every press delegates to `onDelta`; the
+ *  parent owns the auto-balance math (`shiftSeat`), so the three rows always
+ *  sum to the player count. `disabled` collapses the row to read-only
+ *  numbers — a frozen control invites pokes, so hide its buttons entirely. */
+export function FactionStepper({
   label,
   glyph,
   value,
-  onChange,
-  min,
-  max,
   accent,
   disabled,
+  canPlus,
+  canMinus,
+  onDelta,
 }: {
   label: string;
   glyph: string;
   value: number;
-  onChange: (n: number) => void;
-  min: number;
-  max: number;
   accent: 'gold' | 'blood' | 'cult';
   disabled?: boolean;
+  canPlus: boolean;
+  canMinus: boolean;
+  onDelta: (d: 1 | -1) => void;
 }) {
-  const cls =
-    accent === 'gold'
-      ? 'faction-slider faction-slider--gold'
-      : accent === 'blood'
-      ? 'faction-slider faction-slider--blood'
-      : 'faction-slider faction-slider--cult';
+  const locked = !!disabled;
   return (
-    <label className={cls + (disabled ? ' faction-slider--locked' : '')}>
-      <span className="faction-slider__head">
-        <span className="faction-slider__glyph" aria-hidden="true">{glyph}</span>
-        <span className="faction-slider__label">{label}</span>
-        <span className="faction-slider__value">{value}</span>
+    <div className={`faction-stepper faction-stepper--${accent}` + (locked ? ' faction-stepper--locked' : '')}>
+      <span className="faction-stepper__head">
+        <span className="faction-stepper__glyph" aria-hidden="true">{glyph}</span>
+        <span className="faction-stepper__label">{label}</span>
+        {!locked && (
+          <span className="faction-stepper__controls">
+            <button
+              type="button"
+              className="stepper-btn"
+              aria-label={`减少${label}`}
+              disabled={!canMinus}
+              onClick={() => onDelta(-1)}
+            >
+              −
+            </button>
+            <span className="faction-stepper__value">{value}</span>
+            <button
+              type="button"
+              className="stepper-btn"
+              aria-label={`增加${label}`}
+              disabled={!canPlus}
+              onClick={() => onDelta(1)}
+            >
+              +
+            </button>
+          </span>
+        )}
+        {locked && <span className="faction-stepper__value">{value}</span>}
       </span>
-      <input
-        className="count-slider"
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
+    </div>
   );
 }
 
-function CreateRoom({
-  name,
-  onBack,
-  onReady,
-  onError,
+/** ± stepper for the player count itself. */
+export function CountStepper({
+  value,
+  min,
+  max,
+  disabled,
+  onChange,
 }: {
-  name: string;
-  onBack: () => void;
-  onReady: (s: Session) => void;
-  onError: (msg: string) => void;
+  value: number;
+  min: number;
+  max: number;
+  disabled?: boolean;
+  onChange: (n: number) => void;
 }) {
-  const [count, setCount] = useState(7);
-  const [twoPirates, setTwoPirates] = useState(false);
-  const [sailor, setSailor] = useState(() => presetFor(7)?.sailor ?? 4);
-  const [pirate, setPirate] = useState(() => presetFor(7)?.pirate ?? 2);
-  const [cult, setCult] = useState(() => presetFor(7)?.cult ?? 1);
-  const [custom, setCustom] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  // Reset faction counts whenever the player count changes. If there's a
-  // rulebook preset for the new count, snap to it; otherwise force custom
-  // mode and try to preserve sensible defaults.
-  useEffect(() => {
-    const p = presetFor(count);
-    if (p) {
-      const s = count === 5 && twoPirates ? p.sailor - 1 : p.sailor;
-      const pi = count === 5 && twoPirates ? p.pirate + 1 : p.pirate;
-      setSailor(s);
-      setPirate(pi);
-      setCult(p.cult);
-    } else {
-      setCustom(true);
-      // Safe fallback: 1 cult, rest split roughly 60/40 sailor/pirate.
-      setCult(1);
-      const rest = Math.max(2, count - 1);
-      setSailor(Math.ceil(rest * 0.6));
-      setPirate(Math.floor(rest * 0.4));
-    }
-  }, [count, twoPirates]);
-
-  const applyPreset = (variant: 'default' | 'twoPirates') => {
-    const p = presetFor(count);
-    if (!p) return;
-    setCustom(false);
-    if (variant === 'twoPirates' && count === 5) {
-      setTwoPirates(true);
-      setSailor(p.sailor - 1);
-      setPirate(p.pirate + 1);
-      setCult(p.cult);
-    } else {
-      setTwoPirates(false);
-      setSailor(p.sailor);
-      setPirate(p.pirate);
-      setCult(p.cult);
-    }
-  };
-
-  // Drift into custom mode as soon as the user nudges a slider away from the
-  // preset values.
-  const touchSailor = (n: number) => { setCustom(true); setSailor(n); };
-  const touchPirate = (n: number) => { setCustom(true); setPirate(n); };
-  const touchCult = (n: number) => { setCustom(true); setCult(n); };
-
-  const preset = presetFor(count);
-  const total = sailor + pirate + cult;
-  const valid = sailor >= 1 && pirate >= 1 && cult >= 0 && total === count;
-  // Always send explicit factionCounts — even when the host kept the rulebook
-  // preset. This seals the exact breakdown into setupData, so every joiner's
-  // session (and the waiting room's config panel) shows the same numbers the
-  // host sees, with no preset-vs-custom distinction anywhere downstream.
-  const factionCounts: FactionCounts = { sailor, pirate, cult };
-
-  const create = async () => {
-    if (!valid) return;
-    setBusy(true);
-    try {
-      const session = await createMatch({
-        playerName: name.trim(),
-        playerCount: count,
-        fivePlayerTwoPirates: count === 5 ? twoPirates : false,
-        factionCounts,
-      });
-      onReady(session);
-    } catch (e) {
-      onError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const maxPerFaction = Math.max(1, count - 2); // leave room for >=1 in each of the others
-
   return (
-    <>
-      <GoldTitle />
-      <div className="menu-card">
-        <h2 className="card-title">开辟新航线</h2>
-
-        <label className="themed-field">
-          <span className="themed-field__label">船员人数</span>
-          <div className="count-row">
-            <span className="count-big">{count}</span>
-            <input
-              className="count-slider"
-              type="range"
-              min={MIN_PLAYERS}
-              max={MAX_PLAYERS}
-              value={count}
-              onChange={(e) => setCount(Number(e.target.value))}
-            />
-            <span className="count-range">{MIN_PLAYERS}–{MAX_PLAYERS}</span>
-          </div>
-        </label>
-
-        {preset && (
-          <div className="preset-row">
-            <button
-              type="button"
-              className={
-                'preset-chip' + (!custom && !twoPirates ? ' preset-chip--on' : '')
-              }
-              onClick={() => applyPreset('default')}
-            >
-              推荐：{preset.sailor}⚓ {preset.pirate}☠️ {preset.cult}🐙
-            </button>
-            {count === 5 && (
-              <button
-                type="button"
-                className={
-                  'preset-chip' + (!custom && twoPirates ? ' preset-chip--on' : '')
-                }
-                onClick={() => applyPreset('twoPirates')}
-              >
-                5 人变体：2⚓ 2☠️ 1🐙
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="faction-grid">
-          <FactionSlider
-            label="水手"
-            glyph="⚓"
-            value={sailor}
-            onChange={touchSailor}
-            min={1}
-            max={maxPerFaction}
-            accent="gold"
-          />
-          <FactionSlider
-            label="海盗"
-            glyph="☠️"
-            value={pirate}
-            onChange={touchPirate}
-            min={1}
-            max={maxPerFaction}
-            accent="blood"
-          />
-          <FactionSlider
-            label="邪教徒"
-            glyph="🐙"
-            value={cult}
-            onChange={touchCult}
-            min={0}
-            max={Math.max(0, count - 2)}
-            accent="cult"
-          />
-        </div>
-
-        <div className={'faction-total' + (valid ? '' : ' faction-total--bad')}>
-          <span>合计</span>
-          <strong>
-            {total} / {count}
-          </strong>
-          {!valid && (
-            <span className="faction-total__hint">
-              {total !== count
-                ? `还差 ${count - total} 人`
-                : '水手和海盗至少各 1 人'}
-            </span>
-          )}
-        </div>
-
-        <div className="card-actions">
-          <button type="button" className="btn-ghost" onClick={onBack} disabled={busy}>
-            ← 返回
-          </button>
-          <button
-            type="button"
-            className="btn-cthulhu btn-cthulhu--gold"
-            onClick={create}
-            disabled={busy || !valid}
-          >
-            <span className="btn-cthulhu__glyph">🐙</span>
-            <span className="btn-cthulhu__body">
-              <span className="btn-cthulhu__title">{busy ? '正在创建…' : '创建房间'}</span>
-            </span>
-          </button>
-        </div>
-      </div>
-    </>
+    <span className="count-stepper">
+      <button
+        type="button"
+        className="stepper-btn"
+        aria-label="减少人数"
+        disabled={disabled || value <= min}
+        onClick={() => onChange(value - 1)}
+      >
+        −
+      </button>
+      <span className="count-stepper__value">{value}</span>
+      <button
+        type="button"
+        className="stepper-btn"
+        aria-label="增加人数"
+        disabled={disabled || value >= max}
+        onClick={() => onChange(value + 1)}
+      >
+        +
+      </button>
+    </span>
   );
 }
 
@@ -489,12 +388,14 @@ function CreateRoom({
 
 function JoinRoom({
   name,
+  setName,
   onBack,
   onReady,
   onError,
   initialCode = '',
 }: {
   name: string;
+  setName: (v: string) => void;
   onBack: () => void;
   onReady: (s: Session) => void;
   onError: (msg: string) => void;
@@ -503,9 +404,10 @@ function JoinRoom({
   const [code, setCode] = useState(normalizeRoomCode(initialCode));
   const [busy, setBusy] = useState(false);
   const valid = isRoomCode(code);
+  const nameOk = name.trim().length > 0;
 
   const join = async () => {
-    if (!valid) return;
+    if (!valid || !nameOk) return;
     setBusy(true);
     try {
       const session = await joinMatch(code, name.trim());
@@ -517,12 +419,15 @@ function JoinRoom({
     }
   };
 
+  // Deep links land here straight from the menu, so the name field must be
+  // on this screen too (prefilled from storage for returning players).
   return (
     <>
       <GoldTitle />
       <div className="menu-card">
         <h2 className="card-title">登上友船</h2>
-        <p className="card-hint">让房主把 5 位房间码发给你</p>
+        {initialCode && <p className="card-hint">已识别房间码，确认名字后登船</p>}
+        <NameField value={name} onChange={setName} />
         <CodeInput value={code} onChange={setCode} disabled={busy} />
         <div className="card-actions">
           <button type="button" className="btn-ghost" onClick={onBack} disabled={busy}>
@@ -531,12 +436,14 @@ function JoinRoom({
           <button
             type="button"
             className="btn-cthulhu btn-cthulhu--gold"
-            disabled={!valid || busy}
+            disabled={!valid || !nameOk || busy}
             onClick={join}
           >
             <span className="btn-cthulhu__glyph">⚓</span>
             <span className="btn-cthulhu__body">
-              <span className="btn-cthulhu__title">{busy ? '正在登船…' : '加入房间'}</span>
+              <span className="btn-cthulhu__title">
+                {busy ? '正在登船…' : nameOk ? `以 ${name.trim()} 身份加入` : '加入房间'}
+              </span>
             </span>
           </button>
         </div>
@@ -586,11 +493,27 @@ export interface LobbyProps {
 }
 
 export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
-  const [screen, setScreen] = useState<Screen>('menu');
+  // Deep link: ?room=XXXXX (from the waiting room's 一键分享) skips straight
+  // to the join screen with the code filled in. The param is stripped right
+  // after landing so a manual refresh doesn't re-trigger the jump — the code
+  // has already been copied into the input.
+  const [initialCode] = useState(() => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('room') ?? '';
+      return normalizeRoomCode(raw).slice(0, CODE_LENGTH);
+    } catch { return ''; }
+  });
+  const [screen, setScreen] = useState<Screen>(() => (initialCode ? 'join' : 'menu'));
   const [name, setName] = useState<string>(() => {
     try { return localStorage.getItem(NAME_STORAGE_KEY) ?? ''; } catch { return ''; }
   });
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!initialCode) return;
+    try { window.history.replaceState(null, '', window.location.pathname); } catch { /* ignore */ }
+  }, [initialCode]);
 
   // Persist the name as they type, so it's still there next launch.
   useEffect(() => {
@@ -603,6 +526,27 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
   };
   const wrappedError = (msg: string) => setError(msg);
 
+  // One tap from the menu to a live waiting room: create the match with the
+  // rulebook's 7-player preset right away. The config stays tunable in the
+  // waiting room, so there is nothing worth a separate setup page anymore.
+  const handleCreate = async () => {
+    if (busy || !name.trim()) return;
+    setBusy(true);
+    try {
+      const p = presetFor(DEFAULT_PLAYER_COUNT)!;
+      const session = await createMatch({
+        playerName: name.trim(),
+        playerCount: DEFAULT_PLAYER_COUNT,
+        factionCounts: { sailor: p.sailor, pirate: p.pirate, cult: p.cult },
+      });
+      wrappedReady(session);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleForget = () => {
     onForget();
     setError(null);
@@ -610,15 +554,13 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
 
   const content = useMemo(() => {
     switch (screen) {
-      case 'create':
-        return <CreateRoom name={name} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
       case 'join':
-        return <JoinRoom name={name} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
+        return <JoinRoom name={name} setName={setName} initialCode={initialCode} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
       default:
-        return <MainMenu name={name} setName={setName} error={error} onGo={setScreen} busy={false} />;
+        return <MainMenu name={name} setName={setName} error={error} onCreate={handleCreate} onGo={setScreen} busy={busy} />;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, name, error]);
+  }, [screen, name, error, busy, initialCode]);
 
   return (
     <div className="lobby-shell">

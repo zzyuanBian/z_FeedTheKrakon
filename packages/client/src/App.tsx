@@ -5,17 +5,21 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Lobby, FactionSlider } from './Lobby.js';
+import { type FactionCounts } from '@ftk/engine';
+import {
+  CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
+} from './Lobby.js';
 import { Board } from './Board.js';
 import { Roster } from './Roster.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
 import { ChatPanel } from './ChatPanel.js';
 import { RoleReveal } from './RoleReveal.js';
-import { lobby, clearSession, loadSession, useGame } from './useGame.js';
+import { lobby, clearSession, createMatch, loadSession, useGame } from './useGame.js';
 import type { Session } from './session.js';
-import { GAME_NAME } from './config.js';
+import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
 import { FACTION_LABEL, PHASE_LABEL } from './labels.js';
+import { copyText, roomShareUrl } from './clipboard.js';
 
 /** How long the connecting screen waits before auto-resetting to the lobby.
  *  Must match the stale-session timeout in useGame. */
@@ -52,15 +56,7 @@ function ConnectingScreen({ matchID, onCancel }: { matchID: string; onCancel: ()
 function RoomId({ matchID }: { matchID: string }) {
   const [flash, setFlash] = useState(false);
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(matchID);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = matchID;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
-    }
+    await copyText(matchID);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 1200);
   }, [matchID]);
@@ -84,9 +80,17 @@ function RoomId({ matchID }: { matchID: string }) {
  *  instead so it's obvious who's still missing. */
 interface RosterSeat { id: string; name: string | null; }
 
-/** Shown after the host creates the room: big room code, copy button, live
- *  roster of who has joined, a read-only summary of the host's config, and a
- *  "开始游戏" button the host flips once everyone is at their keyboard.
+/** Shown after the host creates the room: big room code, share/copy buttons,
+ *  live roster of who has joined, the run's config — EDITABLE by the host
+ *  until the game starts — and a "开始游戏" button the host flips once
+ *  everyone is at their keyboard.
+ *
+ *  Host config editing comes in two shapes:
+ *    - faction breakdown  → the `setFactionConfig` move re-deals teams live;
+ *      everyone in the room sees the new numbers on the next broadcast.
+ *    - player count       → bgio seats are fixed at match creation, so a
+ *      count change rebuilds the match (new room code) via `onRecreate`.
+ *      Locked once anyone besides the host has boarded.
  *
  *  When `liveView` is supplied, we're past the first socket sync: the seat
  *  list comes from the live GameState instead of the lobby API, and empty
@@ -97,9 +101,13 @@ function WaitingRoom({
   onStart,
   playerCount,
   liveView,
-  waitingLabel = '航线已开辟',
+  waitingLabel = '等待船员登船',
   canStart,
   isHost,
+  factionCounts,
+  onSetFactionCounts,
+  onRecreate,
+  recreateError,
 }: {
   session: Session;
   onLeave: () => void;
@@ -109,10 +117,27 @@ function WaitingRoom({
   waitingLabel?: string;
   canStart: boolean;
   isHost: boolean;
+  /** Live faction breakdown from the GameState, when a sync has landed.
+   *  Falls back to the breakdown sealed in the session (pre-sync). */
+  factionCounts?: FactionCounts | undefined;
+  /** Host only: re-seal the breakdown (setFactionConfig move). Absent pre-
+   *  connection, where the move could be dropped by a not-yet-open socket. */
+  onSetFactionCounts?: ((fc: FactionCounts) => void) | undefined;
+  /** Host only: rebuild the match with a new player count (new room code). */
+  onRecreate?: ((count: number, fc: FactionCounts) => void) | undefined;
+  /** Failure from the last recreate attempt, if any. */
+  recreateError?: string | null | undefined;
 }) {
   const [polledSeats, setPolledSeats] = useState<RosterSeat[]>([]);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const [startRequested, setStartRequested] = useState(false);
+  // Set while a rebuild is in flight; cleared when the new count arrives
+  // (new session → new playerCount prop) or when a failure is reported.
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (recreateError) setPendingCount(null);
+  }, [recreateError]);
 
   // Only poll the lobby API while we don't have a live GameState to read
   // from. Once `liveView` is present, bgio's own state sync keeps the seat
@@ -140,17 +165,15 @@ function WaitingRoom({
   }, [session.matchID, liveView]);
 
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(session.matchID);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = session.matchID;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
-    }
+    await copyText(session.matchID);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
+  }, [session.matchID]);
+
+  const share = useCallback(async () => {
+    await copyText(roomShareUrl(session.matchID));
+    setShared(true);
+    window.setTimeout(() => setShared(false), 1400);
   }, [session.matchID]);
 
   const handleStart = () => {
@@ -178,11 +201,39 @@ function WaitingRoom({
 
   const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
 
-  // Config panel: the host's exact faction breakdown. createMatch always
-  // seals factionCounts into setupData and joinMatch copies it into every
-  // joiner's session, so this is always present and always what the host
-  // configured — no rulebook-preset guesswork anywhere.
-  const fc = session.factionCounts ?? { sailor: 0, pirate: 0, cult: 0 };
+  // ---- host config editing ----
+  // The breakdown on display: live from the GameState once synced, else the
+  // breakdown sealed into the session at create time.
+  const sealed = session.factionCounts ?? { sailor: 4, pirate: 2, cult: 1 };
+  const fc = factionCounts ?? sealed;
+  const editable = isHost && !!onSetFactionCounts;
+
+  // Local draft mirrors the authoritative numbers; the echo of each
+  // setFactionConfig broadcast re-snaps it (covers races + rejected moves).
+  const [draft, setDraft] = useState<FactionCounts>(fc);
+  const fcKey = `${fc.sailor},${fc.pirate},${fc.cult}`;
+  useEffect(() => { setDraft(fc); }, [fcKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const bump = (f: 'sailor' | 'pirate' | 'cult', d: 1 | -1) => {
+    const next = shiftSeat(draft, f, d);
+    if (next === draft) return;
+    setDraft(next);
+    onSetFactionCounts?.(next);
+  };
+
+  // Player count: no local draft — each press rebuilds the match outright
+  // with the new count's preset (or a scaled breakdown when there is none).
+  const canEditCount = isHost && !!onRecreate && filled <= 1 && pendingCount === null;
+  const changeCount = (next: number) => {
+    if (!canEditCount || next === playerCount) return;
+    setPendingCount(next);
+    const p = presetFor(next);
+    const nextFc: FactionCounts = p
+      ? { sailor: p.sailor, pirate: p.pirate, cult: p.cult }
+      : scaleCounts(draft, next);
+    setDraft(nextFc);
+    onRecreate?.(next, nextFc);
+  };
 
   return (
     <div className="waiting">
@@ -198,15 +249,81 @@ function WaitingRoom({
         <span className="room-code__icon" aria-hidden="true">{copied ? '✓' : '⧉'}</span>
       </button>
 
-      {/* Locked config panel — same visual as CreateRoom's sliders, disabled,
-          so the create page and the waiting page read as one continuous flow. */}
+      <button
+        type="button"
+        className={'btn-ghost btn-ghost--sm share-btn' + (shared ? ' share-btn--copied' : '')}
+        onClick={share}
+      >
+        {shared ? '✓ 链接已复制，发给船员吧' : '🔗 一键分享（复制房间链接）'}
+      </button>
+
+      {/* Config panel — live-editable for the host (steppers with automatic
+          seat balancing), read-only numbers for everyone else. */}
       <div className="waiting__config">
-        <div className="waiting__config-title">本局配置 · {playerCount} 人局</div>
-        <div className="faction-grid">
-          <FactionSlider label="水手" glyph="⚓" value={fc.sailor} onChange={() => {}} min={0} max={11} accent="gold" disabled />
-          <FactionSlider label="海盗" glyph="☠️" value={fc.pirate} onChange={() => {}} min={0} max={11} accent="blood" disabled />
-          <FactionSlider label="邪教徒" glyph="🐙" value={fc.cult} onChange={() => {}} min={0} max={11} accent="cult" disabled />
+        <div className="waiting__config-title">
+          <span>本局配置 · {playerCount} 人局</span>
+          {canEditCount && (
+            <CountStepper
+              value={playerCount}
+              min={MIN_PLAYERS}
+              max={MAX_PLAYERS}
+              onChange={changeCount}
+            />
+          )}
         </div>
+        <div className="faction-grid">
+          <FactionStepper
+            label="水手"
+            glyph="⚓"
+            value={draft.sailor}
+            accent="gold"
+            disabled={!editable}
+            canPlus={canShift(draft, 'sailor', 1)}
+            canMinus={canShift(draft, 'sailor', -1)}
+            onDelta={(d) => bump('sailor', d)}
+          />
+          <FactionStepper
+            label="海盗"
+            glyph="☠️"
+            value={draft.pirate}
+            accent="blood"
+            disabled={!editable}
+            canPlus={canShift(draft, 'pirate', 1)}
+            canMinus={canShift(draft, 'pirate', -1)}
+            onDelta={(d) => bump('pirate', d)}
+          />
+          <FactionStepper
+            label="邪教徒"
+            glyph="🐙"
+            value={draft.cult}
+            accent="cult"
+            disabled={!editable}
+            canPlus={canShift(draft, 'cult', 1)}
+            canMinus={canShift(draft, 'cult', -1)}
+            onDelta={(d) => bump('cult', d)}
+          />
+        </div>
+        {editable && (() => {
+          const p = presetFor(playerCount);
+          if (!p) return null;
+          const on = draft.sailor === p.sailor && draft.pirate === p.pirate && draft.cult === p.cult;
+          return (
+            <div className="preset-row">
+              <button
+                type="button"
+                className={'preset-chip' + (on ? ' preset-chip--on' : '')}
+                onClick={() => {
+                  const preset: FactionCounts = { sailor: p.sailor, pirate: p.pirate, cult: p.cult };
+                  setDraft(preset);
+                  onSetFactionCounts?.(preset);
+                }}
+              >
+                推荐：{p.sailor}⚓ {p.pirate}☠️ {p.cult}🐙
+              </button>
+            </div>
+          );
+        })()}
+        {recreateError && <p className="error-line">{recreateError}</p>}
       </div>
 
       <div className="waiting__roster">
@@ -273,6 +390,7 @@ export function App() {
 
   const [tab, setTab] = useState<'action' | 'chat' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
+  const [recreateError, setRecreateError] = useState<string | null>(null);
 
   // On mobile the three panels are tabs; auto-focus the action tab when the
   // player has something to do.
@@ -281,6 +399,26 @@ export function App() {
   useEffect(() => {
     if (needsMe) setTab('action');
   }, [needsMe]);
+
+  // Host config: player count. bgio fixes the seat count at match creation
+  // and its lobby API has no "update match", so a count change in the
+  // waiting room quietly builds a NEW match with the same host name and the
+  // chosen breakdown. Anyone who joined the old code would be stranded — the
+  // WaitingRoom locks the control once someone besides the host boarded.
+  const recreateMatch = useCallback(async (count: number, fc: FactionCounts) => {
+    if (!session) return;
+    try {
+      setRecreateError(null);
+      const next = await createMatch({
+        playerName: session.playerName,
+        playerCount: count,
+        factionCounts: fc,
+      });
+      setSession(next);
+    } catch (e) {
+      setRecreateError(e instanceof Error ? e.message : String(e));
+    }
+  }, [session]);
 
   if (!session) {
     return (
@@ -299,12 +437,17 @@ export function App() {
       <div className="app app--lobby">
         {session.playerCount ? (
           <WaitingRoom
+            key={session.matchID}
             session={session}
             onLeave={resetToLobby}
             onStart={() => {}}
             playerCount={session.playerCount}
             canStart={false}
-            isHost={false}
+            // Seat 0 is the host by construction; claiming it pre-sync avoids
+            // the host briefly seeing the joiner view (no CTA, locked panel).
+            isHost={session.playerID === '0'}
+            onRecreate={session.playerID === '0' ? recreateMatch : undefined}
+            recreateError={recreateError}
           />
         ) : (
           <ConnectingScreen matchID={session.matchID} onCancel={resetToLobby} />
@@ -334,15 +477,19 @@ export function App() {
     return (
       <div className="app app--lobby">
         <WaitingRoom
+          key={session.matchID}
           session={session}
           onLeave={resetToLobby}
           onStart={game.hostStartGame}
           playerCount={playerCount}
           // Deliberately NO liveView → WaitingRoom polls the lobby API,
           // whose metadata carries real names the moment each player joins.
-          waitingLabel="等待船员登船"
           canStart={false}
           isHost={view.isHost}
+          factionCounts={view.factionCounts}
+          onSetFactionCounts={view.isHost ? game.moves.setFactionConfig : undefined}
+          onRecreate={view.isHost ? recreateMatch : undefined}
+          recreateError={recreateError}
         />
       </div>
     );
@@ -361,6 +508,7 @@ export function App() {
     return (
       <div className="app app--lobby">
         <WaitingRoom
+          key={session.matchID}
           session={session}
           onLeave={resetToLobby}
           onStart={game.hostStartGame}
@@ -375,6 +523,10 @@ export function App() {
           waitingLabel={allSeatsFilled ? '船员到齐，等待房主发号' : '等待船员登船'}
           canStart={allSeatsFilled && view.isHost}
           isHost={view.isHost}
+          factionCounts={view.factionCounts}
+          onSetFactionCounts={view.isHost ? game.moves.setFactionConfig : undefined}
+          onRecreate={view.isHost ? recreateMatch : undefined}
+          recreateError={recreateError}
         />
       </div>
     );

@@ -160,6 +160,15 @@ export function useGame(
 
   useEffect(() => {
     if (!session) return;
+    // New session → drop everything the previous connection produced. Without
+    // this, the instant after a waiting-room rebuild swaps the session the UI
+    // would render the OLD match's view under the NEW room code until the
+    // first sync of the new socket landed.
+    setView(null);
+    setConnected(false);
+    setIsActive(false);
+    setGameover(undefined);
+    setChat([]);
     const client = Client({
       game: FtkGame,
       // boardgame.io mounts a Svelte debug panel to document.body by default

@@ -6,7 +6,7 @@
  * that the actor is actually allowed to take it in the current phase.
  */
 
-import type { NavCardId, PlayerId, RitualCardId } from './state.js';
+import type { FactionCounts, NavCardId, PlayerId, RitualCardId } from './state.js';
 
 export type Action =
   /* pre-game: role reveal confirmation (Avalon-style gate before phase 1) */
@@ -18,6 +18,11 @@ export type Action =
    *  keeps match-metadata names and GameState names in two separate stores;
    *  this action bridges them so the live-view roster shows real names. */
   | { type: 'syncName'; actor: PlayerId; name: string }
+  /* pre-game: the host re-seals the faction breakdown in the waiting room and
+   *  every team is re-dealt from scratch. Asserted legal only while no role
+   *  card has been projected (not hostStarted, nobody confirmed) — at that
+   *  point the deal is still a secret to everyone, including the host. */
+  | { type: 'setFactionConfig'; actor: PlayerId; factionCounts: FactionCounts }
   /* phase 1 — appointing the navigation team */
   | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId; navigator: PlayerId }
   /* phase 2 — a question of loyalty */

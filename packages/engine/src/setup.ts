@@ -9,12 +9,12 @@
  */
 
 import {
-  STARTING_GUNS, TEAM_COMPOSITIONS, type Faction, type GameSettings, type GameState,
-  type Player, type PlayerId,
+  STARTING_GUNS, TEAM_COMPOSITIONS, type Faction, type FactionCounts, type GameSettings,
+  type GameState, type Player, type PlayerId,
 } from './state.js';
 import { loadMap, type RawMap } from './map.js';
 import { buildNavDeck, buildRitualDeck } from './decks.js';
-import { makeRng } from './rng.js';
+import { makeRng, type Rng } from './rng.js';
 import { mutinyThreshold } from './rules.js';
 
 export interface NewGameOptions {
@@ -23,6 +23,87 @@ export interface NewGameOptions {
   /** Seat 0..N-1 in clockwise order. */
   names: string[];
   map: RawMap;
+}
+
+/* ------------------------- faction-count helpers ------------------------- */
+
+/** Throw unless `fc` is a legal breakdown for `playerCount` seats: the two
+ *  officer factions need >= 1 member each, cult may be 0, and the sum must
+ *  fill every seat exactly. */
+export function validateFactionCounts(fc: FactionCounts, playerCount: number): void {
+  if (fc.sailor < 1) throw new Error(`factionCounts.sailor must be >= 1 (got ${fc.sailor})`);
+  if (fc.pirate < 1) throw new Error(`factionCounts.pirate must be >= 1 (got ${fc.pirate})`);
+  if (fc.cult < 0) throw new Error(`factionCounts.cult must be >= 0 (got ${fc.cult})`);
+  if (fc.sailor + fc.pirate + fc.cult !== playerCount) {
+    throw new Error(
+      `factionCounts ${fc.sailor}+${fc.pirate}+${fc.cult} != playerCount ${playerCount}`,
+    );
+  }
+}
+
+/** The breakdown a game will actually use: the host override when present,
+ *  otherwise the rulebook table (with the 5-player two-pirates variant). */
+export function effectiveFactionCounts(settings: GameSettings): FactionCounts {
+  if (settings.factionCounts) return { ...settings.factionCounts };
+  const comp = TEAM_COMPOSITIONS.find((c) => c.players === settings.playerCount);
+  if (!comp) throw new Error(`no rulebook composition for ${settings.playerCount} players`);
+  const two = settings.fivePlayerTwoPirates && settings.playerCount === 5;
+  return {
+    sailor: two ? comp.sailor - 1 : comp.sailor,
+    pirate: two ? comp.pirate + 1 : comp.pirate,
+    cult: comp.cult,
+  };
+}
+
+/** Deal one team to each seat using the rulebook's captain-card procedure
+ *  (p.8): draw the captain index, shuffle the chips, set the captain's chip
+ *  aside, then deal the rest in seat order. Returns the per-seat teams plus
+ *  the index of the seat holding the Captain card (the first captain).
+ *
+ *  The draw order (int → shuffle → pick) is part of the engine's determinism
+ *  contract — do not reorder. */
+export function dealTeams(
+  rng: Rng, playerCount: number, counts: FactionCounts,
+): { teams: Faction[]; captainIndex: number } {
+  const chips: Faction[] = [];
+  for (let i = 0; i < counts.sailor; i++) chips.push('sailor');
+  for (let i = 0; i < counts.pirate; i++) chips.push('pirate');
+  for (let i = 0; i < counts.cult; i++) chips.push('cult');
+  if (chips.length !== playerCount) {
+    throw new Error(`dealTeams: ${chips.length} chips for ${playerCount} players`);
+  }
+  const captainIndex = rng.int(playerCount);
+  const shuffled = rng.shuffle(chips);
+  const captainChip = rng.pick(shuffled);
+  // The captain takes one chip out; the rest are dealt to the other seats.
+  const remaining = [...shuffled];
+  remaining.splice(remaining.indexOf(captainChip), 1);
+  let chipPos = 0;
+  const teams = Array.from({ length: playerCount }, (_, seat) =>
+    seat === captainIndex ? captainChip : remaining[chipPos++]!);
+  return { teams, captainIndex };
+}
+
+/** Stamp a fresh deal onto an existing pre-game roster: rewrite each seat's
+ *  secret team, reset conversion/declaration marks, re-flag the Cult Leader,
+ *  and hand the Captain card to the new captain. Only legal while the game
+ *  is still sealed (no role card has been projected) — callers assert that. */
+export function applyDeal(s: GameState, teams: Faction[], captainIndex: number): void {
+  s.seatOrder.forEach((id, seat) => {
+    const p = s.players[id]!;
+    p.team = teams[seat]!;
+    p.cultLeader = false;
+    p.convertedAt = null;
+    p.declaredCult = false;
+  });
+  // Designate one Cult player as the Cult Leader.
+  const cultPlayers = s.seatOrder.filter((id) => s.players[id]!.team === 'cult');
+  if (cultPlayers.length > 0) s.players[cultPlayers[0]!]!.cultLeader = true;
+  const firstCaptain = s.seatOrder[captainIndex]!;
+  s.officers.captain = firstCaptain;
+  s.log = s.log.length > 0
+    ? [{ t: 'round', round: s.round, captain: firstCaptain }]
+    : s.log;
 }
 
 export function createGame(opts: NewGameOptions): GameState {
@@ -42,59 +123,22 @@ export function createGame(opts: NewGameOptions): GameState {
   // Custom factionCounts (host override) takes precedence over the rulebook
   // table + fivePlayerTwoPirates variant. Validation catches bogus input
   // before we allocate anything.
-  const sailorCount: number = (() => {
-    if (settings.factionCounts) return settings.factionCounts.sailor;
-    if (settings.fivePlayerTwoPirates && settings.playerCount === 5) return comp!.sailor - 1;
-    return comp!.sailor;
-  })();
-  const pirateCount: number = (() => {
-    if (settings.factionCounts) return settings.factionCounts.pirate;
-    if (settings.fivePlayerTwoPirates && settings.playerCount === 5) return comp!.pirate + 1;
-    return comp!.pirate;
-  })();
-  const cultCount: number = (() => {
-    if (settings.factionCounts) return settings.factionCounts.cult;
-    return comp!.cult;
-  })();
-  if (settings.factionCounts) {
-    const fc = settings.factionCounts;
-    if (fc.sailor < 1) throw new Error(`factionCounts.sailor must be >= 1 (got ${fc.sailor})`);
-    if (fc.pirate < 1) throw new Error(`factionCounts.pirate must be >= 1 (got ${fc.pirate})`);
-    if (fc.cult < 0) throw new Error(`factionCounts.cult must be >= 0 (got ${fc.cult})`);
-    if (fc.sailor + fc.pirate + fc.cult !== settings.playerCount) {
-      throw new Error(
-        `factionCounts ${fc.sailor}+${fc.pirate}+${fc.cult} != playerCount ${settings.playerCount}`,
-      );
-    }
-  }
-  const chips: Faction[] = [];
-  for (let i = 0; i < sailorCount; i++) chips.push('sailor');
-  for (let i = 0; i < pirateCount; i++) chips.push('pirate');
-  for (let i = 0; i < cultCount; i++) chips.push('cult');
-  if (chips.length !== settings.playerCount) {
-    throw new Error(`chip count ${chips.length} != ${settings.playerCount}`);
-  }
+  const counts = effectiveFactionCounts(settings);
+  validateFactionCounts(counts, settings.playerCount);
 
   // --- captain card procedure (p.8) ---
-  const captainIndex = rng.int(settings.playerCount);
-  const shuffledChips = rng.shuffle(chips);
-  const captainChip = rng.pick(shuffledChips);
-  // The captain takes one chip out; the rest are dealt to the other seats.
-  const remaining = [...shuffledChips];
-  remaining.splice(remaining.indexOf(captainChip), 1);
-  let chipPos = 0;
+  const { teams, captainIndex } = dealTeams(rng, settings.playerCount, counts);
 
   const seatOrder: PlayerId[] = [];
   const players: Record<PlayerId, Player> = {};
   for (let seat = 0; seat < settings.playerCount; seat++) {
     const id = `p${seat + 1}`;
     seatOrder.push(id);
-    const team: Faction = seat === captainIndex ? captainChip : remaining[chipPos++]!;
     players[id] = {
       id,
       seat,
       name: names[seat]!,
-      team,
+      team: teams[seat]!,
       cultLeader: false,
       convertedAt: null,
       guns: STARTING_GUNS,

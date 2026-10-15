@@ -196,6 +196,47 @@ describe('determinism', () => {
   });
 });
 
+describe('setFactionConfig', () => {
+  it('re-deals teams to the host\'s new breakdown', () => {
+    const s = game(7);
+    const st = reduce(s, {
+      type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 3, pirate: 3, cult: 1 },
+    });
+    expect(st.settings.factionCounts).toEqual({ sailor: 3, pirate: 3, cult: 1 });
+    const tally = { sailor: 0, pirate: 0, cult: 0 };
+    for (const id of st.seatOrder) tally[st.players[id]!.team] += 1;
+    expect(tally).toEqual({ sailor: 3, pirate: 3, cult: 1 });
+    // The captain card is part of the same deal: the officer corps still has a
+    // captain, and the opening log entry points at them.
+    expect(st.officers.captain).toBeTruthy();
+    expect(st.log[0]).toMatchObject({ t: 'round', captain: st.officers.captain });
+    // Exactly one Cult Leader, and rngState advanced past the re-deal.
+    expect(st.seatOrder.filter((id) => st.players[id]!.cultLeader)).toHaveLength(1);
+    expect(st.rngState).not.toBe(s.rngState);
+    // The projection exposes the new breakdown to every seat.
+    expect(viewFor(st, st.seatOrder[1]!).factionCounts).toEqual({ sailor: 3, pirate: 3, cult: 1 });
+  });
+
+  it('rejects non-hosts, post-start calls, and bogus counts', () => {
+    const s = game(7);
+    const notHost = s.seatOrder[1]!;
+    expect(() => reduce(s, { type: 'setFactionConfig', actor: notHost, factionCounts: { sailor: 4, pirate: 2, cult: 1 } })).toThrow();
+    expect(() => reduce(s, { type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 4, pirate: 2, cult: 2 } })).toThrow(); // sum != 7
+    expect(() => reduce(s, { type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 0, pirate: 6, cult: 1 } })).toThrow();
+    const started = reduce(s, { type: 'hostStartGame', actor: s.host });
+    expect(() => reduce(started, { type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 4, pirate: 2, cult: 1 } })).toThrow();
+  });
+
+  it('keeps a game reproducible after a re-deal', () => {
+    const play = (): GameState =>
+      reduce(game(7, 777), {
+        type: 'setFactionConfig', actor: game(7, 777).host,
+        factionCounts: { sailor: 2, pirate: 2, cult: 3 },
+      });
+    expect(JSON.stringify(play())).toBe(JSON.stringify(play()));
+  });
+});
+
 describe('full game runs to a win', () => {
   it('reaches a victory within 40 rounds with honest play', () => {
     let s = appointAndNoMutiny(game(7, 2024));

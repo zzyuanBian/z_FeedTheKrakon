@@ -20,6 +20,7 @@ import {
 } from './helpers.js';
 import { makeRng, type Rng } from './rng.js';
 import { mutinyThreshold, offDutyRoles } from './rules.js';
+import { applyDeal, dealTeams, validateFactionCounts } from './setup.js';
 
 /* ------------------------------ utilities ------------------------------- */
 
@@ -73,6 +74,7 @@ function handle(s: GameState, a: Action): void {
     case 'confirmRole':       return confirmRole(s, a);
     case 'hostStartGame':     return hostStartGame(s, a);
     case 'syncName':          return syncName(s, a);
+    case 'setFactionConfig':  return setFactionConfig(s, a);
     case 'appointTeam':     return appointTeam(s, a);
     case 'mutinyPledge':    return mutinyPledge(s, a);
     case 'mutinyTieBreak':  return mutinyTieBreak(s, a);
@@ -122,6 +124,22 @@ function syncName(s: GameState, a: Extract<Action, { type: 'syncName' }>): void 
   const p = s.players[a.actor];
   assert(p, `syncName: unknown actor ${a.actor}`);
   p.name = a.name;
+}
+
+/** Pre-game only: the host re-seals the faction breakdown and every team is
+ *  re-dealt from scratch (captain card included — it is part of the same
+ *  deal). Legal precisely because no secret has ever been projected: not
+ *  hostStarted and nobody has confirmed a role, so reshuffling identities
+ *  leaks nothing. Seats and names are untouched; only the chips move. */
+function setFactionConfig(s: GameState, a: Extract<Action, { type: 'setFactionConfig' }>): void {
+  assert(a.actor === s.host, `only the host (${s.host}) may change the config; got ${a.actor}`);
+  assert(!s.hostStarted, 'the config is sealed once the game has started');
+  assert(s.confirmedRole.length === 0, 'the config is sealed once roles are revealed');
+  validateFactionCounts(a.factionCounts, s.settings.playerCount);
+  s.settings.factionCounts = { ...a.factionCounts };
+  const { teams, captainIndex } = withRng(s, (rng) =>
+    dealTeams(rng, s.settings.playerCount, a.factionCounts));
+  applyDeal(s, teams, captainIndex);
 }
 
 /* ============================ phase 1: appoint ========================== */
