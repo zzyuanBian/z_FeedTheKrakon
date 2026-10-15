@@ -1,0 +1,169 @@
+/**
+ * @ftk/game — the boardgame.io shell.
+ *
+ * Design: the pure @ftk/engine reducer is the single source of truth for BOTH
+ * rules and flow. boardgame.io is used only for what it is genuinely good at:
+ *
+ *   - per-player `playerView` projection (secrets are stripped server-side),
+ *   - move transport and state sync to React clients,
+ *   - the game-over signal.
+ *
+ * We deliberately do NOT map the six engine phases onto bgio `phases`: bgio's
+ * phase/turn machinery gates moves and rotates the current player, which fights
+ * the engine's own "who may act right now" model (the `pending` queue). Instead
+ * there is a single, never-ending bgio turn with every player active; the engine
+ * rejects any move that is illegal in the current situation, and the client
+ * reads `view.phase` for display.
+ *
+ * Secrecy: every move atomically returns the full new `GameState` (it must,
+ * because the engine mutates hidden information), so every move is declared
+ * `client: false`. Clients never execute a move optimistically against a
+ * partial state — they send it and wait for the server's filtered broadcast.
+ */
+
+import { ActivePlayers, INVALID_MOVE } from 'boardgame.io/core';
+import type { Game, Move } from 'boardgame.io';
+import {
+  SHORT_MAP, createGame, reduce, spectatorView, viewFor,
+  type Action, type GameState, type PlayerId,
+} from '@ftk/engine';
+
+export interface FtkSetupData {
+  seed: number;
+  playerCount: number;
+  /** 'short' | 'long' — only 'short' ships a bundled map today. */
+  map?: 'short' | 'long';
+  /** 5-player only: 2 Sailors / 2 Pirates instead of the 3/1 default. */
+  fivePlayerTwoPirates?: boolean;
+  /** Optional display names, indexed by seat. Defaults to "Player 1"… */
+  names?: string[];
+}
+
+/** bgio seat index ('0'..) <-> engine PlayerId ('p1'..). Fixed by construction. */
+export const idForIndex = (index: number): PlayerId => `p${index + 1}`;
+const indexForId = (id: PlayerId): number => Number(id.slice(1)) - 1;
+
+function isFtkGame(G: unknown): G is GameState {
+  return !!G && typeof G === 'object' && 'seatOrder' in G && 'phase' in G;
+}
+
+/**
+ * Wrap an engine action as a bgio move. The move receives the caller's bgio
+ * playerID, stamps it onto the action as `actor`, delegates to the engine and
+ * returns the new state. An engine `assert` failure (an illegal move) surfaces
+ * as INVALID_MOVE rather than a crash.
+ *
+ * Role-confirm gate: until every seat is in `G.confirmedRole`, only the
+ * `confirmRole` action itself is allowed — every other action short-circuits
+ * to INVALID_MOVE. The `confirmRole` action is exempt because otherwise
+ * nobody could ever lift the gate.
+ */
+function move(create: (actor: PlayerId, ...args: unknown[]) => Action): Move<GameState> {
+  return {
+    client: false,
+    move: ({ G, playerID }, ...args: unknown[]) => {
+      if (!isFtkGame(G)) return INVALID_MOVE;
+      if (playerID === null || playerID === undefined) return INVALID_MOVE;
+      const action = create(idForIndex(Number(playerID)), ...args);
+      // Role-confirm gate: exempt `confirmRole` itself; block every other
+      // action until every seat is in G.confirmedRole.
+      if (action.type !== 'confirmRole') {
+        const allConfirmed = G.confirmedRole.length >= G.seatOrder.length
+          && G.seatOrder.every((id) => G.confirmedRole.includes(id));
+        if (!allConfirmed) return INVALID_MOVE;
+      }
+      try {
+        return reduce(G, action);
+      } catch {
+        // Illegal per the engine's own validation — do not mutate anything.
+        return INVALID_MOVE;
+      }
+    },
+  };
+}
+
+/** Convenience: stamp the actor and build the action. */
+const as = <T extends string>(type: T, actor: PlayerId, rest: Record<string, unknown> = {}): Action =>
+  ({ type, actor, ...rest }) as Action;
+
+export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
+  name: 'feed-the-kraken',
+  minPlayers: 5,
+  maxPlayers: 11,
+  disableUndo: true,
+
+  setup: ({ ctx }, setupData) => {
+    const requested = setupData?.playerCount ?? ctx.numPlayers;
+    // Defensive clamp: the engine only defines compositions for 5..11 seats.
+    // Without this, a bogus createMatch payload would throw from deep inside
+    // createGame and tear the whole server process down. The offending client
+    // still gets a broken match, but the server stays up for everyone else.
+    const min = FtkGame.minPlayers ?? 5;
+    const max = FtkGame.maxPlayers ?? 11;
+    const playerCount = Math.min(max, Math.max(min, requested));
+    const names =
+      setupData?.names ??
+      Array.from({ length: playerCount }, (_, i) => `Player ${i + 1}`);
+    return createGame({
+      seed: setupData?.seed ?? 0,
+      settings: {
+        playerCount,
+        map: setupData?.map ?? 'short',
+        fivePlayerTwoPirates: setupData?.fivePlayerTwoPirates ?? false,
+      },
+      names,
+      map: SHORT_MAP,
+    });
+  },
+
+  /** Everyone may act at any time; the engine enforces whose turn it really is. */
+  turn: {
+    activePlayers: ActivePlayers.ALL,
+  },
+
+  moves: {
+    /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
+     *  (see move() factory) — in fact, this is the ONLY move that is legal
+     *  until every seat confirms. */
+    confirmRole: move((actor) => as('confirmRole', actor)),
+
+    appointTeam: move((actor, lieutenant, navigator) =>
+      as('appointTeam', actor, { lieutenant, navigator })),
+    mutinyPledge: move((actor, guns) => as('mutinyPledge', actor, { guns })),
+    mutinyTieBreak: move((actor, standDown) => as('mutinyTieBreak', actor, { standDown })),
+
+    navContribute: move((actor, keep, discard) => as('navContribute', actor, { keep, discard })),
+    navLogbook: move((actor, discard) => as('navLogbook', actor, { discard })),
+    revealAndExecute: move((actor) => as('revealAndExecute', actor)),
+    denialOfCommand: move((actor) => as('denialOfCommand', actor)),
+    emergencyNav: move((actor, navigator) => as('emergencyNav', actor, { navigator })),
+
+    telescopeChoose: move((actor, target) => as('telescopeChoose', actor, { target })),
+    telescopeDecide: move((actor, action) => as('telescopeDecide', actor, { action })),
+    mermaidChoose: move((actor, target) => as('mermaidChoose', actor, { target })),
+    mermaidAck: move((actor) => as('mermaidAck', actor)),
+
+    mapActionCabinSearch: move((actor, target) => as('mapActionCabinSearch', actor, { target })),
+    mapActionFeedKraken: move((actor, target) => as('mapActionFeedKraken', actor, { target })),
+
+    ritualConversion: move((actor, target) => as('ritualConversion', actor, { target })),
+    ritualGunsStash: move((actor, grants) => as('ritualGunsStash', actor, { grants })),
+    ritualAck: move((actor) => as('ritualAck', actor)),
+
+    /** Host escape hatch for an AFK/stuck player. */
+    forceAdvance: move((actor) => as('forceAdvance', actor)),
+  },
+
+  /** The engine's whitelist projection is the only thing a client ever sees. */
+  playerView: ({ G, playerID }) => {
+    if (!isFtkGame(G)) return null as unknown;
+    if (playerID === null || playerID === undefined) return spectatorView(G);
+    return viewFor(G, idForIndex(Number(playerID)));
+  },
+
+  endIf: ({ G }) => (isFtkGame(G) && G.winner ? { winner: G.winner, reason: G.winReason } : undefined),
+};
+
+/** Re-exported so the server/client packages need only depend on @ftk/game. */
+export { idForIndex as seatIdForIndex };
+export const seatIndexForId = indexForId;

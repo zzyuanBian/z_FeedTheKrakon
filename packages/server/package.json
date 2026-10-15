@@ -1,0 +1,27 @@
+{
+  "name": "@ftk/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "boardgame.io game server for Feed the Kraken (Lobby API + Socket.IO transport + static client).",
+  "main": "src/main.ts",
+  "types": "src/main.ts",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "tsx watch src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ftk/game": "*",
+    "@ftk/room-code": "*",
+    "boardgame.io": "0.50.2",
+    "koa": "^2.15.0",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.15.0",
+    "vitest": "^2.1.0"
+  }
+}

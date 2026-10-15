@@ -1,0 +1,47 @@
+# Railway deployment for Feed the Kraken.
+#
+# Forces the legacy Nixpacks builder explicitly — Railway's default Railpack
+# (as of 2025) doesn't yet handle npm workspaces monorepos reliably. Nixpacks
+# auto-detects Node from `engines.node` and honours workspaces: a single
+# `npm ci` at the root installs every package under packages/*.
+#
+# The production server runs TypeScript source directly via tsx (promoted to
+# a regular dependency in packages/server/package.json). tsx is fast enough
+# for a friends-only game server and keeps the deploy pipeline trivial.
+#
+# The built client is served by the same Node process via CLIENT_DIR — bgio's
+# koa app doubles as a static file host with an SPA fallback (see
+# packages/server/src/index.ts serveStatic).
+
+[build]
+builder = "NIXPACKS"
+
+# `npm ci` at the root installs every workspace package (engine, game,
+# room-code, client, server). `npm run build` runs each workspace's build —
+# in practice that's the Vite client build producing packages/client/dist;
+# the other workspaces only run `tsc --noEmit`.
+build = "npm ci && npm run build"
+
+# tsx reads workspace packages directly from node_modules/@ftk/*, where npm
+# hoisted symlinks point to the source. No separate compile step needed.
+start = "npm start -w @ftk/server"
+
+[deploy]
+# Railway injects PORT; main.ts reads it and the bgio server binds to 0.0.0.0
+# on that port. Socket.IO upgrades work out of the box on Railway's router.
+healthcheckPath = "/games"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# The client build lands in packages/client/dist/ relative to the repo root.
+# main.ts picks it up via this absolute path so the static middleware doesn't
+# depend on CWD.
+[deploy.env]
+CLIENT_DIR = "/app/packages/client/dist"
+
+# main.ts reads ORIGINS to feed bgio's CORS layer. Leaving it unset here on
+# purpose: Railway users must set this to their service URL (e.g.
+# `https://feed-the-kraken.up.railway.app`) via the dashboard variables panel
+# — bgio rejects cross-origin Socket.IO handshakes from any other origin, and
+# a forgotten default would open the server to any domain in production.

@@ -1,0 +1,30 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+npm-debug.log*
+
+# Build output of the map-labelling package (regenerate with tools/build_map_labeler.py)
+dist/map-labeler/
+dist/map-labeler.zip
+
+# Scratch used while auditing the maps
+tools/_*.png
+
+# ----------------------------------------------------------------------
+# Large reference / audit assets.
+# These are rulebook scans, Steam artwork, and the map-labelling tool's
+# intermediate PNGs — useful for reading doc/ruleset_notes.md offline, but
+# never touched by the running app. Keeping them out of git avoids a 300+ MB
+# repo and Railway build timeouts. Anyone who needs them locally can grab
+# them from the original sources listed in doc/ruleset_notes.md.
+# ----------------------------------------------------------------------
+images/
+doc/rules/*.jpg
+doc/rules/*.png
+tools/
+
+# Scratch directory (experimental / WIP notes)
+scratch/
