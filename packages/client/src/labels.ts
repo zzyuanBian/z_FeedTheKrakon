@@ -21,10 +21,13 @@ export const COLOR_LABEL: Record<ArrowColor, string> = {
   red: '西 · 红',
 };
 
+/** Arrow glyphs on nav cards. The custom map journeys upward toward the win
+ *  medallions at the top, so east/west are drawn as NE/NW diagonals to match
+ *  what a move actually looks like on the board. */
 export const COLOR_GLYPH: Record<ArrowColor, string> = {
   yellow: '↑',
-  blue: '→',
-  red: '←',
+  blue: '↗',
+  red: '↖',
 };
 
 export const NAV_CARD_LABEL: Record<NavCardId, string> = {

@@ -942,11 +942,7 @@ button:disabled { cursor: not-allowed; }
 
 .board { flex: 1; display: grid; place-items: center; min-height: 240px; }
 .board__svg { width: 100%; height: 100%; max-height: 100%; }
-.space__ring { fill: none; stroke: var(--gold); stroke-width: 24; opacity: 0.9; }
-.space--hl .space__ring { stroke: var(--teal-bright); }
-.space__label { font-size: 220px; fill: #fff; font-weight: 700; paint-order: stroke; stroke: #06263f; stroke-width: 26px; }
-.space--ship .space__label { fill: var(--gold-bright); }
-.space--terminal .space__label { font-size: 150px; }
+.board__ship { font-size: 320px; paint-order: stroke; stroke: #06263f; stroke-width: 30px; filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.5)); }
 .board__banner { font-size: 300px; fill: var(--blood); font-weight: 800; paint-order: stroke; stroke: #000; stroke-width: 16px; }
 .boardinfo { display: flex; gap: 14px; flex-wrap: wrap; color: var(--ink-dim); padding: 8px 4px 0; font-size: 13px; }
 

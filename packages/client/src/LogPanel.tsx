@@ -39,7 +39,7 @@ export function LogPanel({ view }: { view: PlayerView }) {
 function renderEntry(view: PlayerView, e: PlayerView['log'][number]): string {
   switch (e.t) {
     case 'round': return `— 第 ${e.round} 回合 · 船长 ${nameOf(view, e.captain)} —`;
-    case 'officers': return `任命：中尉 ${nameOf(view, e.lieutenant)}，领航员 ${nameOf(view, e.navigator)}`;
+    case 'officers': return `任命：大副 ${nameOf(view, e.lieutenant)}，领航员 ${nameOf(view, e.navigator)}`;
     case 'mutiny':
       return e.success
         ? `哗变成功（${e.total} 枪）！新船长 ${e.newCaptain ? nameOf(view, e.newCaptain) : '?'}`

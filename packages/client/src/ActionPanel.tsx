@@ -165,7 +165,7 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
   if (iMustResolveLogbook(view)) {
     return (
       <div className="panel">
-        <p className="hint">你是领航员：从船长与中尉的牌中弃掉一张，留下的一张将决定航向。</p>
+        <p className="hint">你是领航员：从船长与大副的牌中弃掉一张，留下的一张将决定航向。</p>
         <CardSplitter
           cards={myLogbook(view)}
           confirmLabel="确定航向"
@@ -214,7 +214,7 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   return (
     <div className="panel">
       <h3 className="panel__title">任命领航团队</h3>
-      <p className="hint">选择中尉</p>
+      <p className="hint">选择大副</p>
       <div className="picker__grid">
         {eligible.map((id) => (
           <button key={id} className={'chip' + (lt === id ? ' chip--on' : '')} onClick={() => setLt(id)}>

@@ -20,7 +20,7 @@ export function Roster({ view }: { view: PlayerView }) {
             <li key={p.id} className={'roster__row' + (p.alive ? '' : ' roster__row--dead')}>
               <span className="roster__name">
                 {officers.captain === p.id && <em title="船长">🧭</em>}
-                {officers.lieutenant === p.id && <em title="中尉">🎖️</em>}
+                {officers.lieutenant === p.id && <em title="大副">🎖️</em>}
                 {officers.navigator === p.id && <em title="领航员">🏴‍☠️</em>}
                 {p.name}
                 {self && ' (你)'}

@@ -579,9 +579,8 @@ export function App() {
         <section className="col col--board">
           <Board view={view} />
           <div className="boardinfo">
-            <span>船位：{view.ship.spaceId}{view.ship.emergency ? ' · ⚠紧急' : ''}</span>
             <span>牌堆 {view.navigation.deckCount} · 深海 {view.navigation.discardCount}</span>
-            <span>仪式剩余 {view.rituals.remaining}</span>
+            <span>仪式牌堆 {view.rituals.remaining}</span>
           </div>
         </section>
 
