@@ -87,26 +87,38 @@ interface RosterSeat { id: string; name: string | null; }
 
 /** Shown right after the host creates the room: big room code, copy button,
  *  live roster of who has joined. Polls the lobby API every 1.5s until either
- *  all seats are filled or the game state starts arriving via the socket. */
+ *  all seats are filled or the game state starts arriving via the socket.
+ *
+ *  When `liveView` is supplied, we're past the first socket sync: the seat
+ *  list comes from the live GameState instead of the lobby API, and empty
+ *  seats are detected via bgio's default "Player N" placeholder names. */
 function WaitingRoom({
   session,
   onLeave,
   playerCount,
+  liveView,
+  waitingLabel = '航线已开辟',
 }: {
   session: Session;
   onLeave: () => void;
   playerCount: number;
+  liveView?: { filled: number; seats: { id: string; name: string }[] };
+  waitingLabel?: string;
 }) {
-  const [seats, setSeats] = useState<RosterSeat[]>([]);
+  const [polledSeats, setPolledSeats] = useState<RosterSeat[]>([]);
   const [copied, setCopied] = useState(false);
 
+  // Only poll the lobby API while we don't have a live GameState to read
+  // from. Once `liveView` is present, bgio's own state sync keeps the seat
+  // list up to date and polling becomes redundant.
   useEffect(() => {
+    if (liveView) return;
     let cancelled = false;
     const poll = async () => {
       try {
         const match = await lobby.getMatch(GAME_NAME, session.matchID);
         if (cancelled) return;
-        setSeats(
+        setPolledSeats(
           match.players.map((p) => ({
             id: String(p.id),
             name: p.name ?? null,
@@ -119,7 +131,7 @@ function WaitingRoom({
     poll();
     const t = window.setInterval(poll, 1500);
     return () => { cancelled = true; window.clearInterval(t); };
-  }, [session.matchID]);
+  }, [session.matchID, liveView]);
 
   const copy = useCallback(async () => {
     try {
@@ -135,15 +147,30 @@ function WaitingRoom({
     window.setTimeout(() => setCopied(false), 1400);
   }, [session.matchID]);
 
-  const filled = seats.filter((s) => s.name).length;
+  // Live-seat rendering (after first socket sync): "Player N" placeholders
+  // stand in for empty seats — bgio's @ftk/game setup names seats that way
+  // until a human joins and overwrites the name via the lobby API.
+  const seats: { id: string; name: string | null; isPlaceholder: boolean }[] = liveView
+    ? liveView.seats.map((s) => ({
+        id: s.id,
+        name: /^Player \d+$/.test(s.name) ? null : s.name,
+        isPlaceholder: /^Player \d+$/.test(s.name),
+      }))
+    : polledSeats.map((s) => ({ ...s, isPlaceholder: false }));
+
+  const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
   const letters = session.matchID.padEnd(CODE_LENGTH, ' ').split('');
 
   return (
     <div className="waiting">
       <div className="waiting__hero">
         <div className="waiting__ornament" aria-hidden="true">⚓</div>
-        <h2 className="waiting__title">航线已开辟</h2>
-        <p className="waiting__sub">把房间码发给船员，等他们登船</p>
+        <h2 className="waiting__title">{waitingLabel}</h2>
+        <p className="waiting__sub">
+          {liveView
+            ? '还差几位船员，先把房间码发给他们'
+            : '把房间码发给船员，等他们登船'}
+        </p>
       </div>
 
       <button type="button" className="waiting__code" onClick={copy} aria-label="点击复制房间码">
@@ -166,20 +193,23 @@ function WaitingRoom({
           {seats.length === 0 && (
             <li className="waiting__roster-loading">读取船员名单中…</li>
           )}
-          {seats.map((s) => (
-            <li key={s.id} className={'waiting__roster-row' + (s.name ? '' : ' waiting__roster-row--empty')}>
-              <span className="waiting__roster-seat">{Number(s.id) + 1}</span>
-              <span className="waiting__roster-name">
-                {s.name ?? '空位'}
-                {s.id === session.playerID && ' (你)'}
-              </span>
-              {s.id === session.playerID && <span className="waiting__roster-you">房主</span>}
-            </li>
-          ))}
+          {seats.map((s) => {
+            const empty = !s.name || s.isPlaceholder;
+            return (
+              <li key={s.id} className={'waiting__roster-row' + (empty ? ' waiting__roster-row--empty' : '')}>
+                <span className="waiting__roster-seat">{Number(s.id) + 1}</span>
+                <span className="waiting__roster-name">
+                  {empty ? '空位' : s.name}
+                  {s.id === session.playerID && ' (你)'}
+                </span>
+                {s.id === session.playerID && <span className="waiting__roster-you">房主</span>}
+              </li>
+            );
+          })}
         </ul>
       </div>
 
-      <p className="waiting__hint">人齐后游戏自动开始</p>
+      <p className="waiting__hint">人齐后进入身份确认阶段</p>
 
       <button type="button" className="btn-ghost waiting__leave" onClick={onLeave}>
         放弃这条航线
@@ -241,9 +271,30 @@ export function App() {
   // `playerCount` is fixed at setup time; derive it from the full roster.
   const playerCount = 1 + view.others.length;
 
-  // Role-reveal gate: every seat must acknowledge their role card before any
-  // in-game move is legal. Until this player has done so, render the flip-
-  // card screen in place of the board + side panels.
+  // Step 1 — waiting for seats to fill. Empty bgio seats are named "Player N"
+  // by @ftk/game's setup (no names passed to createMatch). A seat with such a
+  // placeholder name has no real human behind it yet, so we stay on the
+  // waiting screen regardless of whether you're the host or a joiner. Once
+  // every seat has a real name we fall through to role-reveal.
+  const unfilledSeats = view.others.filter((p) => /^Player \d+$/.test(p.name)).length;
+  const realPlayers = playerCount - unfilledSeats;
+  if (unfilledSeats > 0) {
+    return (
+      <div className="app app--lobby">
+        <WaitingRoom
+          session={session}
+          onLeave={resetToLobby}
+          playerCount={playerCount}
+          liveView={{ filled: realPlayers, seats: [view.you, ...view.others] }}
+          waitingLabel="等待船员登船"
+        />
+      </div>
+    );
+  }
+
+  // Step 2 — role-reveal gate: every seat must acknowledge their role card
+  // before any in-game move is legal. Until this player has done so, render
+  // the flip-card screen in place of the board + side panels.
   if (!view.you.roleConfirmed) {
     return (
       <div className="app app--lobby">
