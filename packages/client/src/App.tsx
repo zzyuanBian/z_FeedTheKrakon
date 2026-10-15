@@ -107,7 +107,7 @@ function WaitingRoom({
   onLeave: () => void;
   onStart: () => void;
   playerCount: number;
-  liveView?: { filled: number; seats: { id: string; name: string }[] };
+  liveView?: { filled: number; seats: { id: string; name: string; isMe?: boolean }[] };
   waitingLabel?: string;
   canStart: boolean;
   isHost: boolean;
@@ -164,13 +164,24 @@ function WaitingRoom({
   // Live-seat rendering (after first socket sync): "Player N" placeholders
   // stand in for empty seats — bgio's @ftk/game setup names seats that way
   // until a human joins and overwrites the name via the lobby API.
-  const seats: { id: string; name: string | null; isPlaceholder: boolean }[] = liveView
+  //
+  // NB: the two branches produce different id namespaces:
+  //   - liveView.seats[*].id is the ENGINE PlayerId ("p1", "p2", ...)
+  //   - polledSeats[*].id is the bgio seat index as a string ("0", "1", ...)
+  // So "am I this seat?" can't just be `s.id === session.playerID` — we
+  // precompute `isMe` in the shape itself.
+  const seats: { id: string; name: string | null; isPlaceholder: boolean; isMe: boolean }[] = liveView
     ? liveView.seats.map((s) => ({
         id: s.id,
         name: /^Player \d+$/.test(s.name) ? null : s.name,
         isPlaceholder: /^Player \d+$/.test(s.name),
+        isMe: !!s.isMe,
       }))
-    : polledSeats.map((s) => ({ ...s, isPlaceholder: false }));
+    : polledSeats.map((s) => ({
+        ...s,
+        isPlaceholder: false,
+        isMe: s.id === session.playerID,
+      }));
 
   const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
   const letters = session.matchID.padEnd(CODE_LENGTH, ' ').split('');
@@ -225,16 +236,16 @@ function WaitingRoom({
           {seats.length === 0 && (
             <li className="waiting__roster-loading">读取船员名单中…</li>
           )}
-          {seats.map((s) => {
+          {seats.map((s, i) => {
             const empty = !s.name || s.isPlaceholder;
             return (
               <li key={s.id} className={'waiting__roster-row' + (empty ? ' waiting__roster-row--empty' : '')}>
-                <span className="waiting__roster-seat">{Number(s.id) + 1}</span>
+                <span className="waiting__roster-seat">{i + 1}</span>
                 <span className="waiting__roster-name">
                   {empty ? '空位' : s.name}
-                  {s.id === session.playerID && ' (你)'}
+                  {s.isMe && ' (你)'}
                 </span>
-                {s.id === session.playerID && <span className="waiting__roster-you">房主</span>}
+                {s.isMe && isHost && <span className="waiting__roster-you">房主</span>}
               </li>
             );
           })}
@@ -348,7 +359,13 @@ export function App() {
           onLeave={resetToLobby}
           onStart={game.hostStartGame}
           playerCount={playerCount}
-          liveView={{ filled: realPlayers, seats: [view.you, ...view.others] }}
+          liveView={{
+            filled: realPlayers,
+            seats: [
+              { id: view.you.id, name: view.you.name, isMe: true },
+              ...view.others.map((p) => ({ id: p.id, name: p.name, isMe: false })),
+            ],
+          }}
           waitingLabel={allSeatsFilled ? '船员到齐，等待房主发号' : '等待船员登船'}
           canStart={allSeatsFilled && view.isHost}
           isHost={view.isHost}

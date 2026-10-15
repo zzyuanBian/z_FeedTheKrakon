@@ -78,7 +78,20 @@ export async function joinMatch(matchID: string, playerName: string): Promise<Se
     playerID: open.id.toString(),
     playerName,
   });
-  const session: Session = { matchID, playerID, credentials: playerCredentials, playerName };
+  // Seal the host's chosen playerCount into the session so App.tsx can render
+  // the WaitingRoom (with correct "X / N") before the first socket sync lands.
+  // Without this the joiner falls into the ConnectingScreen branch for a few
+  // hundred milliseconds — long enough to look broken to a human.
+  const setupPlayerCount =
+    (match.setupData as { playerCount?: number } | undefined)?.playerCount ??
+    match.players.length;
+  const session: Session = {
+    matchID,
+    playerID,
+    credentials: playerCredentials,
+    playerName,
+    playerCount: setupPlayerCount,
+  };
   saveSession(session);
   return session;
 }
