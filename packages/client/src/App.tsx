@@ -4,7 +4,7 @@
  * serves PC and phones.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type FactionCounts } from '@ftk/engine';
 import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
@@ -210,13 +210,21 @@ function WaitingRoom({
 
   // Local draft mirrors the authoritative numbers; the echo of each
   // setFactionConfig broadcast re-snaps it (covers races + rejected moves).
+  // `draftRef` advances synchronously inside bump() so two rapid clicks —
+  // even two landing before the next React render — always compose instead
+  // of reading the same stale draft twice.
   const [draft, setDraft] = useState<FactionCounts>(fc);
+  const draftRef = useRef(draft);
   const fcKey = `${fc.sailor},${fc.pirate},${fc.cult}`;
-  useEffect(() => { setDraft(fc); }, [fcKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    draftRef.current = fc;
+    setDraft(fc);
+  }, [fcKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bump = (f: 'sailor' | 'pirate' | 'cult', d: 1 | -1) => {
-    const next = shiftSeat(draft, f, d);
-    if (next === draft) return;
+    const next = shiftSeat(draftRef.current, f, d);
+    if (next === draftRef.current) return;
+    draftRef.current = next;
     setDraft(next);
     onSetFactionCounts?.(next);
   };
@@ -314,6 +322,7 @@ function WaitingRoom({
                 className={'preset-chip' + (on ? ' preset-chip--on' : '')}
                 onClick={() => {
                   const preset: FactionCounts = { sailor: p.sailor, pirate: p.pirate, cult: p.cult };
+                  draftRef.current = preset;
                   setDraft(preset);
                   onSetFactionCounts?.(preset);
                 }}

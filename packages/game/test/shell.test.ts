@@ -100,6 +100,23 @@ describe('move wrapper', () => {
     const done = step(s, 'appointTeam', seat(c), team[0], team[1]);
     expect(done.phase).toBe('loyalty');
   });
+
+  it('opts the declarative pre-game moves out of the stale-stateID rejection', () => {
+    // bgio's master drops any move whose client-side stateID lags the
+    // server's — which is exactly what a second fast tap in the waiting
+    // room produces (<0.5s after the first, before its broadcast lands).
+    // The declarative moves must carry `ignoreStaleStateID` so rapid host
+    // taps compose server-side; everything else keeps the strict check.
+    const moves = FtkGame.moves!;
+    const flag = (name: string): boolean => {
+      const m = moves[name]!;
+      return !(m instanceof Function) && m.ignoreStaleStateID === true;
+    };
+    expect(flag('setFactionConfig')).toBe(true);
+    expect(flag('hostStartGame')).toBe(true);
+    expect(flag('syncName')).toBe(true);
+    expect(flag('appointTeam')).toBe(false);
+  });
 });
 
 describe('playerView secrecy', () => {

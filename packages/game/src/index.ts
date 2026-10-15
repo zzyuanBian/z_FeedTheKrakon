@@ -62,9 +62,20 @@ function isFtkGame(G: unknown): G is GameState {
  * to INVALID_MOVE. The `confirmRole` action is exempt because otherwise
  * nobody could ever lift the gate.
  */
-function move(create: (actor: PlayerId, ...args: unknown[]) => Action): Move<GameState> {
+function move(
+  create: (actor: PlayerId, ...args: unknown[]) => Action,
+  opts: { ignoreStaleStateID?: boolean } = {},
+): Move<GameState> {
   return {
     client: false,
+    // bgio's master rejects any move whose client-side stateID no longer
+    // matches the server's (`invalid stateID`). For declarative, idempotent
+    // moves that is the wrong semantics: two quick taps <0.5s apart would
+    // send the second one before the first broadcast round-trips, and it
+    // would be silently dropped. Opting those moves out makes the server
+    // apply them against its latest state; their legality is still guarded
+    // by the reducer's own assertions.
+    ...(opts.ignoreStaleStateID ? { ignoreStaleStateID: true } : {}),
     move: ({ G, playerID }, ...args: unknown[]) => {
       if (!isFtkGame(G)) return INVALID_MOVE;
       if (playerID === null || playerID === undefined) return INVALID_MOVE;
@@ -139,20 +150,20 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
   moves: {
     /** Pre-game: host flips the "开始游戏" switch. Exempt from the role-
      *  confirm gate (otherwise the host couldn't start at all). */
-    hostStartGame: move((actor) => as('hostStartGame', actor)),
+    hostStartGame: move((actor) => as('hostStartGame', actor), { ignoreStaleStateID: true }),
 
     /** Pre-game: a seat publishes its lobby display name into GameState.
      *  Exempt from the role-confirm gate so it fires as soon as the socket
      *  connects — without it, the live-view roster would show placeholder
      *  names forever. */
-    syncName: move((actor, name) => as('syncName', actor, { name })),
+    syncName: move((actor, name) => as('syncName', actor, { name }), { ignoreStaleStateID: true }),
 
     /** Pre-game: the host re-seals the faction breakdown in the waiting room
      *  (every team is re-dealt — legal while no role card has been seen).
      *  Exempt from the role-confirm gate: the host tunes the config exactly
      *  while everyone is still unconfirmed. */
     setFactionConfig: move((actor, factionCounts) =>
-      as('setFactionConfig', actor, { factionCounts })),
+      as('setFactionConfig', actor, { factionCounts }), { ignoreStaleStateID: true }),
 
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal
