@@ -72,6 +72,16 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
 /** Join the first open seat in a match. */
 export async function joinMatch(matchID: string, playerName: string): Promise<Session> {
   const match = await lobby.getMatch(GAME_NAME, matchID);
+  // Reject duplicate display names. bgio itself doesn't enforce name
+  // uniqueness, but the in-game roster would be impossible to read if two
+  // seats shared a name. Case-insensitive + trim so " Alice " and "alice"
+  // count as the same.
+  const taken = match.players.some(
+    (p) => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase(),
+  );
+  if (taken) {
+    throw new Error('这个名字已经被占用了，换一个吧');
+  }
   const open = match.players.find((p) => !p.name);
   if (!open) throw new Error('该房间已满');
   const { playerID, playerCredentials } = await lobby.joinMatch(GAME_NAME, matchID, {

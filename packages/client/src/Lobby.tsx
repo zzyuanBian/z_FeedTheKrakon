@@ -93,26 +93,6 @@ function NameField({
   );
 }
 
-/** Five-box code display, one letter per box. Empty boxes show a dim dash. */
-function CodeDisplay({ code, onCopy, copied }: { code: string; onCopy: () => void; copied: boolean }) {
-  const letters = code.padEnd(CODE_LENGTH, ' ').split('');
-  return (
-    <button type="button" className="code-display" onClick={onCopy} aria-label="点击复制房间码">
-      <div className="code-display__letters">
-        {letters.map((ch, i) => (
-          <span
-            key={i}
-            className={'code-letter' + (ch === ' ' ? ' code-letter--empty' : '')}
-          >
-            {ch === ' ' ? '–' : ch}
-          </span>
-        ))}
-      </div>
-      <span className="code-display__hint">{copied ? '✓ 已复制' : '点击复制'}</span>
-    </button>
-  );
-}
-
 /** Five-box code input. Auto-advances focus, pastes a whole code in one go. */
 function CodeInput({
   value,

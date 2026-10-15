@@ -5,7 +5,6 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { CODE_LENGTH } from '@ftk/room-code';
 import { TEAM_COMPOSITIONS } from '@ftk/engine';
 import { Lobby } from './Lobby.js';
 import { Board } from './Board.js';
@@ -184,7 +183,6 @@ function WaitingRoom({
       }));
 
   const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
-  const letters = session.matchID.padEnd(CODE_LENGTH, ' ').split('');
 
   // Config summary: explicit factionCounts from the session if the host
   // picked custom numbers, otherwise fall back to the rulebook preset.
@@ -208,15 +206,10 @@ function WaitingRoom({
         </p>
       </div>
 
-      <button type="button" className="waiting__code" onClick={copy} aria-label="点击复制房间码">
-        <div className="waiting__code-letters">
-          {letters.map((ch, i) => (
-            <span key={i} className={'code-letter' + (ch === ' ' ? ' code-letter--empty' : '')}>
-              {ch === ' ' ? '–' : ch}
-            </span>
-          ))}
-        </div>
-        <span className="waiting__copy-hint">{copied ? '✓ 已复制' : '点击复制'}</span>
+      <button type="button" className="room-code" onClick={copy} aria-label="点击复制房间码">
+        <span className="room-code__label">房间码</span>
+        <span className="room-code__value">{session.matchID}</span>
+        <span className="room-code__icon" aria-hidden="true">{copied ? '✓' : '⧉'}</span>
       </button>
 
       {configLine && (

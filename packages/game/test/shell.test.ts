@@ -65,13 +65,40 @@ describe('move wrapper', () => {
   });
 
   it('applies a legal move and returns the whole new state', () => {
-    const s = newGame();
+    let s = newGame();
+    // Lift the role-confirm gate first — the move filter rejects every
+    // non-pre-game move until all seats have acknowledged.
+    for (const id of s.seatOrder) s = step(s, 'confirmRole', seat(id));
     const c = s.officers.captain!;
     const team = s.seatOrder.filter((id) => id !== c);
     const after = step(s, 'appointTeam', seat(c), team[0], team[1]);
     expect(after.phase).toBe('loyalty');
     expect(after.officers.lieutenant).toBe(team[0]);
     expect(after.officers.navigator).toBe(team[1]);
+  });
+
+  it('gates game moves behind role confirmation but allows pre-game moves', () => {
+    let s = newGame();
+    const c = s.officers.captain!;
+    const team = s.seatOrder.filter((id) => id !== c);
+
+    // Game moves are rejected before anyone confirms…
+    expect(applyOn(s, 'appointTeam', seat(c), team[0], team[1])).toBe(INVALID_MOVE);
+
+    // …while the pre-game moves sail through: name bridge + host start.
+    s = step(s, 'syncName', '0', '阿明');
+    expect(s.players.p1!.name).toBe('阿明');
+    s = step(s, 'hostStartGame', '0');
+    expect(s.hostStarted).toBe(true);
+
+    // Partial confirmation does NOT lift the gate.
+    s = step(s, 'confirmRole', '0');
+    expect(applyOn(s, 'appointTeam', seat(c), team[0], team[1])).toBe(INVALID_MOVE);
+
+    // All seats confirming does.
+    for (const id of s.seatOrder.slice(1)) s = step(s, 'confirmRole', seat(id));
+    const done = step(s, 'appointTeam', seat(c), team[0], team[1]);
+    expect(done.phase).toBe('loyalty');
   });
 });
 
@@ -109,6 +136,14 @@ describe('end-to-end with the bgio client', () => {
     };
     const view = client.getState()!.G as unknown as View;
     expect(view.phase).toBe('appointTeam');
+
+    // Lift the role-confirm gate: every seat acknowledges in turn (local
+    // mode, so we rotate the single client through each playerID).
+    for (let i = 0; i < 7; i++) {
+      client.updatePlayerID(String(i));
+      client.moves.confirmRole!();
+    }
+    client.updatePlayerID(String(Number(view.officers.captain.slice(1)) - 1));
 
     // Become the captain (seat '0' may not hold that badge) and appoint a team.
     const captain = view.officers.captain;

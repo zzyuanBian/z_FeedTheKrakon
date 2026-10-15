@@ -436,50 +436,48 @@ button:disabled { cursor: not-allowed; }
 .btn-ghost:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-ghost); }
 .btn-ghost--sm { min-height: 36px; padding: 6px 12px; font-size: 13px; }
 
-/* ---------- code display (5 boxed letters, tappable for copy) ---------- */
+/* ---------- room-code (compact pill, tappable for copy) ---------- */
+/* Avalon-style: small, unassuming, just the code + a copy affordance.
+ * The flashier 5-box treatment was overkill for a 5-letter code you only
+ * look at once to copy-paste. */
 
-.code-display,
-.waiting__code {
-  display: flex;
-  flex-direction: column;
+.room-code {
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 18px 10px;
-  width: 100%;
-  background: transparent;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-lg);
-  transition: border-color 0.15s, background 0.15s;
-}
-.code-display:hover, .waiting__code:hover {
-  border-color: var(--gold);
-  background: rgba(212, 167, 74, 0.04);
-}
-.code-display__letters,
-.waiting__code-letters { display: flex; gap: 8px; }
-.code-display__hint,
-.waiting__copy-hint { font-size: 12px; color: var(--ink-ghost); letter-spacing: 0.08em; }
-
-.code-letter {
-  width: 48px;
-  height: 60px;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--gold-bright);
-  background: var(--bg-deep);
+  padding: 8px 16px;
+  background: var(--bg-panel);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  letter-spacing: 0;
-  text-shadow: 0 0 12px rgba(245, 205, 92, 0.35);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.18em;
+  color: var(--gold-bright);
+  transition: border-color 0.15s, background 0.15s;
+  align-self: center;
 }
-.code-letter--empty {
+.room-code:hover {
+  border-color: var(--gold);
+  background: rgba(212, 167, 74, 0.06);
+}
+.room-code__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--ink-ghost);
-  opacity: 0.4;
-  border-style: dashed;
 }
+.room-code__value {
+  font-size: 18px;
+  font-weight: 700;
+}
+.room-code__icon {
+  font-size: 14px;
+  color: var(--ink-ghost);
+  margin-left: 2px;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+.room-code:hover .room-code__icon { color: var(--gold); }
 
 /* ---------- code input (5 boxed letters, auto-advance) ---------- */
 
@@ -1096,7 +1094,6 @@ button:disabled { cursor: not-allowed; }
   .col--side { border-left: none; border-top: 1px solid var(--line); }
   .tabs { display: flex; }
   .topbar__mid { order: 3; flex-basis: 100%; text-align: left; }
-  .code-letter { width: 40px; height: 52px; font-size: 24px; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }
   .waiting__roster-row { grid-template-columns: 24px 1fr auto; }
 }
@@ -1104,7 +1101,7 @@ button:disabled { cursor: not-allowed; }
 @media (max-width: 420px) {
   .lobby-shell { padding: 28px 14px; }
   .menu-card { padding: 22px 18px; }
-  .code-letter, .code-input__slot { width: 36px; height: 46px; font-size: 20px; }
+  .code-input__slot { width: 36px; height: 46px; font-size: 20px; }
   .count-big { font-size: 34px; }
   .count-row { grid-template-columns: 54px 1fr 40px; gap: 10px; }
 }
