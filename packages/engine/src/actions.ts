@@ -14,6 +14,10 @@ export type Action =
   /* pre-game: host flips the "开始游戏" switch in the waiting room. Only the
    *  host (seat 0) may fire this; reducer asserts actor === state.host. */
   | { type: 'hostStartGame'; actor: PlayerId }
+  /* pre-game: a seat writes its lobby-side display name into GameState. bgio
+   *  keeps match-metadata names and GameState names in two separate stores;
+   *  this action bridges them so the live-view roster shows real names. */
+  | { type: 'syncName'; actor: PlayerId; name: string }
   /* phase 1 — appointing the navigation team */
   | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId; navigator: PlayerId }
   /* phase 2 — a question of loyalty */

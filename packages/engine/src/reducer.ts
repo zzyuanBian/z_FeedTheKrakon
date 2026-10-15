@@ -72,6 +72,7 @@ function handle(s: GameState, a: Action): void {
   switch (a.type) {
     case 'confirmRole':       return confirmRole(s, a);
     case 'hostStartGame':     return hostStartGame(s, a);
+    case 'syncName':          return syncName(s, a);
     case 'appointTeam':     return appointTeam(s, a);
     case 'mutinyPledge':    return mutinyPledge(s, a);
     case 'mutinyTieBreak':  return mutinyTieBreak(s, a);
@@ -111,6 +112,16 @@ function confirmRole(s: GameState, a: Extract<Action, { type: 'confirmRole' }>):
 function hostStartGame(s: GameState, a: Extract<Action, { type: 'hostStartGame' }>): void {
   assert(a.actor === s.host, `only the host (${s.host}) may start; got ${a.actor}`);
   s.hostStarted = true;
+}
+
+/** Copy a seat's lobby-side display name into GameState. bgio's joinMatch
+ *  updates match metadata (what GET /games returns) but NOT the GameState
+ *  the reducer owns — so without this bridge, the live-view roster would
+ *  show the setup-time placeholder ("Player 1") forever. */
+function syncName(s: GameState, a: Extract<Action, { type: 'syncName' }>): void {
+  const p = s.players[a.actor];
+  assert(p, `syncName: unknown actor ${a.actor}`);
+  p.name = a.name;
 }
 
 /* ============================ phase 1: appoint ========================== */

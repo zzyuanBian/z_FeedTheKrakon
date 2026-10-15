@@ -69,10 +69,16 @@ function move(create: (actor: PlayerId, ...args: unknown[]) => Action): Move<Gam
       if (!isFtkGame(G)) return INVALID_MOVE;
       if (playerID === null || playerID === undefined) return INVALID_MOVE;
       const action = create(idForIndex(Number(playerID)), ...args);
-      // Role-confirm gate: exempt `confirmRole` and `hostStartGame`; block
-      // every other action until every seat is in G.confirmedRole. Both
-      // exempt moves are pre-game — the gate is the gate they lift.
-      if (action.type !== 'confirmRole' && action.type !== 'hostStartGame') {
+      // Role-confirm gate: exempt `confirmRole`, `hostStartGame`, and
+      // `syncName`; block every other action until every seat is in
+      // G.confirmedRole. All three exempt moves are pre-game — syncName
+      // has to fire as soon as the socket connects, before anyone has
+      // a chance to confirm their role.
+      if (
+        action.type !== 'confirmRole'
+        && action.type !== 'hostStartGame'
+        && action.type !== 'syncName'
+      ) {
         const allConfirmed = G.confirmedRole.length >= G.seatOrder.length
           && G.seatOrder.every((id) => G.confirmedRole.includes(id));
         if (!allConfirmed) return INVALID_MOVE;
@@ -133,6 +139,12 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     /** Pre-game: host flips the "开始游戏" switch. Exempt from the role-
      *  confirm gate (otherwise the host couldn't start at all). */
     hostStartGame: move((actor) => as('hostStartGame', actor)),
+
+    /** Pre-game: a seat publishes its lobby display name into GameState.
+     *  Exempt from the role-confirm gate so it fires as soon as the socket
+     *  connects — without it, the live-view roster would show placeholder
+     *  names forever. */
+    syncName: move((actor, name) => as('syncName', actor, { name })),
 
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal

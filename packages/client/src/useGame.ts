@@ -113,6 +113,12 @@ export interface GameConnection {
   /** Convenience wrapper for `moves.hostStartGame()` — only the host (seat 0)
    *  may call this; other seats will be rejected by the reducer. */
   hostStartGame: () => void;
+  /** Push the lobby-side display name into GameState. bgio's joinMatch
+   *  updates only the lobby metadata, not the reducer's state, so without
+   *  this the live-view roster would show the setup-time placeholder
+   *  ("Player N") forever. Called automatically by useGame on first sync;
+   *  exposed for tests and manual retries. */
+  syncName: (name: string) => void;
   connected: boolean;
   isActive: boolean;
   gameover: unknown;
@@ -156,6 +162,7 @@ export function useGame(
     clientRef.current = client;
 
     let gotFirstSync = false;
+    let nameSyncd = false;
     const sync = (): void => {
       const state = client.getState();
       if (!state) return;
@@ -173,6 +180,16 @@ export function useGame(
             typeof m.payload === 'string' ? m.payload : JSON.stringify(m.payload),
         })),
       );
+      // Bridge the lobby-side display name into GameState exactly once per
+      // session. bgio's joinMatch only updates the lobby metadata, so the
+      // reducer's players[p].name would otherwise stay on the setup-time
+      // placeholder ("Player N") forever and the live-view roster would
+      // show every seat as empty.
+      if (!nameSyncd && session.playerName) {
+        nameSyncd = true;
+        const fn = client.moves.syncName as ((...a: unknown[]) => void) | undefined;
+        fn?.(session.playerName);
+      }
     };
 
     client.subscribe(sync);
@@ -222,7 +239,12 @@ export function useGame(
     fn?.();
   }, []);
 
-  return { view, moves, chat, sendChat, confirmRole, hostStartGame, connected, isActive, gameover, leave };
+  const syncName = useCallback((name: string) => {
+    const fn = clientRef.current?.moves.syncName as ((...a: unknown[]) => void) | undefined;
+    fn?.(name);
+  }, []);
+
+  return { view, moves, chat, sendChat, confirmRole, hostStartGame, syncName, connected, isActive, gameover, leave };
 }
 
 export { loadSession, clearSession };
