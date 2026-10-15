@@ -333,11 +333,38 @@ export function App() {
   // `playerCount` is fixed at setup time; derive it from the full roster.
   const playerCount = 1 + view.others.length;
 
-  // Step 1 — waiting for seats to fill. Empty bgio seats are named "Player N"
-  // by @ftk/game's setup (no names passed to createMatch). A seat with such a
-  // placeholder name has no real human behind it yet, so we stay on the
-  // waiting screen regardless of whether you're the host or a joiner.
-  const unfilledSeats = view.others.filter((p) => /^Player \d+$/.test(p.name)).length;
+  // bgio keeps lobby-display names and GameState names in two separate
+  // stores. Every client bridges its own name into GameState via `syncName`
+  // on first sync, but until that round-trip completes for EVERY seat, the
+  // GameState still carries setup-time "Player N" placeholders. While any
+  // seat is a placeholder we render the POLLING WaitingRoom (names sourced
+  // from the lobby API), so the roster never flashes 空位 in the window
+  // between socket-sync and syncName landing.
+  const PLACEHOLDER = /^Player \d+$/;
+  const namesSynced =
+    !PLACEHOLDER.test(view.you.name) && view.others.every((p) => !PLACEHOLDER.test(p.name));
+
+  if (!namesSynced) {
+    return (
+      <div className="app app--lobby">
+        <WaitingRoom
+          session={session}
+          onLeave={resetToLobby}
+          onStart={game.hostStartGame}
+          playerCount={playerCount}
+          // Deliberately NO liveView → WaitingRoom polls the lobby API,
+          // whose metadata carries real names the moment each player joins.
+          waitingLabel="等待船员登船"
+          canStart={false}
+          isHost={view.isHost}
+        />
+      </div>
+    );
+  }
+
+  // Step 1 — waiting for seats to fill. Every GameState name is real now, so
+  // the placeholder check is purely informational here.
+  const unfilledSeats = view.others.filter((p) => PLACEHOLDER.test(p.name)).length;
   const realPlayers = playerCount - unfilledSeats;
   const allSeatsFilled = unfilledSeats === 0;
 
