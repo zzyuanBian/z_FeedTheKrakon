@@ -23,11 +23,9 @@ import type { Session } from './session.js';
 
 type Screen = 'menu' | 'join';
 
-/** Player count a fresh「开辟新航线」starts with. The rulebook's 7-player
- *  entry (4⚓ 2☠️ 1🐙) — the host can retune it in the waiting room. */
-export const DEFAULT_PLAYER_COUNT = 7;
-
-const NAME_STORAGE_KEY = 'ftk.name.v1';
+/** Player count a fresh「开辟新航线」starts with. The rulebook's smallest
+ *  game (5 players: 3⚓ 1☠️ 1🐙) — the host retunes it in the waiting room. */
+export const DEFAULT_PLAYER_COUNT = 5;
 
 // --------------------------- faction-count math ---------------------------
 
@@ -420,7 +418,7 @@ function JoinRoom({
   };
 
   // Deep links land here straight from the menu, so the name field must be
-  // on this screen too (prefilled from storage for returning players).
+  // on this screen too. It starts empty — no persisted-name prefill.
   return (
     <>
       <GoldTitle />
@@ -504,9 +502,10 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
     } catch { return ''; }
   });
   const [screen, setScreen] = useState<Screen>(() => (initialCode ? 'join' : 'menu'));
-  const [name, setName] = useState<string>(() => {
-    try { return localStorage.getItem(NAME_STORAGE_KEY) ?? ''; } catch { return ''; }
-  });
+  // Deliberately NOT persisted: every landing starts with an empty name field
+  // — a leftover name from a previous session (often another player on a
+  // shared device) silently joining as "km1" is worse than a blank box.
+  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -514,11 +513,6 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
     if (!initialCode) return;
     try { window.history.replaceState(null, '', window.location.pathname); } catch { /* ignore */ }
   }, [initialCode]);
-
-  // Persist the name as they type, so it's still there next launch.
-  useEffect(() => {
-    try { localStorage.setItem(NAME_STORAGE_KEY, name); } catch { /* ignore */ }
-  }, [name]);
 
   const wrappedReady = (s: Session) => {
     setError(null);

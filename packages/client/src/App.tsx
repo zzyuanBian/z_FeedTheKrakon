@@ -184,9 +184,14 @@ function WaitingRoom({
   // precompute `isMe` in the shape itself.
   const seats: { id: string; name: string; isMe: boolean; benched: boolean }[] = liveView
     ? liveView.seats
-        // Active seats hide placeholder names; EMPTY bench seats (nobody sat
-        // down yet) are hidden entirely — only occupied bench rows show.
-        .filter((s) => (s.benched ? s.name !== '' : !/^Player \d+$/.test(s.name)))
+        // Active seats hide placeholder names; bench seats show only when a
+        // REAL player sits there — a seat the host shrank away keeps its
+        // setup-time "Player N" placeholder, and a never-joined bench seat is
+        // nameless. Neither belongs in the roster.
+        .filter((s) =>
+          s.benched
+            ? s.name !== '' && !/^Player \d+$/.test(s.name)
+            : !/^Player \d+$/.test(s.name))
         .map((s) => ({ id: s.id, name: s.name, isMe: !!s.isMe, benched: !!s.benched }))
     : polledSeats
         .filter((s) => s.name)
