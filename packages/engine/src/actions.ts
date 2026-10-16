@@ -31,7 +31,6 @@ export type Action =
   /* phase 3 — the navigation */
   | { type: 'navContribute'; actor: PlayerId; keep: NavCardId; discard: NavCardId }
   | { type: 'navLogbook'; actor: PlayerId; discard: NavCardId }
-  | { type: 'revealAndExecute'; actor: PlayerId }
   | { type: 'denialOfCommand'; actor: PlayerId }
   | { type: 'emergencyNav'; actor: PlayerId; navigator: PlayerId }
   /* phase 3.1 — executing the navigation card */

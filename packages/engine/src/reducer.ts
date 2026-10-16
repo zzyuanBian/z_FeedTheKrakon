@@ -80,7 +80,6 @@ function handle(s: GameState, a: Action): void {
     case 'mutinyTieBreak':  return mutinyTieBreak(s, a);
     case 'navContribute':   return navContribute(s, a);
     case 'navLogbook':      return navLogbook(s, a);
-    case 'revealAndExecute':return revealAndExecute(s, a);
     case 'denialOfCommand': return denialOfCommand(s, a);
     case 'emergencyNav':    return emergencyNav(s, a);
     case 'telescopeChoose': return telescopeChoose(s, a);
@@ -325,13 +324,18 @@ function navLogbook(s: GameState, a: Extract<Action, { type: 'navLogbook' }>): v
   discardCard(s, a.discard);
   s.navigation.logbook.splice(s.navigation.logbook.indexOf(a.discard), 1);
   s.navigation.revealed = s.navigation.logbook[0]!;
+  // The discard settles the course — flip and apply the card immediately.
+  // The captain's separate reveal step was pure ceremony (the settled card
+  // was already public in the view) and only added a dead click.
+  executeRevealed(s);
 }
 
-function revealAndExecute(s: GameState, a: Extract<Action, { type: 'revealAndExecute' }>): void {
+/** Apply the settled course card: résumé to the captain, move the ship, then
+ *  the destination's map action / the card's own effect. */
+function executeRevealed(s: GameState): void {
   assert(s.phase === 'navigation', 'not navigating');
-  assert(a.actor === s.officers.captain, 'only the captain reveals');
-  assert(s.navigation.revealed !== null, 'no card to reveal');
   const card = s.navigation.revealed;
+  assert(card !== null, 'no card to reveal');
 
   // The revealed card becomes the captain's résumé (public, permanent).
   s.players[s.officers.captain!]!.resumes += 1;
@@ -651,9 +655,6 @@ function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>
       if (s.navigation.logbook.length === 2) {
         navLogbook(s, { type: 'navLogbook', actor: s.officers.navigator!, discard: s.navigation.logbook[0]! });
         return;
-      }
-      if (s.navigation.revealed !== null) {
-        revealAndExecute(s, { type: 'revealAndExecute', actor: s.officers.captain! });
       }
       return;
     }

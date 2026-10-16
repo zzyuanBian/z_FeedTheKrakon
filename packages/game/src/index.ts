@@ -181,7 +181,6 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
 
     navContribute: move((actor, keep, discard) => as('navContribute', actor, { keep, discard })),
     navLogbook: move((actor, discard) => as('navLogbook', actor, { discard })),
-    revealAndExecute: move((actor) => as('revealAndExecute', actor)),
     denialOfCommand: move((actor) => as('denialOfCommand', actor)),
     emergencyNav: move((actor, navigator) => as('emergencyNav', actor, { navigator })),
 

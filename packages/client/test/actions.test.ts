@@ -71,7 +71,7 @@ describe('client action gating', () => {
     expect(iOweMutinyPledge(viewFor(pledged, crew))).toBe(false);
   });
 
-  it('routes contribute -> logbook -> reveal to the right seats', () => {
+  it('routes contribute -> logbook to the right seats', () => {
     let s = navigate(game());
     const c = cap(s);
     const l = s.officers.lieutenant!;

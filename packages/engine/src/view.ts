@@ -67,8 +67,10 @@ export interface NavigationView {
   logbookReady: boolean;
   /** The player the navigation is currently waiting on, or null if none. */
   awaiting: PlayerId | null;
-  /** Which navigation step is open right now. */
-  stage: 'contribute' | 'logbook' | 'reveal' | 'done';
+  /** Which navigation step is open right now. The logbook discard settles
+   *  the course and applies the card in the same move — there is no reveal
+   *  step for the captain any more. */
+  stage: 'contribute' | 'logbook' | 'done';
   revealed: NavCardId | null;
 }
 
@@ -224,7 +226,6 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       if (state.phase === 'navigation') {
         if (contributor) { stage = 'contribute'; awaiting = contributor; }
         else if (n.logbook.length === 2) { stage = 'logbook'; awaiting = state.officers.navigator; }
-        else if (n.revealed !== null) { stage = 'reveal'; awaiting = state.officers.captain; }
       } else if (n.revealed !== null) {
         stage = 'done';
       }

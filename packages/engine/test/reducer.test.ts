@@ -45,15 +45,15 @@ function appointAndNoMutiny(s: GameState): GameState {
   return st;
 }
 
-/** Execute a full navigation honestly (captain/lieutenant keep card 0). */
+/** Execute a full navigation honestly (captain/lieutenant keep card 0).
+ *  The logbook discard settles the course AND applies the card in one move. */
 function runNavigation(s: GameState): GameState {
   let st = s;
   const c = cap(st);
   const l = lt(st);
   st = reduce(st, { type: 'navContribute', actor: c, keep: st.navigation.captainCards[0]!, discard: st.navigation.captainCards[1]! });
   st = reduce(st, { type: 'navContribute', actor: l, keep: st.navigation.lieutenantCards[0]!, discard: st.navigation.lieutenantCards[1]! });
-  st = reduce(st, { type: 'navLogbook', actor: nav(st), discard: st.navigation.logbook[0]! });
-  return reduce(st, { type: 'revealAndExecute', actor: cap(st) });
+  return reduce(st, { type: 'navLogbook', actor: nav(st), discard: st.navigation.logbook[0]! });
 }
 
 /** Auto-resolve whatever the state is waiting on (for tests that don't care). */

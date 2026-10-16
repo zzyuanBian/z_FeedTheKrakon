@@ -28,7 +28,7 @@ export function Roster({ view }: { view: PlayerView }) {
               <span className="roster__meta">
                 {team && <span className="badge">{FACTION_ICON[team]}{FACTION_LABEL[team]}</span>}
                 <span className="badge" title="枪">🔫{p.guns}</span>
-                <span className="badge" title="威名">📜{p.resumes}</span>
+                <span className="badge" title="履历">📜{p.resumes}</span>
                 {p.offDuty && <span className="badge badge--off" title="轮休">💤</span>}
                 {p.declaredCult && <span className="badge badge--cult" title="已被公开为邪教徒">🐙</span>}
                 {!p.alive && <span className="badge badge--dead">已出局</span>}

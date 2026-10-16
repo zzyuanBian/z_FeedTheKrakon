@@ -49,12 +49,6 @@ export function iMustResolveLogbook(view: PlayerView): boolean {
     view.officers.navigator === view.you.id;
 }
 
-/** True when the viewer (captain) must reveal the resolved card. */
-export function iMustReveal(view: PlayerView): boolean {
-  return view.phase === 'navigation' && view.navigation.stage === 'reveal' &&
-    view.officers.captain === view.you.id;
-}
-
 /** True when the navigator may still jump overboard (logbook seen, not resolved). */
 export function iMayJumpOverboard(view: PlayerView): boolean {
   return view.phase === 'navigation' && view.navigation.logbookReady &&

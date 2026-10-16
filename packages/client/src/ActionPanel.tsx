@@ -14,7 +14,7 @@ import {
 } from './labels.js';
 import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
-  iMustReveal, iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
+  iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
 } from './actions.js';
 
 export interface ActionPanelProps {
@@ -25,7 +25,8 @@ export interface ActionPanelProps {
 const name = (view: PlayerView, id: PlayerId): string =>
   (id === view.you.id ? view.you : view.others.find((p) => p.id === id))?.name ?? id;
 
-/** A two-card splitter: click one to keep, one to discard. */
+/** A two-card splitter: pick the card to keep — the other one is marked for
+ *  the deep automatically. Tapping the kept card again clears the choice. */
 function CardSplitter({
   cards, onConfirm, confirmLabel, cancel,
 }: {
@@ -36,9 +37,14 @@ function CardSplitter({
 }) {
   const [keep, setKeep] = useState<number | null>(null);
   const [discard, setDiscard] = useState<number | null>(null);
+  const choose = (i: number): void => {
+    if (keep === i) { setKeep(null); setDiscard(null); return; }
+    setKeep(i);
+    setDiscard(i === 0 ? 1 : 0);
+  };
   return (
     <div className="cardsplit">
-      <p className="hint">选择要保留的牌（另一张将被弃入深海）</p>
+      <p className="hint">选择要保留的牌（另一张自动弃入深海）</p>
       <div className="cardsplit__hand">
         {cards.map((c, i) => (
           <button
@@ -46,13 +52,7 @@ function CardSplitter({
             className={
               'navcard' + (keep === i ? ' navcard--keep' : '') + (discard === i ? ' navcard--drop' : '')
             }
-            onClick={() => {
-              if (keep === i) { setKeep(null); return; }
-              if (discard === i) { setDiscard(null); return; }
-              if (keep === null) setKeep(i);
-              else if (discard === null) setDiscard(i);
-              else { setDiscard(i); }
-            }}
+            onClick={() => choose(i)}
           >
             <span className="navcard__glyph">{COLOR_GLYPH[cardColor(c)]}</span>
             <span className="navcard__name">{NAV_CARD_LABEL[c]}</span>
@@ -165,7 +165,7 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
   if (iMustResolveLogbook(view)) {
     return (
       <div className="panel">
-        <p className="hint">你是领航员：从船长与大副的牌中弃掉一张，留下的一张将决定航向。</p>
+        <p className="hint">你是领航员：弃掉一张，留下的那张立即决定航向并生效。</p>
         <CardSplitter
           cards={myLogbook(view)}
           confirmLabel="确定航向"
@@ -176,16 +176,6 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
             🌊 跳海抗命
           </button>
         )}
-      </div>
-    );
-  }
-  if (iMustReveal(view)) {
-    return (
-      <div className="panel">
-        <p className="hint">翻开最终的航海卡并移动船。</p>
-        <button className="btn btn--primary" onClick={() => moves.revealAndExecute!()}>
-          翻开航海卡
-        </button>
       </div>
     );
   }

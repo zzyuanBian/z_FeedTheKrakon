@@ -56,10 +56,13 @@ describe('shell setup', () => {
 
 describe('move wrapper', () => {
   it('rejects an out-of-turn move without mutating state', () => {
-    const s = newGame();
+    let s = newGame();
+    // Lift the role-confirm gate first, so the rejection below comes from the
+    // engine's actor check rather than the pre-game gate.
+    for (const id of s.seatOrder) s = step(s, 'confirmRole', seat(id));
     const before = JSON.stringify(s);
     const notCaptain = s.seatOrder.find((id) => id !== s.officers.captain)!;
-    const out = applyOn(s, 'revealAndExecute', seat(notCaptain));
+    const out = applyOn(s, 'appointTeam', seat(notCaptain), s.seatOrder[1], s.seatOrder[2]);
     expect(out).toBe(INVALID_MOVE);
     expect(JSON.stringify(s)).toBe(before);
   });
