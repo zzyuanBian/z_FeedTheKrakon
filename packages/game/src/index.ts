@@ -24,7 +24,7 @@
 import { ActivePlayers, INVALID_MOVE } from 'boardgame.io/core';
 import type { Game, Move } from 'boardgame.io';
 import {
-  SHORT_MAP, createGame, reduce, spectatorView, viewFor,
+  SHORT_MAP, activeSeatIds, createGame, reduce, spectatorView, viewFor,
   type Action, type FactionCounts, type GameState, type PlayerId,
 } from '@ftk/engine';
 
@@ -46,6 +46,12 @@ export interface FtkSetupData {
 /** bgio seat index ('0'..) <-> engine PlayerId ('p1'..). Fixed by construction. */
 export const idForIndex = (index: number): PlayerId => `p${index + 1}`;
 const indexForId = (id: PlayerId): number => Number(id.slice(1)) - 1;
+
+/** Every room is built at maximum capacity (Avalon-style lobby): the match
+ *  always has this many bgio seats, the engine's `settings.playerCount` says
+ *  how many of them are actually in the game, and the host retunes that via
+ *  `setFactionConfig` without ever rebuilding the match. */
+export const SEAT_CAPACITY = 11;
 
 function isFtkGame(G: unknown): G is GameState {
   return !!G && typeof G === 'object' && 'seatOrder' in G && 'phase' in G;
@@ -95,8 +101,10 @@ function move(
         && action.type !== 'syncName'
         && action.type !== 'setFactionConfig'
       ) {
-        const allConfirmed = G.confirmedRole.length >= G.seatOrder.length
-          && G.seatOrder.every((id) => G.confirmedRole.includes(id));
+        // Active seats only: bench seats hold no role card, so requiring
+        // their confirmation would deadlock the gate forever.
+        const allConfirmed = activeSeatIds(G)
+          .every((id) => G.confirmedRole.includes(id));
         if (!allConfirmed) return INVALID_MOVE;
       }
       try {
@@ -137,6 +145,10 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
       seed: setupData?.seed ?? 0,
       settings: {
         playerCount,
+        // Rooms are always built at full capacity — the target crew size is
+        // retunable via setFactionConfig, so the seat COUNT must never be
+        // the thing that forces a rebuild.
+        seats: max,
         map: setupData?.map ?? 'short',
         fivePlayerTwoPirates: setupData?.fivePlayerTwoPirates ?? false,
         ...(setupData?.factionCounts ? { factionCounts: setupData.factionCounts } : {}),
@@ -164,10 +176,14 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
 
     /** Pre-game: the host re-seals the faction breakdown in the waiting room
      *  (every team is re-dealt — legal while no role card has been seen).
-     *  Exempt from the role-confirm gate: the host tunes the config exactly
-     *  while everyone is still unconfirmed. */
-    setFactionConfig: move((actor, factionCounts) =>
-      as('setFactionConfig', actor, { factionCounts }), { ignoreStaleStateID: true }),
+     *  The optional second arg retunes the target crew size (5..11) without
+     *  rebuilding the match. Exempt from the role-confirm gate: the host
+     *  tunes the config exactly while everyone is still unconfirmed. */
+    setFactionConfig: move((actor, factionCounts, nextCount) =>
+      as('setFactionConfig', actor, {
+        factionCounts,
+        ...(nextCount !== undefined ? { nextCount } : {}),
+      }), { ignoreStaleStateID: true }),
 
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal

@@ -23,6 +23,10 @@ const newGame = (seed = 42): GameState => FtkGame.setup!(
 /** bgio seats are '0'..'6'; engine ids are 'p1'..'p7'. */
 const seat = (engineId: string): string => String(Number(engineId.slice(1)) - 1);
 
+/** The active (dealt) seats: rooms are built at full capacity, so a 7-player
+ *  game physically holds 11 seats and p8..p11 are inert bench placeholders. */
+const activeSeats = (s: GameState): string[] => s.seatOrder.slice(0, s.settings.playerCount);
+
 /** Invoke a bgio move against `s`, returning G or INVALID_MOVE. */
 function applyOn(
   s: GameState, name: string, playerID: string, ...args: unknown[]
@@ -46,11 +50,19 @@ describe('shell setup', () => {
     expect(seatIdForIndex(6)).toBe('p7');
   });
 
-  it('seeds a 7-player game from setupData', () => {
+  it('seeds a 7-player game from setupData (in an 11-seat room)', () => {
     const s = newGame();
-    expect(s.seatOrder).toHaveLength(7);
-    expect(s.phase).toBe('appointTeam');
+    // The room holds full capacity; the target crew size stays 7.
+    expect(s.seatOrder).toHaveLength(11);
     expect(s.settings.playerCount).toBe(7);
+    expect(s.phase).toBe('appointTeam');
+    // Active seats are dealt in; bench seats are inert placeholders.
+    expect(activeSeats(s)).toHaveLength(7);
+    for (const id of activeSeats(s)) expect(s.players[id]!.alive).toBe(true);
+    for (const id of s.seatOrder.slice(7)) {
+      expect(s.players[id]!.alive).toBe(false);
+      expect(s.players[id]!.name).toBe('');
+    }
   });
 });
 
@@ -59,7 +71,7 @@ describe('move wrapper', () => {
     let s = newGame();
     // Lift the role-confirm gate first, so the rejection below comes from the
     // engine's actor check rather than the pre-game gate.
-    for (const id of s.seatOrder) s = step(s, 'confirmRole', seat(id));
+    for (const id of activeSeats(s)) s = step(s, 'confirmRole', seat(id));
     const before = JSON.stringify(s);
     const notCaptain = s.seatOrder.find((id) => id !== s.officers.captain)!;
     const out = applyOn(s, 'appointTeam', seat(notCaptain), s.seatOrder[1], s.seatOrder[2]);
@@ -71,9 +83,9 @@ describe('move wrapper', () => {
     let s = newGame();
     // Lift the role-confirm gate first — the move filter rejects every
     // non-pre-game move until all seats have acknowledged.
-    for (const id of s.seatOrder) s = step(s, 'confirmRole', seat(id));
+    for (const id of activeSeats(s)) s = step(s, 'confirmRole', seat(id));
     const c = s.officers.captain!;
-    const team = s.seatOrder.filter((id) => id !== c);
+    const team = activeSeats(s).filter((id) => id !== c);
     const after = step(s, 'appointTeam', seat(c), team[0], team[1]);
     expect(after.phase).toBe('loyalty');
     expect(after.officers.lieutenant).toBe(team[0]);
@@ -83,7 +95,7 @@ describe('move wrapper', () => {
   it('gates game moves behind role confirmation but allows pre-game moves', () => {
     let s = newGame();
     const c = s.officers.captain!;
-    const team = s.seatOrder.filter((id) => id !== c);
+    const team = activeSeats(s).filter((id) => id !== c);
 
     // Game moves are rejected before anyone confirms…
     expect(applyOn(s, 'appointTeam', seat(c), team[0], team[1])).toBe(INVALID_MOVE);
@@ -98,8 +110,8 @@ describe('move wrapper', () => {
     s = step(s, 'confirmRole', '0');
     expect(applyOn(s, 'appointTeam', seat(c), team[0], team[1])).toBe(INVALID_MOVE);
 
-    // All seats confirming does.
-    for (const id of s.seatOrder.slice(1)) s = step(s, 'confirmRole', seat(id));
+    // All ACTIVE seats confirming does (bench seats have nothing to confirm).
+    for (const id of activeSeats(s).slice(1)) s = step(s, 'confirmRole', seat(id));
     const done = step(s, 'appointTeam', seat(c), team[0], team[1]);
     expect(done.phase).toBe('loyalty');
   });

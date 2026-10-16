@@ -151,7 +151,16 @@ export const TEAM_COMPOSITIONS: readonly TeamComposition[] = [
 ];
 
 export interface GameSettings {
+  /** The number of seats actually IN this game — the crew the roles were
+   *  dealt to. The host may retune it pre-game via `setFactionConfig`. */
   playerCount: number;
+  /** Total seats the room physically has. Rooms are built at maximum
+   *  capacity (Avalon-style lobby: join freely, retune the target count
+   *  later); seats beyond `playerCount` are inert placeholders (dead,
+   *  nameless, roleless) that every living-player filter skips. Defaults
+   *  to `playerCount` when absent, so tests and direct engine users keep
+   *  the exact-sized tables. */
+  seats?: number;
   map: 'short' | 'long';
   /** 5-player only: false = 3 Sailors / 1 Pirate, true = 2 Sailors / 2 Pirates.
    *  Ignored when `factionCounts` is supplied. */
@@ -162,6 +171,10 @@ export interface GameSettings {
 }
 
 export const STARTING_GUNS = 3;
+
+/** The box ships 40 guns in total; the general supply starts with whatever
+ *  the starting hands don't already hold. */
+export const GUN_SUPPLY_TOTAL = 40;
 
 /* =============================== players ================================ */
 

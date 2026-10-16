@@ -384,7 +384,9 @@ function RitualForm({
   }
   if (ritual === 'gunsStash') {
     const total = Object.values(grants).reduce((a, b) => a + b, 0);
-    const everyone: PlayerId[] = [view.you.id, ...view.others.map((p) => p.id)];
+    const everyone: PlayerId[] = [view.you, ...view.others]
+      .filter((p) => p.alive)
+      .map((p) => p.id);
     return (
       <div className="panel">
         <h3 className="panel__title">{RITUAL_LABEL.gunsStash}</h3>

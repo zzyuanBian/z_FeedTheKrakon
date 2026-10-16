@@ -15,7 +15,7 @@ import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
 import { ChatPanel } from './ChatPanel.js';
 import { RoleReveal } from './RoleReveal.js';
-import { lobby, clearSession, createMatch, loadSession, useGame } from './useGame.js';
+import { lobby, clearSession, loadSession, useGame } from './useGame.js';
 import type { Session } from './session.js';
 import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
 import { FACTION_LABEL, PHASE_LABEL } from './labels.js';
@@ -85,12 +85,11 @@ interface RosterSeat { id: string; name: string | null; }
  *  until the game starts — and a "开始游戏" button the host flips once
  *  everyone is at their keyboard.
  *
- *  Host config editing comes in two shapes:
- *    - faction breakdown  → the `setFactionConfig` move re-deals teams live;
- *      everyone in the room sees the new numbers on the next broadcast.
- *    - player count       → bgio seats are fixed at match creation, so a
- *      count change rebuilds the match (new room code) via `onRecreate`.
- *      Locked once anyone besides the host has boarded.
+ *  Host config editing: BOTH the faction breakdown and the target crew size
+ *  go through the `setFactionConfig` move — the room's seats are permanent
+ *  (built at full capacity), so nothing ever rebuilds the match; everyone in
+ *  the room sees the new numbers on the next broadcast. Players beyond the
+ *  target size sit on the bench (候补) until the host raises it.
  *
  *  When `liveView` is supplied, we're past the first socket sync: the seat
  *  list comes from the live GameState instead of the lobby API, and empty
@@ -106,38 +105,30 @@ function WaitingRoom({
   isHost,
   factionCounts,
   onSetFactionCounts,
-  onRecreate,
-  recreateError,
+  benchCount = 0,
 }: {
   session: Session;
   onLeave: () => void;
   onStart: () => void;
   playerCount: number;
-  liveView?: { filled: number; seats: { id: string; name: string; isMe?: boolean }[] };
+  liveView?: { filled: number; seats: { id: string; name: string; isMe?: boolean; benched?: boolean }[] };
   waitingLabel?: string;
   canStart: boolean;
   isHost: boolean;
   /** Live faction breakdown from the GameState, when a sync has landed.
    *  Falls back to the breakdown sealed in the session (pre-sync). */
   factionCounts?: FactionCounts | undefined;
-  /** Host only: re-seal the breakdown (setFactionConfig move). Absent pre-
-   *  connection, where the move could be dropped by a not-yet-open socket. */
-  onSetFactionCounts?: ((fc: FactionCounts) => void) | undefined;
-  /** Host only: rebuild the match with a new player count (new room code). */
-  onRecreate?: ((count: number, fc: FactionCounts) => void) | undefined;
-  /** Failure from the last recreate attempt, if any. */
-  recreateError?: string | null | undefined;
+  /** Host only: re-seal the breakdown (and optionally the target crew size)
+   *  via the setFactionConfig move. Absent pre-connection, where the move
+   *  could be dropped by a not-yet-open socket. */
+  onSetFactionCounts?: ((fc: FactionCounts, nextCount?: number) => void) | undefined;
+  /** How many players are waiting on the bench (beyond the target size). */
+  benchCount?: number | undefined;
 }) {
   const [polledSeats, setPolledSeats] = useState<RosterSeat[]>([]);
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
   const [startRequested, setStartRequested] = useState(false);
-  // Set while a rebuild is in flight; cleared when the new count arrives
-  // (new session → new playerCount prop) or when a failure is reported.
-  const [pendingCount, setPendingCount] = useState<number | null>(null);
-  useEffect(() => {
-    if (recreateError) setPendingCount(null);
-  }, [recreateError]);
 
   // Only poll the lobby API while we don't have a live GameState to read
   // from. Once `liveView` is present, bgio's own state sync keeps the seat
@@ -191,13 +182,15 @@ function WaitingRoom({
   //   - polledSeats[*].id is the bgio seat index as a string ("0", "1", ...)
   // So "am I this seat?" can't just be `s.id === session.playerID` — we
   // precompute `isMe` in the shape itself.
-  const seats: { id: string; name: string; isMe: boolean }[] = liveView
+  const seats: { id: string; name: string; isMe: boolean; benched: boolean }[] = liveView
     ? liveView.seats
-        .filter((s) => !/^Player \d+$/.test(s.name))
-        .map((s) => ({ id: s.id, name: s.name, isMe: !!s.isMe }))
+        // Active seats hide placeholder names; EMPTY bench seats (nobody sat
+        // down yet) are hidden entirely — only occupied bench rows show.
+        .filter((s) => (s.benched ? s.name !== '' : !/^Player \d+$/.test(s.name)))
+        .map((s) => ({ id: s.id, name: s.name, isMe: !!s.isMe, benched: !!s.benched }))
     : polledSeats
         .filter((s) => s.name)
-        .map((s) => ({ id: s.id, name: s.name!, isMe: s.id === session.playerID }));
+        .map((s) => ({ id: s.id, name: s.name!, isMe: s.id === session.playerID, benched: false }));
 
   const filled = liveView ? liveView.filled : polledSeats.filter((s) => s.name).length;
 
@@ -229,18 +222,20 @@ function WaitingRoom({
     onSetFactionCounts?.(next);
   };
 
-  // Player count: no local draft — each press rebuilds the match outright
-  // with the new count's preset (or a scaled breakdown when there is none).
-  const canEditCount = isHost && !!onRecreate && filled <= 1 && pendingCount === null;
+  // Player count: retunes the target crew size through the same live move as
+  // the faction steppers — the room, its code and every seated player stay
+  // put. The breakdown jumps to the new count's preset (or scales the current
+  // one when the count has no rulebook preset); the broadcast echo re-snaps.
+  const canEditCount = isHost && !!onSetFactionCounts;
   const changeCount = (next: number) => {
     if (!canEditCount || next === playerCount) return;
-    setPendingCount(next);
     const p = presetFor(next);
     const nextFc: FactionCounts = p
       ? { sailor: p.sailor, pirate: p.pirate, cult: p.cult }
       : scaleCounts(draft, next);
+    draftRef.current = nextFc;
     setDraft(nextFc);
-    onRecreate?.(next, nextFc);
+    onSetFactionCounts?.(nextFc, next);
   };
 
   return (
@@ -332,28 +327,38 @@ function WaitingRoom({
             </div>
           );
         })()}
-        {recreateError && <p className="error-line">{recreateError}</p>}
       </div>
 
       <div className="waiting__roster">
         <div className="waiting__roster-head">
           <span>船员</span>
-          <span>{filled} / {playerCount}</span>
+          <span>{filled} / {playerCount}{benchCount > 0 ? ` · 候补 ${benchCount}` : ''}</span>
         </div>
         <ul className="waiting__roster-list">
           {seats.length === 0 && (
             <li className="waiting__roster-loading">读取船员名单中…</li>
           )}
-          {seats.map((s, i) => (
-            <li key={s.id} className="waiting__roster-row">
-              <span className="waiting__roster-seat">{i + 1}</span>
-              <span className="waiting__roster-name">
-                {s.name}
-                {s.isMe && ' (你)'}
-              </span>
-              {s.isMe && isHost && <span className="waiting__roster-you">房主</span>}
-            </li>
-          ))}
+          {(() => {
+            let activeNo = 0;
+            return seats.map((s) => {
+              const no = s.benched ? null : ++activeNo;
+              return (
+                <li
+                  key={s.id}
+                  className={'waiting__roster-row' + (s.benched ? ' waiting__roster-row--bench' : '')}
+                >
+                  <span className="waiting__roster-seat">{no ?? '⏳'}</span>
+                  <span className="waiting__roster-name">
+                    {s.name}
+                    {s.isMe && ' (你)'}
+                  </span>
+                  {s.benched
+                    ? <span className="waiting__roster-bench">候补</span>
+                    : s.isMe && isHost && <span className="waiting__roster-you">房主</span>}
+                </li>
+              );
+            });
+          })()}
         </ul>
       </div>
 
@@ -399,7 +404,6 @@ export function App() {
 
   const [tab, setTab] = useState<'action' | 'chat' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
-  const [recreateError, setRecreateError] = useState<string | null>(null);
 
   // On mobile the three panels are tabs; auto-focus the action tab when the
   // player has something to do.
@@ -409,25 +413,9 @@ export function App() {
     if (needsMe) setTab('action');
   }, [needsMe]);
 
-  // Host config: player count. bgio fixes the seat count at match creation
-  // and its lobby API has no "update match", so a count change in the
-  // waiting room quietly builds a NEW match with the same host name and the
-  // chosen breakdown. Anyone who joined the old code would be stranded — the
-  // WaitingRoom locks the control once someone besides the host boarded.
-  const recreateMatch = useCallback(async (count: number, fc: FactionCounts) => {
-    if (!session) return;
-    try {
-      setRecreateError(null);
-      const next = await createMatch({
-        playerName: session.playerName,
-        playerCount: count,
-        factionCounts: fc,
-      });
-      setSession(next);
-    } catch (e) {
-      setRecreateError(e instanceof Error ? e.message : String(e));
-    }
-  }, [session]);
+  // Host config: player count AND faction breakdown both ride the live
+  // `setFactionConfig` move — rooms are built at full seat capacity, so no
+  // config change ever rebuilds the match or strands a joined player.
 
   if (!session) {
     return (
@@ -455,8 +443,6 @@ export function App() {
             // Seat 0 is the host by construction; claiming it pre-sync avoids
             // the host briefly seeing the joiner view (no CTA, locked panel).
             isHost={session.playerID === '0'}
-            onRecreate={session.playerID === '0' ? recreateMatch : undefined}
-            recreateError={recreateError}
           />
         ) : (
           <ConnectingScreen matchID={session.matchID} onCancel={resetToLobby} />
@@ -468,19 +454,23 @@ export function App() {
   const view = game.view;
   const over = view.winner !== null;
   const youName = view.you.name;
-  // `playerCount` is fixed at setup time; derive it from the full roster.
-  const playerCount = 1 + view.others.length;
+  // The target crew size the roles are dealt against; room seats beyond it
+  // are bench seats (候补) that no role is dealt into.
+  const playerCount = view.playerCount;
 
   // bgio keeps lobby-display names and GameState names in two separate
   // stores. Every client bridges its own name into GameState via `syncName`
   // on first sync, but until that round-trip completes for EVERY seat, the
   // GameState still carries setup-time "Player N" placeholders. While any
-  // seat is a placeholder we render the POLLING WaitingRoom (names sourced
-  // from the lobby API), so the roster never flashes 空位 in the window
-  // between socket-sync and syncName landing.
+  // ACTIVE seat is a placeholder we render the POLLING WaitingRoom (names
+  // sourced from the lobby API), so the roster never flashes 空位 in the
+  // window between socket-sync and syncName landing. Bench seats stay out
+  // of both checks — nobody is dealt in there, nobody needs to sync.
   const PLACEHOLDER = /^Player \d+$/;
+  const activeOthers = view.others.filter((p) => !p.benched);
+  const benchOthers = view.others.filter((p) => p.benched && p.name && !PLACEHOLDER.test(p.name));
   const namesSynced =
-    !PLACEHOLDER.test(view.you.name) && view.others.every((p) => !PLACEHOLDER.test(p.name));
+    !PLACEHOLDER.test(view.you.name) && activeOthers.every((p) => !PLACEHOLDER.test(p.name));
 
   if (!namesSynced) {
     return (
@@ -497,22 +487,21 @@ export function App() {
           isHost={view.isHost}
           factionCounts={view.factionCounts}
           onSetFactionCounts={view.isHost ? game.moves.setFactionConfig : undefined}
-          onRecreate={view.isHost ? recreateMatch : undefined}
-          recreateError={recreateError}
+          benchCount={benchOthers.length}
         />
       </div>
     );
   }
 
-  // Step 1 — waiting for seats to fill. Every GameState name is real now, so
-  // the placeholder check is purely informational here.
-  const unfilledSeats = view.others.filter((p) => PLACEHOLDER.test(p.name)).length;
-  const realPlayers = playerCount - unfilledSeats;
+  // Step 1 — waiting for active seats to fill. Every active GameState name is
+  // real now, so the placeholder check is purely informational here.
+  const unfilledSeats = activeOthers.filter((p) => PLACEHOLDER.test(p.name)).length;
+  const realPlayers = 1 + activeOthers.length - unfilledSeats;
   const allSeatsFilled = unfilledSeats === 0;
 
-  // Step 2 — all seats filled, but the host hasn't flipped the "开始游戏"
-  // switch yet. Stay on the waiting screen; the host sees a gold CTA, other
-  // seats see a "等待房主开始" hint.
+  // Step 2 — all active seats filled, but the host hasn't flipped the "开始
+  // 游戏" switch yet. Stay on the waiting screen; the host sees a gold CTA,
+  // other seats see a "等待房主开始" hint.
   if (!allSeatsFilled || !view.hostStarted) {
     return (
       <div className="app app--lobby">
@@ -525,8 +514,8 @@ export function App() {
           liveView={{
             filled: realPlayers,
             seats: [
-              { id: view.you.id, name: view.you.name, isMe: true },
-              ...view.others.map((p) => ({ id: p.id, name: p.name, isMe: false })),
+              { id: view.you.id, name: view.you.name, isMe: true, benched: view.you.benched },
+              ...view.others.map((p) => ({ id: p.id, name: p.name, isMe: false, benched: p.benched })),
             ],
           }}
           waitingLabel={allSeatsFilled ? '船员到齐，等待房主发号' : '等待船员登船'}
@@ -534,16 +523,33 @@ export function App() {
           isHost={view.isHost}
           factionCounts={view.factionCounts}
           onSetFactionCounts={view.isHost ? game.moves.setFactionConfig : undefined}
-          onRecreate={view.isHost ? recreateMatch : undefined}
-          recreateError={recreateError}
+          benchCount={benchOthers.length}
         />
       </div>
     );
   }
 
-  // Step 3 — role-reveal gate: every seat must acknowledge their role card
-  // before any in-game move is legal. Until this player has done so, render
-  // the flip-card screen in place of the board + side panels.
+  // Step 3 — role-reveal gate: every ACTIVE seat must acknowledge their role
+  // card before any in-game move is legal. Until this player has done so,
+  // render the flip-card screen in place of the board + side panels. Bench
+  // players have no role card — they wait on a dedicated screen until the
+  // host raises the target count and a seat opens up for them.
+  if (view.you.benched) {
+    return (
+      <div className="app app--lobby">
+        <div className="role-reveal">
+          <div className="role-reveal__hero">
+            <div className="role-reveal__ornament" aria-hidden="true">⏳</div>
+            <h2 className="role-reveal__title">候补席</h2>
+            <p className="role-reveal__sub">
+              本局已满员（{playerCount} 人）。房主调高人数后你会自动入局。
+            </p>
+          </div>
+          <p className="waiting__hint">你已入座候补，角色卡不会发给你。</p>
+        </div>
+      </div>
+    );
+  }
   if (!view.you.roleConfirmed) {
     return (
       <div className="app app--lobby">

@@ -10,6 +10,7 @@ export * from './map.js';
 export * from './rules.js';
 export * from './decks.js';
 export * from './rng.js';
+export * from './helpers.js';
 export * from './setup.js';
 export * from './view.js';
 export * from './actions.js';

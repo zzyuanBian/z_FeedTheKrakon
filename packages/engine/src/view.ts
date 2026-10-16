@@ -17,6 +17,7 @@ import type {
   ArrowColor, Faction, FactionCounts, GameState, LogEntry, NavCardId, Pending, PhaseId,
   PlayerId, RitualCardId, Ship,
 } from './state.js';
+import { activeSeatIds } from './helpers.js';
 import { effectiveFactionCounts } from './setup.js';
 
 /* --------------------------- public sub-views --------------------------- */
@@ -27,6 +28,9 @@ export interface OtherPlayerView {
   seat: number;
   name: string;
   alive: boolean;
+  /** Bench seat: the room physically holds it, but it is beyond the target
+   *  crew size, so nobody is dealt in there (pre-game only distinction). */
+  benched: boolean;
   offDuty: boolean;
   declaredCult: boolean;
   unconvertible: boolean;
@@ -96,6 +100,8 @@ export interface PlayerView {
    *  waiting-room config panel shows. Follows a host's `setFactionConfig`
    *  re-seal. Never secret. */
   factionCounts: FactionCounts;
+  /** The target crew size. Room seats beyond this are `benched` players. */
+  playerCount: number;
   /** Per-seat role-confirm status, in seatOrder. Lets the role-reveal screen
    *  show "X / Y 已准备" without a separate lobby poll. */
   roleConfirmations: { confirmed: number; total: number; bySeat: boolean[] };
@@ -134,6 +140,7 @@ function publicPlayer(state: GameState, id: PlayerId): OtherPlayerView {
     seat: p.seat,
     name: p.name,
     alive: p.alive,
+    benched: p.seat >= state.settings.playerCount,
     offDuty: p.offDuty,
     declaredCult: p.declaredCult,
     unconvertible: p.unconvertible,
@@ -171,11 +178,13 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     ? state.seatOrder.filter((id) => id !== viewer && state.players[id]!.team === 'cult')
     : [];
 
-  // Per-seat confirmation status for the role-reveal UI.
-  const bySeat = state.seatOrder.map((id) => state.confirmedRole.includes(id));
+  // Per-seat confirmation status for the role-reveal UI — active seats only;
+  // bench seats hold no role card and must not block or inflate the count.
+  const active = activeSeatIds(state);
+  const bySeat = active.map((id) => state.confirmedRole.includes(id));
   const roleConfirmations = {
     confirmed: bySeat.filter(Boolean).length,
-    total: state.seatOrder.length,
+    total: active.length,
     bySeat,
   };
 
@@ -194,6 +203,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     },
     others,
     factionCounts: effectiveFactionCounts(state.settings),
+    playerCount: state.settings.playerCount,
     roleConfirmations,
     hostStarted: state.hostStarted,
     ship: { ...state.ship },

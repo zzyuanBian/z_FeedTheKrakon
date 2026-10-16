@@ -24,6 +24,12 @@ export function livingPlayers(s: GameState): PlayerId[] {
   return s.seatOrder.filter((id) => s.players[id]!.alive);
 }
 
+/** The seats actually in this game (the dealt crew) — full rooms hold extra
+ *  bench seats beyond `settings.playerCount` that nobody is dealt into. */
+export function activeSeatIds(s: GameState): PlayerId[] {
+  return s.seatOrder.slice(0, s.settings.playerCount);
+}
+
 /** Clockwise (increasing seat) walk from `from`, wrapping, keeping those passing `filter`. */
 export function walkClockwise(
   s: GameState, from: PlayerId, filter: (id: PlayerId) => boolean,

@@ -9,7 +9,8 @@
  */
 
 import {
-  STARTING_GUNS, TEAM_COMPOSITIONS, type Faction, type FactionCounts, type GameSettings,
+  GUN_SUPPLY_TOTAL, STARTING_GUNS, TEAM_COMPOSITIONS,
+  type Faction, type FactionCounts, type GameSettings,
   type GameState, type Player, type PlayerId,
 } from './state.js';
 import { loadMap, type RawMap } from './map.js';
@@ -90,6 +91,7 @@ export function dealTeams(
  *  is still sealed (no role card has been projected) — callers assert that. */
 export function applyDeal(s: GameState, teams: Faction[], captainIndex: number): void {
   s.seatOrder.forEach((id, seat) => {
+    if (seat >= s.settings.playerCount) return; // inert bench seat — no chip
     const p = s.players[id]!;
     p.team = teams[seat]!;
     p.cultLeader = false;
@@ -129,21 +131,28 @@ export function createGame(opts: NewGameOptions): GameState {
   // --- captain card procedure (p.8) ---
   const { teams, captainIndex } = dealTeams(rng, settings.playerCount, counts);
 
+  // Rooms are built at full capacity (`settings.seats`, defaulting to
+  // playerCount): the first playerCount seats are the dealt crew, the rest
+  // are inert placeholders. Dead seats flow through every living-player
+  // filter (appointments, mutiny, targets, clockwise walks, victory) without
+  // any special-casing — that is the whole trick.
+  const seats = settings.seats ?? settings.playerCount;
   const seatOrder: PlayerId[] = [];
   const players: Record<PlayerId, Player> = {};
-  for (let seat = 0; seat < settings.playerCount; seat++) {
+  for (let seat = 0; seat < seats; seat++) {
     const id = `p${seat + 1}`;
     seatOrder.push(id);
+    const active = seat < settings.playerCount;
     players[id] = {
       id,
       seat,
-      name: names[seat]!,
-      team: teams[seat]!,
+      name: active ? names[seat]! : '',
+      team: active ? teams[seat]! : 'sailor',
       cultLeader: false,
       convertedAt: null,
-      guns: STARTING_GUNS,
+      guns: active ? STARTING_GUNS : 0,
       resumes: 0,
-      alive: true,
+      alive: active,
       offDuty: false,
       unconvertible: false,
       declaredCult: false,
@@ -195,7 +204,7 @@ export function createGame(opts: NewGameOptions): GameState {
       tieOrder: [],
     },
     consumed: [],
-    gunSupply: 40 - STARTING_GUNS * settings.playerCount,
+    gunSupply: GUN_SUPPLY_TOTAL - STARTING_GUNS * settings.playerCount,
     pending: null,
     log: [{ t: 'round', round: 1, captain: firstCaptain }],
     secrets: [],

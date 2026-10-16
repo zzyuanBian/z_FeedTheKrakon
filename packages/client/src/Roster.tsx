@@ -7,7 +7,8 @@ import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL } from './labels.js';
 
 export function Roster({ view }: { view: PlayerView }) {
-  const rows = [view.you, ...view.others];
+  // Bench seats (beyond the target crew size) are not players — never render.
+  const rows = [view.you, ...view.others].filter((p) => !p.benched);
   const { officers } = view;
   return (
     <section className="roster">

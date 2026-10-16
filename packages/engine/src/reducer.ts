@@ -13,7 +13,10 @@
  */
 
 import type { Action } from './actions.js';
-import { navCard, type GameState, type NavCardId, type PlayerId } from './state.js';
+import {
+  GUN_SUPPLY_TOTAL, navCard, STARTING_GUNS,
+  type GameState, type NavCardId, type PlayerId,
+} from './state.js';
 import {
   checkVictory, eligibleOfficers, endGame, grantGuns, livingPlayers, moveShip,
   takeGuns, walkClockwise,
@@ -103,9 +106,18 @@ function handle(s: GameState, a: Action): void {
  *  pure record of facts. */
 function confirmRole(s: GameState, a: Extract<Action, { type: 'confirmRole' }>): void {
   assert(s.players[a.actor], `unknown player ${a.actor}`);
+  // Bench seats (beyond the target crew size) have no role card to confirm.
+  // They may sit in the room and wait; if the host raises the count they
+  // become active and confirm then.
+  assert(seatIndex(a.actor) < s.settings.playerCount, 'bench seats have no role to confirm');
   if (!s.confirmedRole.includes(a.actor)) {
     s.confirmedRole.push(a.actor);
   }
+}
+
+/** Seat number ('p3' -> 2). Player ids are p<seat+1> by construction. */
+function seatIndex(id: PlayerId): number {
+  return Number(id.slice(1)) - 1;
 }
 
 /** Only the room host may flip the "开始游戏" switch. Idempotent: repeated
@@ -129,16 +141,39 @@ function syncName(s: GameState, a: Extract<Action, { type: 'syncName' }>): void 
  *  re-dealt from scratch (captain card included — it is part of the same
  *  deal). Legal precisely because no secret has ever been projected: not
  *  hostStarted and nobody has confirmed a role, so reshuffling identities
- *  leaks nothing. Seats and names are untouched; only the chips move. */
+ *  leaks nothing. Seats and names are untouched; only the chips move.
+ *
+ *  `nextCount` retunes the target crew size in the same breath (Avalon-style
+ *  lobby: the room never rebuilds, the host just redraws how many seats
+ *  play). Growing activates previously-bench seats; shrinking benches the
+ *  tail seats. Everything that scales with crew size (mutiny threshold, gun
+ *  supply) is re-stamped here. */
 function setFactionConfig(s: GameState, a: Extract<Action, { type: 'setFactionConfig' }>): void {
   assert(a.actor === s.host, `only the host (${s.host}) may change the config; got ${a.actor}`);
   assert(!s.hostStarted, 'the config is sealed once the game has started');
   assert(s.confirmedRole.length === 0, 'the config is sealed once roles are revealed');
-  validateFactionCounts(a.factionCounts, s.settings.playerCount);
+  const nextCount = a.nextCount ?? s.settings.playerCount;
+  // The engine's supported range mirrors the rulebook table (5..11).
+  assert(nextCount >= 5 && nextCount <= 11, `player count ${nextCount} out of range (5..11)`);
+  assert(nextCount <= s.seatOrder.length, `player count ${nextCount} exceeds the room's seats`);
+  validateFactionCounts(a.factionCounts, nextCount);
+  s.settings.playerCount = nextCount;
   s.settings.factionCounts = { ...a.factionCounts };
   const { teams, captainIndex } = withRng(s, (rng) =>
-    dealTeams(rng, s.settings.playerCount, a.factionCounts));
+    dealTeams(rng, nextCount, a.factionCounts));
   applyDeal(s, teams, captainIndex);
+  // Re-stamp everything that scales with the crew size. Growing the count
+  // activates (revives) former bench seats; shrinking deactivates the tail.
+  // Safe to write `alive` directly: the asserts above pin this to the strict
+  // pre-game window, where nobody has died yet.
+  for (const id of s.seatOrder) {
+    const p = s.players[id]!;
+    const active = seatIndex(id) < nextCount;
+    p.alive = active;
+    p.guns = active ? STARTING_GUNS : 0;
+  }
+  s.gunSupply = GUN_SUPPLY_TOTAL - STARTING_GUNS * nextCount;
+  s.mutiny.threshold = mutinyThreshold(nextCount);
 }
 
 /* ============================ phase 1: appoint ========================== */

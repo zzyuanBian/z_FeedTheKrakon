@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Client, LobbyClient } from 'boardgame.io/client';
 import { SocketIO } from 'boardgame.io/multiplayer';
-import { FtkGame, type FtkSetupData } from '@ftk/game';
+import { FtkGame, SEAT_CAPACITY, type FtkSetupData } from '@ftk/game';
 import type { FactionCounts, PlayerView } from '@ftk/engine';
 import { GAME_NAME, SERVER_ORIGIN } from './config.js';
 import { clearSession, loadSession, saveSession, type Session } from './session.js';
@@ -40,7 +40,12 @@ export interface CreateOptions {
   factionCounts?: FactionCounts;
 }
 
-/** Create a match, take seat 0, and return the session. */
+/** Create a match, take seat 0, and return the session.
+ *
+ *  The room is always built at full seat capacity — `playerCount` seals only
+ *  the TARGET crew size into the setup data, and the host retunes it live via
+ *  `setFactionConfig` without ever rebuilding the match (the room code, the
+ *  share link and everyone's seat survive any config change). */
 export async function createMatch(opts: CreateOptions): Promise<Session> {
   const setupData: FtkSetupData = {
     seed: opts.seed ?? Math.floor(Math.random() * 1e9),
@@ -50,7 +55,7 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
     ...(opts.factionCounts ? { factionCounts: opts.factionCounts } : {}),
   };
   const { matchID } = await lobby.createMatch(GAME_NAME, {
-    numPlayers: opts.playerCount,
+    numPlayers: SEAT_CAPACITY,
     setupData,
   });
   const { playerID, playerCredentials } = await lobby.joinMatch(GAME_NAME, matchID, {

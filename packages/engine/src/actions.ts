@@ -22,7 +22,10 @@ export type Action =
    *  every team is re-dealt from scratch. Asserted legal only while no role
    *  card has been projected (not hostStarted, nobody confirmed) — at that
    *  point the deal is still a secret to everyone, including the host. */
-  | { type: 'setFactionConfig'; actor: PlayerId; factionCounts: FactionCounts }
+  | { type: 'setFactionConfig'; actor: PlayerId; factionCounts: FactionCounts;
+      /** Retune the target crew size as well (Avalon-style lobby: the room
+       *  keeps its seats; this just re-draws how many of them play). */
+      nextCount?: number }
   /* phase 1 — appointing the navigation team */
   | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId; navigator: PlayerId }
   /* phase 2 — a question of loyalty */

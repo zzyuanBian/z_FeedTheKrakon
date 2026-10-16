@@ -614,6 +614,16 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid var(--gold-dim);
   border-radius: 999px;
 }
+.waiting__roster-row--bench .waiting__roster-name { color: var(--ink-ghost); }
+.waiting__roster-row--bench .waiting__roster-seat { opacity: 0.5; }
+.waiting__roster-bench {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-ghost);
+  padding: 2px 8px;
+  border: 1px dashed var(--ink-ghost);
+  border-radius: 999px;
+}
 .waiting__roster-loading {
   color: var(--ink-ghost);
   font-size: 13px;

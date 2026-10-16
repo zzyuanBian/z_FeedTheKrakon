@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  SHORT_MAP, createGame, makeRng, reduce, viewFor,
+  SHORT_MAP, STARTING_GUNS, createGame, livingPlayers, makeRng, reduce, viewFor,
   type Action, type GameState, type PlayerId,
 } from '../src/index.js';
 
@@ -234,6 +234,74 @@ describe('setFactionConfig', () => {
         factionCounts: { sailor: 2, pirate: 2, cult: 3 },
       });
     expect(JSON.stringify(play())).toBe(JSON.stringify(play()));
+  });
+});
+
+describe('full-capacity rooms (Avalon lobby)', () => {
+  /** A 7-player game dealt into an 11-seat room. */
+  const roomy = (seed = 1234): GameState => createGame({
+    seed,
+    settings: { playerCount: 7, seats: 11, map: 'short', fivePlayerTwoPirates: false },
+    names: Array.from({ length: 7 }, (_, i) => `P${i + 1}`),
+    map: SHORT_MAP,
+  });
+
+  it('leaves the extra seats inert: dead, nameless, roleless, gunless', () => {
+    const s = roomy();
+    expect(s.seatOrder).toHaveLength(11);
+    const bench = s.seatOrder.slice(7);
+    for (const id of bench) {
+      const p = s.players[id]!;
+      expect(p.alive).toBe(false);
+      expect(p.name).toBe('');
+      expect(p.guns).toBe(0);
+      expect(p.cultLeader).toBe(false);
+    }
+    expect(s.gunSupply).toBe(40 - STARTING_GUNS * 7);
+    // The bench is invisible to living-player queries and never leads the cult.
+    expect(livingPlayers(s)).toHaveLength(7);
+    const leader = s.seatOrder.find((id) => s.players[id]!.cultLeader)!;
+    expect(bench).not.toContain(leader);
+  });
+
+  it('scopes confirmation and the view to active seats; bench seats cannot confirm', () => {
+    const s = roomy();
+    const v = viewFor(s, 'p1');
+    expect(v.playerCount).toBe(7);
+    expect(v.roleConfirmations.total).toBe(7);
+    expect(v.others.filter((p) => p.benched)).toHaveLength(4);
+    expect(() => reduce(s, { type: 'confirmRole', actor: 'p8' })).toThrow();
+  });
+
+  it('retunes the target crew size live: grow revives bench seats, shrink re-benches them', () => {
+    let s = roomy();
+    s = reduce(s, {
+      type: 'setFactionConfig', actor: s.host,
+      factionCounts: { sailor: 5, pirate: 3, cult: 1 }, nextCount: 9,
+    });
+    expect(s.settings.playerCount).toBe(9);
+    // p8/p9 woke up with real roles and starting guns; p10 stays benched.
+    for (const id of ['p8', 'p9']) {
+      expect(s.players[id]!.alive).toBe(true);
+      expect(s.players[id]!.guns).toBe(STARTING_GUNS);
+    }
+    expect(s.players.p10!.alive).toBe(false);
+    expect(s.gunSupply).toBe(40 - STARTING_GUNS * 9);
+    expect(s.mutiny.threshold).toBe(4); // 8..9 players -> threshold 4
+    const tally = { sailor: 0, pirate: 0, cult: 0 };
+    for (const id of s.seatOrder.slice(0, 9)) tally[s.players[id]!.team] += 1;
+    expect(tally).toEqual({ sailor: 5, pirate: 3, cult: 1 });
+    const v = viewFor(s, 'p1');
+    expect(v.playerCount).toBe(9);
+    expect(v.others.filter((p) => p.benched)).toHaveLength(2);
+
+    // Shrinking re-benches the tail and re-stamps the threshold.
+    s = reduce(s, {
+      type: 'setFactionConfig', actor: s.host,
+      factionCounts: { sailor: 4, pirate: 2, cult: 1 }, nextCount: 7,
+    });
+    expect(s.players.p8!.alive).toBe(false);
+    expect(s.mutiny.threshold).toBe(3);
   });
 });
 
