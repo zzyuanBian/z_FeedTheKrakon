@@ -64,7 +64,7 @@ function isFtkGame(G: unknown): G is GameState {
  */
 function move(
   create: (actor: PlayerId, ...args: unknown[]) => Action,
-  opts: { ignoreStaleStateID?: boolean } = {},
+  opts: { ignoreStaleStateID?: boolean; redact?: boolean } = {},
 ): Move<GameState> {
   return {
     client: false,
@@ -76,6 +76,10 @@ function move(
     // apply them against its latest state; their legality is still guarded
     // by the reducer's own assertions.
     ...(opts.ignoreStaleStateID ? { ignoreStaleStateID: true } : {}),
+    // `redact` strips the move's ARGS from the transport log shipped to other
+    // clients (bgio's deltalog reaches every browser — args are otherwise
+    // readable in devtools). Used for moves whose args carry secrets.
+    ...(opts.redact ? { redact: true } : {}),
     move: ({ G, playerID }, ...args: unknown[]) => {
       if (!isFtkGame(G)) return INVALID_MOVE;
       if (playerID === null || playerID === undefined) return INVALID_MOVE;
@@ -189,9 +193,12 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     mapActionCabinSearch: move((actor, target) => as('mapActionCabinSearch', actor, { target })),
     mapActionFeedKraken: move((actor, target) => as('mapActionFeedKraken', actor, { target })),
 
-    ritualConversion: move((actor, target) => as('ritualConversion', actor, { target })),
-    ritualGunsStash: move((actor, grants) => as('ritualGunsStash', actor, { grants })),
-    ritualAck: move((actor) => as('ritualAck', actor)),
+    // Rituals are the Cult Leader's moves — their actor is a hidden role, so
+    // the args (conversion target, gun distribution) must not ride the
+    // transport log. ritualAck has no args but stays redacted for uniformity.
+    ritualConversion: move((actor, target) => as('ritualConversion', actor, { target }), { redact: true }),
+    ritualGunsStash: move((actor, grants) => as('ritualGunsStash', actor, { grants }), { redact: true }),
+    ritualAck: move((actor) => as('ritualAck', actor), { redact: true }),
   },
 
   /** The engine's whitelist projection is the only thing a client ever sees. */

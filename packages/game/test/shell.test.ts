@@ -117,6 +117,23 @@ describe('move wrapper', () => {
     expect(flag('syncName')).toBe(true);
     expect(flag('appointTeam')).toBe(false);
   });
+
+  it('redacts the args of the ritual moves in the transport log', () => {
+    // bgio ships its deltalog (move author + args) to every client; anyone
+    // with devtools open could otherwise read the conversion target or the
+    // gun distribution. The ritual moves carry `redact: true` so their args
+    // are stripped for everyone but the sender.
+    const moves = FtkGame.moves!;
+    const redacted = (name: string): boolean => {
+      const m = moves[name]!;
+      return !(m instanceof Function) && m.redact === true;
+    };
+    expect(redacted('ritualConversion')).toBe(true);
+    expect(redacted('ritualGunsStash')).toBe(true);
+    expect(redacted('ritualAck')).toBe(true);
+    // Public-actor moves keep their args in the transport log.
+    expect(redacted('appointTeam')).toBe(false);
+  });
 });
 
 describe('playerView secrecy', () => {

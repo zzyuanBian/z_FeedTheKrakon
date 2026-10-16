@@ -123,6 +123,29 @@ describe('viewFor — the information gate', () => {
     expect(v.mutiny.pledges).toEqual({ p1: 2, p2: 1 });
   });
 
+  it('hides the actor of a ritual pending from everyone but the actor', () => {
+    const g = newGame(7);
+    const leader = g.seatOrder.find((id) => g.players[id]!.cultLeader)!;
+    g.pending = { kind: 'ritual', by: leader, data: { ritual: 'conversion' } };
+    // The leader still sees themself as the actor, with their private data.
+    const leaderView = viewFor(g, leader);
+    expect(leaderView.pending).toEqual({ kind: 'ritual', by: leader, isYou: true });
+    expect(leaderView.pendingData).toEqual({ ritual: 'conversion' });
+    // Everyone else gets a nameless pending — naming `by` would out the leader.
+    const other = g.seatOrder.find((id) => id !== leader)!;
+    const otherView = viewFor(g, other);
+    expect(otherView.pending).toEqual({ kind: 'ritual', by: null, isYou: false });
+    expect(otherView.pendingData).toBeNull();
+  });
+
+  it('still names the actor of non-ritual pendings', () => {
+    const g = newGame(7);
+    g.pending = { kind: 'mapAction', by: g.officers.captain!, data: { icon: 'magnify' } };
+    const watcher = g.seatOrder.find((id) => id !== g.officers.captain)!;
+    const v = viewFor(g, watcher);
+    expect(v.pending).toEqual({ kind: 'mapAction', by: g.officers.captain, isYou: false });
+  });
+
   it('is idempotent (pure)', () => {
     const g = newGame(6);
     const a = viewFor(g, g.seatOrder[1]!);

@@ -102,8 +102,10 @@ export interface PlayerView {
   hostStarted: boolean;
   ship: { spaceId: number; emergency: boolean };
   officers: OfficersView;
-  /** Whose input the game is currently waiting on, and for what. */
-  pending: { kind: Pending['kind']; by: PlayerId; isYou: boolean } | null;
+  /** Whose input the game is currently waiting on, and for what. `by` is the
+   *  actor's id — except for secret-actor pendings (a ritual would out the
+   *  Cult Leader), where it is null for everyone but the actor themself. */
+  pending: { kind: Pending['kind']; by: PlayerId | null; isYou: boolean } | null;
   /** True if the viewer is the room host (may force-advance a stuck phase). */
   isHost: boolean;
   /** Private data attached to a pending that belongs to the viewer. */
@@ -195,7 +197,16 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     ship: { ...state.ship },
     officers: { ...state.officers },
     pending: state.pending
-      ? { kind: state.pending.kind, by: state.pending.by, isYou: state.pending.by === viewer }
+      ? {
+          kind: state.pending.kind,
+          // A ritual's actor is the (secret) Cult Leader: naming `by` would out
+          // them to the whole table. The ritual itself is public — the card is
+          // flipped face up — only WHO acts on it stays hidden.
+          by: state.pending.kind === 'ritual' && state.pending.by !== viewer
+            ? null
+            : state.pending.by,
+          isYou: state.pending.by === viewer,
+        }
       : null,
     isHost: state.host === viewer,
     pendingData:

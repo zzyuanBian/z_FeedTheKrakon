@@ -196,11 +196,17 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
     return <PendingForm view={view} moves={moves} kind={p.kind} />;
   }
 
-  // 5. Nothing actionable for this player right now.
+  // 5. Nothing actionable for this player right now. A pending with `by`
+  // === null is a secret-actor pending (a ritual) — the actor's identity
+  // must not reach the UI.
   return (
     <div className="panel panel--quiet">
       <p className="hint">
-        {p ? `等待 ${name(view, p.by)} 操作…` : `当前阶段：${PHASE_LABEL[view.phase]}`}
+        {p
+          ? p.by
+            ? `等待 ${name(view, p.by)} 操作…`
+            : '仪式进行中，请稍候…'
+          : `当前阶段：${PHASE_LABEL[view.phase]}`}
       </p>
     </div>
   );
