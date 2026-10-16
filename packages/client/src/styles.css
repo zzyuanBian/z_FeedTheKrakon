@@ -943,10 +943,11 @@ button:disabled { cursor: not-allowed; }
 
 /* ============================== game layout =========================== */
 
-.main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: 0; }
+.main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px 300px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
+.col--chat { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 
 /* ================================ board ================================ */
 
@@ -1073,10 +1074,24 @@ button:disabled { cursor: not-allowed; }
 
 .chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .chat__log { flex: 1; overflow: auto; min-height: 120px; }
-.chat__msg { display: flex; gap: 8px; padding: 3px 0; font-size: 14px; }
-.chat__msg--me .chat__who { color: var(--teal-bright); }
-.chat__who { color: var(--gold); flex: 0 0 auto; font-weight: 600; }
-.chat__text { word-break: break-word; }
+.chat__empty { color: var(--ink-ghost); font-size: 13px; text-align: center; padding: 24px 0; font-style: italic; }
+/* Avalon-style bubbles: sender's name above, own messages mirrored right. */
+.chat__row { display: flex; align-items: flex-end; gap: 6px; padding: 3px 0; }
+.chat__row--me { flex-direction: row-reverse; }
+.chat__who {
+  flex: 0 0 auto; max-width: 30%; overflow: hidden; text-overflow: ellipsis;
+  color: var(--ink-ghost); font-size: 11px; padding-bottom: 4px;
+}
+.chat__bubble {
+  max-width: 78%; padding: 6px 11px; border-radius: 12px; font-size: 14px;
+  background: var(--bg-panel-2); border: 1px solid var(--line);
+  color: var(--ink); word-break: break-word;
+  border-bottom-left-radius: 4px;
+}
+.chat__row--me .chat__bubble {
+  background: rgba(212, 175, 55, 0.14); border-color: var(--gold-dim);
+  color: var(--gold-bright); border-bottom-left-radius: 12px; border-bottom-right-radius: 4px;
+}
 .chat__form { display: flex; gap: 8px; margin-top: 8px; }
 .chat__form input {
   flex: 1; min-height: var(--tap); padding: 8px 12px; border-radius: var(--radius);
@@ -1107,8 +1122,9 @@ button:disabled { cursor: not-allowed; }
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; grid-template-rows: minmax(180px, 40vh) 1fr; }
+  .main { grid-template-columns: 1fr; grid-template-rows: minmax(180px, 40vh) minmax(0, 1fr) minmax(150px, 30vh); }
   .col--side { border-left: none; border-top: 1px solid var(--line); }
+  .col--chat { border-left: none; border-top: 1px solid var(--line); }
   .tabs { display: flex; }
   .topbar__mid { order: 3; flex-basis: 100%; text-align: left; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }

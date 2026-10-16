@@ -407,7 +407,7 @@ export function App() {
   }, []);
   const game = useGame(session, resetToLobby);
 
-  const [tab, setTab] = useState<'action' | 'chat' | 'log'>('action');
+  const [tab, setTab] = useState<'action' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
 
   // On mobile the three panels are tabs; auto-focus the action tab when the
@@ -603,9 +603,6 @@ export function App() {
             <button className={'tab' + (tab === 'action' ? ' tab--on' : '')} onClick={() => setTab('action')}>
               行动{needsMe ? ' ●' : ''}
             </button>
-            <button className={'tab' + (tab === 'chat' ? ' tab--on' : '')} onClick={() => setTab('chat')}>
-              讨论
-            </button>
             <button className={'tab' + (tab === 'log' ? ' tab--on' : '')} onClick={() => setTab('log')}>
               记录
             </button>
@@ -625,15 +622,19 @@ export function App() {
               )}
             </>
           )}
-          {tab === 'chat' && (
-            <ChatPanel
-              view={view}
-              chat={game.chat}
-              sendChat={game.sendChat}
-              muted={!view.you.alive}
-            />
-          )}
           {tab === 'log' && <LogPanel view={view} />}
+        </aside>
+
+        {/* Chat is a permanent column right of the board — no tab hides it
+            (Avalon's chat system, always expanded). It stacks below the side
+            column on narrow screens. */}
+        <aside className="col col--chat">
+          <ChatPanel
+            view={view}
+            chat={game.chat}
+            sendChat={game.sendChat}
+            muted={!view.you.alive}
+          />
         </aside>
       </main>
 
