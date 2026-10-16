@@ -535,10 +535,12 @@ export function App() {
   }
 
   // Step 3 — role-reveal gate: every ACTIVE seat must acknowledge their role
-  // card before any in-game move is legal. Until this player has done so,
-  // render the flip-card screen in place of the board + side panels. Bench
-  // players have no role card — they wait on a dedicated screen until the
-  // host raises the target count and a seat opens up for them.
+  // card before any in-game move is legal. A player who has confirmed stays
+  // on the reveal screen (its alreadyConfirmed state) until EVERY seat has —
+  // the whole table then flips into the game on the same broadcast, instead
+  // of early birds staring at an empty board. Bench players have no role
+  // card — they wait on a dedicated screen until the host raises the target
+  // count and a seat opens up for them.
   if (view.you.benched) {
     return (
       <div className="app app--lobby">
@@ -555,7 +557,8 @@ export function App() {
       </div>
     );
   }
-  if (!view.you.roleConfirmed) {
+  const allConfirmed = view.roleConfirmations.confirmed >= view.roleConfirmations.total;
+  if (!view.you.roleConfirmed || !allConfirmed) {
     return (
       <div className="app app--lobby">
         <RoleReveal view={view} onConfirm={game.confirmRole} />
