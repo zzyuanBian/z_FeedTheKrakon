@@ -1117,7 +1117,7 @@ button:disabled { cursor: not-allowed; }
 .cardsplit__hand { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
 .navcard {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  min-width: 92px; min-height: 120px; padding: 12px; border-radius: var(--radius);
+  padding: 0; border-radius: var(--radius);
   border: 1px solid var(--line-strong); background: var(--bg-panel); position: relative;
 }
 .navcard--static { cursor: default; }
@@ -1127,6 +1127,40 @@ button:disabled { cursor: not-allowed; }
 .navcard__name { font-size: 13px; text-align: center; }
 .navcard__tag { position: absolute; top: 6px; right: 6px; font-size: 11px; background: var(--gold); color: #1a1203; border-radius: 6px; padding: 1px 6px; }
 .navcard__tag--drop { background: var(--blood); color: #fff; }
+
+/* Physical nav-card face: the scanned square (cards/sail-<id>.jpg) fills
+   the window; the Chinese name rides on a bottom gradient band. */
+.navface {
+  position: relative;
+  width: 96px;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: #0a0f1a;
+}
+.navface__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+.navface__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 2px 3px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.78) 45%);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
 
 /* ------------------------------- roster -------------------------------- */
 /* The crew circle: seats around the ship's table. .roster__table is a
@@ -1138,7 +1172,7 @@ button:disabled { cursor: not-allowed; }
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-width: 280px;
+  max-width: 300px;
   margin: 6px auto 2px;
 }
 /* The table itself: dashed ring + soft wood-and-water glow. */
@@ -1172,11 +1206,16 @@ button:disabled { cursor: not-allowed; }
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 4px 7px;
+  /* One fixed card size for every seat — names ellipsize instead of
+     stretching the card, so the ring never looks ragged. */
+  width: 84px;
+  height: 52px;
+  padding: 4px 6px;
   border-radius: var(--radius);
   border: 1px solid var(--line-strong);
   background: var(--bg-panel);
-  max-width: 96px;
+  box-sizing: border-box;
+  overflow: hidden;
   text-align: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
@@ -1186,6 +1225,7 @@ button:disabled { cursor: not-allowed; }
 .roster__seat-name {
   font-size: 12px;
   font-weight: 700;
+  line-height: 16px;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -1193,11 +1233,20 @@ button:disabled { cursor: not-allowed; }
   max-width: 100%;
 }
 .roster__seat-name em { font-style: normal; margin-right: 2px; }
-.roster__seat-meta { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; }
+/* Badges get their own single clipped row — two fixed rows per card, always. */
+.roster__seat-meta {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+  min-height: 18px;
+}
 /* 9+ players: shrink seats so the ring still breathes. */
-.roster__table--crowded .roster__seat { max-width: 84px; padding: 3px 5px; }
-.roster__table--crowded .roster__seat-name { font-size: 11px; }
-.roster__table--crowded .badge { font-size: 11px; padding: 0 4px; }
+.roster__table--crowded .roster__seat { width: 72px; height: 46px; padding: 3px 4px; }
+.roster__table--crowded .roster__seat-name { font-size: 11px; line-height: 14px; }
+.roster__table--crowded .badge { font-size: 10px; padding: 0 3px; }
 
 .badge { font-size: 12px; background: var(--bg-panel-2); border-radius: 6px; padding: 1px 6px; border: 1px solid var(--line); }
 .badge--off { background: #2a3548; }

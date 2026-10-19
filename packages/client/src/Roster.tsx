@@ -17,8 +17,9 @@ export function Roster({ view }: { view: PlayerView }) {
   // You at the 6-o'clock position; later seats walk clockwise around the
   // table. Screen coords (y grows downward) put angle 90° at bottom centre.
   const angleOf = (i: number) => ((90 + (360 / n) * i) * Math.PI) / 180;
-  // Seat-anchor radius as a % of the table — seats sit on the dashed ring.
-  const R = 40;
+  // Seat-anchor radius as a % of the table. Big crews push seats outward so
+  // the fixed-size cards never collide; matched by .roster__table--crowded.
+  const R = n >= 9 ? 44 : 40;
 
   return (
     <section className="roster">

@@ -10,8 +10,9 @@
 import { useState } from 'react';
 import type { PlayerView, NavCardId, PlayerId } from '@ftk/engine';
 import {
-  COLOR_GLYPH, FACTION_ICON, FACTION_LABEL, NAV_CARD_LABEL, PHASE_LABEL, RITUAL_LABEL,
+  FACTION_ICON, FACTION_LABEL, PHASE_LABEL, RITUAL_LABEL,
 } from './labels.js';
+import { NavCardFace } from './NavCardFace.js';
 import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
   iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
@@ -54,8 +55,7 @@ function CardSplitter({
             }
             onClick={() => choose(i)}
           >
-            <span className="navcard__glyph">{COLOR_GLYPH[cardColor(c)]}</span>
-            <span className="navcard__name">{NAV_CARD_LABEL[c]}</span>
+            <NavCardFace card={c} />
             {keep === i && <span className="navcard__tag">保留</span>}
             {discard === i && <span className="navcard__tag navcard__tag--drop">弃掉</span>}
           </button>
@@ -75,16 +75,6 @@ function CardSplitter({
   );
 }
 
-/** Colour is encoded in the card id; keep the mapping local to the card UI. */
-function cardColor(id: NavCardId): 'yellow' | 'blue' | 'red' {
-  switch (id) {
-    case 'cultUprising': return 'yellow';
-    case 'blueDrunk':
-    case 'disarmed': return 'blue';
-    default: return 'red';
-  }
-}
-
 /** A read-only row of navigation cards. */
 function CardList({ cards }: { cards: NavCardId[] }) {
   if (cards.length === 0) return <p className="hint">（无）</p>;
@@ -92,8 +82,7 @@ function CardList({ cards }: { cards: NavCardId[] }) {
     <div className="cardsplit__hand">
       {cards.map((c, i) => (
         <div key={`${c}-${i}`} className="navcard navcard--static">
-          <span className="navcard__glyph">{COLOR_GLYPH[cardColor(c)]}</span>
-          <span className="navcard__name">{NAV_CARD_LABEL[c]}</span>
+          <NavCardFace card={c} />
         </div>
       ))}
     </div>
