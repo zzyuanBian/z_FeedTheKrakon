@@ -9,7 +9,6 @@
 
 import type { PlayerId, PlayerView } from '@ftk/engine';
 import { SHORT_MAP } from '@ftk/engine';
-import { PHASE_LABEL } from './labels.js';
 import { waitStatus } from './status.js';
 
 /* Movement table + space kinds, built once from the bundled map. */
@@ -93,9 +92,6 @@ export function SummaryPanel({ view }: { view: PlayerView }) {
 
       <section className="summary__sec">
         <h3 className="summary__title">现状</h3>
-        <div className="summary__row summary__round">
-          第 <b>{view.round}</b> 回合 · {PHASE_LABEL[view.phase] ?? view.phase}
-        </div>
         {officers.map(([role, id]) => (
           <div key={role} className="summary__row">
             <span className="summary__label">{role}</span>

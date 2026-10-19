@@ -689,6 +689,7 @@ button:disabled { cursor: not-allowed; }
 /* ================================ top bar ============================== */
 
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -700,8 +701,15 @@ button:disabled { cursor: not-allowed; }
 }
 .topbar__left, .topbar__right { display: flex; gap: 8px; align-items: center; }
 .topbar__left strong { font-family: var(--font-serif); color: var(--gold); letter-spacing: 0.08em; }
+/* The mid must stay centered on the BAR, not between its neighbours —
+   left/right groups differ per player (房主 pill etc.), so a flex:1 box
+   would drift. Absolute centering is identical on every seat. */
 .topbar__mid {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(46vw, 420px);
   text-align: center;
   color: var(--gold-bright);
   font-family: var(--font-serif);
@@ -713,6 +721,8 @@ button:disabled { cursor: not-allowed; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* With the mid out of flow, push the right group to the edge. */
+.topbar__right { margin-left: auto; }
 
 .pill {
   display: inline-flex;
@@ -1033,8 +1043,6 @@ button:disabled { cursor: not-allowed; }
 .summary__val--pirate { color: #f5b0b8; }
 .summary__val--kraken { color: #d7a4e4; }
 .summary__val--name { font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
-.summary__round { color: var(--gold); font-family: var(--font-serif); letter-spacing: 0.04em; opacity: 1; }
-.summary__round b { color: var(--gold-bright); font-size: 15px; }
 
 .summary__sec--alerts { gap: 6px; }
 .summary__alert {
@@ -1463,12 +1471,13 @@ button:disabled { cursor: not-allowed; }
   .summary__title { display: none; }
   .summary__row { gap: 4px; }
   .summary__row--near .summary__label { color: var(--ink-dim); font-weight: 400; }
-  .summary__round { flex-basis: 100%; }
   .col--side { border-left: none; border-top: 1px solid var(--line); }
   .tabs { display: flex; }
   /* The round/phase status jumps to the very top of the page on mobile,
-     above title and pills — it is the one thing everyone needs to see. */
-  .topbar__mid { order: -1; flex-basis: 100%; text-align: center; font-size: 15px; }
+     above title and pills — it is the one thing everyone needs to see.
+     Still absolutely centered on the bar (identical on every seat). */
+  .topbar { padding-top: 34px; }
+  .topbar__mid { top: 24px; max-width: 92vw; font-size: 15px; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }
   .waiting__roster-row { grid-template-columns: 24px 1fr auto; }
 }
