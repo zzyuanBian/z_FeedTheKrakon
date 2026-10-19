@@ -17,7 +17,7 @@
  * message.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 
 export interface RoleRevealProps {
@@ -34,6 +34,29 @@ export interface RoleRevealProps {
 const CARD_BACK = 'cards/camp-back.jpg';
 const CARD_FRONTS = 'cards/camp-fronts.jpg';
 
+/** Wait until both card scans are in the browser cache (index.html already
+ *  preloads them, so this usually resolves instantly). Until then the flip
+ *  card is hidden — half-loaded art must never be visible. */
+function useCardArtReady(): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const pending = [CARD_BACK, CARD_FRONTS].map(
+      (src) =>
+        new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = img.onerror = () => resolve();
+          img.src = src;
+        }),
+    );
+    void Promise.all(pending).then(() => {
+      if (alive) setReady(true);
+    });
+    return () => { alive = false; };
+  }, []);
+  return ready;
+}
+
 const ROLE_TITLE: Record<string, string> = {
   sailor: '水手',
   pirate: '海盗',
@@ -47,6 +70,7 @@ const ROLE_COPY: Record<string, string> = {
 };
 
 export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
+  const artReady = useCardArtReady();
   const alreadyConfirmed = view.you.roleConfirmed;
   const [flipped, setFlipped] = useState(alreadyConfirmed);
   const [submitted, setSubmitted] = useState(alreadyConfirmed);
@@ -78,27 +102,38 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
         </p>
       </div>
 
-      <button
-        type="button"
-        className={'role-card' + (flipped ? ' role-card--flipped' : '')}
-        onClick={() => !flipped && setFlipped(true)}
-        aria-label={flipped ? '身份卡（已翻开）' : '点击翻开身份卡'}
-        disabled={flipped}
-      >
-        <div className="role-card__inner">
-          <div className="role-card__face role-card__face--back">
-            <img className="role-card__art" src={CARD_BACK} alt="" draggable={false} />
-            <div className="role-card__back-hint">点击翻开</div>
+      {artReady ? (
+        <button
+          type="button"
+          className={'role-card' + (flipped ? ' role-card--flipped' : '')}
+          onClick={() => !flipped && setFlipped(true)}
+          aria-label={flipped ? '身份卡（已翻开）' : '点击翻开身份卡'}
+          disabled={flipped}
+        >
+          <div className="role-card__inner">
+            <div className="role-card__face role-card__face--back">
+              <img className="role-card__art" src={CARD_BACK} alt="" draggable={false} />
+              <div className="role-card__back-hint">点击翻开</div>
+            </div>
+            <div className={'role-card__face role-card__face--front role-card__face--' + team}>
+              <img className={'role-card__art role-card__art--' + team} src={CARD_FRONTS} alt="" draggable={false} />
+              <div className="role-card__caption">
+                <div className="role-card__role">{title}</div>
+                {view.you.cultLeader && <div className="role-card__leader">· 首领 ·</div>}
+              </div>
+            </div>
           </div>
-          <div className={'role-card__face role-card__face--front role-card__face--' + team}>
-            <img className={'role-card__art role-card__art--' + team} src={CARD_FRONTS} alt="" draggable={false} />
-            <div className="role-card__caption">
-              <div className="role-card__role">{title}</div>
-              {view.you.cultLeader && <div className="role-card__leader">· 首领 ·</div>}
+        </button>
+      ) : (
+        <div className="role-card role-card--loading" aria-label="卡牌整理中">
+          <div className="role-card__inner">
+            <div className="role-card__face role-card__face--loading">
+              <span className="role-card__loading-anchor" aria-hidden="true">⚓</span>
+              <span className="role-card__loading-text">卡牌整理中…</span>
             </div>
           </div>
         </div>
-      </button>
+      )}
 
       {flipped && !alreadyConfirmed && (
         <div className="role-reveal__info">

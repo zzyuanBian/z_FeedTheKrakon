@@ -780,10 +780,12 @@ button:disabled { cursor: not-allowed; }
   color: var(--ink-dim);
 }
 
-/* Flip card: preserve-3d on inner, two absolutely-positioned faces. */
+/* Flip card: preserve-3d on inner, two absolutely-positioned faces. The
+   physical card is square, so the face is 1:1 — with a square aspect the
+   2×2 contact sheet crops each quadrant exactly, no content loss. */
 .role-card {
-  width: min(300px, 80vw);
-  aspect-ratio: 3 / 4;
+  width: min(320px, 80vw);
+  aspect-ratio: 1 / 1;
   margin: 4px auto;
   background: transparent;
   border: none;
@@ -834,6 +836,28 @@ button:disabled { cursor: not-allowed; }
   color: rgba(255, 255, 255, 0.85);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
   pointer-events: none;
+}
+
+/* Placeholder face shown until both card scans finish loading — the player
+   never sees half-drawn art. */
+.role-card__face--loading {
+  background: radial-gradient(ellipse at 50% 30%, #12283a 0%, #0a1524 60%, #070e1a 100%);
+  border: 2px solid var(--gold-dim);
+}
+.role-card__loading-anchor {
+  font-size: 44px;
+  color: var(--gold-dim);
+  animation: role-card-anchor 1.6s ease-in-out infinite;
+}
+.role-card__loading-text {
+  margin-top: 12px;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+}
+@keyframes role-card-anchor {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-8px); opacity: 1; }
 }
 
 /* Front of card — the wax-seal scan, cropped per faction from the 2×2

@@ -10,6 +10,10 @@
     <meta name="mobile-web-app-capable" yes />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>险恶疑航 · Feed the Kraken</title>
+    <!-- Card scans are big (~640KB total); start fetching them at page load so
+         they're already cached when the role-reveal screen appears. -->
+    <link rel="preload" as="image" href="/cards/camp-back.jpg" />
+    <link rel="preload" as="image" href="/cards/camp-fronts.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
