@@ -192,8 +192,15 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
 
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal
-     *  until every seat confirms. */
-    confirmRole: move((actor) => as('confirmRole', actor)),
+     *  until every seat confirms. Also opts out of the stale-stateID check
+     *  (like the sync* bridges): during the reveal phase every client is
+     *  firing syncName/syncAvatar on connect, so the server's _stateID
+     *  advances constantly — a confirm issued from a not-yet-resynced client
+     *  would otherwise be silently dropped (bgio rejects, no error reaches
+     *  the sender) and the game would deadlock with a player showing 已确认
+     *  whose seat never registered. The reducer is idempotent, so applying
+     *  against the latest state is safe. */
+    confirmRole: move((actor) => as('confirmRole', actor), { ignoreStaleStateID: true }),
 
     appointTeam: move((actor, lieutenant, navigator) =>
       as('appointTeam', actor, { lieutenant, navigator })),
