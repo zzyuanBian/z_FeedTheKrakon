@@ -703,9 +703,15 @@ button:disabled { cursor: not-allowed; }
 .topbar__mid {
   flex: 1;
   text-align: center;
-  color: var(--ink-dim);
+  color: var(--gold-bright);
   font-family: var(--font-serif);
-  letter-spacing: 0.06em;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 12px rgba(212, 167, 74, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pill {
@@ -970,12 +976,11 @@ button:disabled { cursor: not-allowed; }
 
 /* ============================== game layout =========================== */
 
-.main { flex: 1; display: grid; grid-template-columns: 200px minmax(0, 1fr) 380px 300px; min-height: 0; }
+.main { flex: 1; display: grid; grid-template-columns: 200px minmax(0, 1fr) 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
 .col--summary { border-right: 1px solid var(--line); background: var(--bg-panel); padding: 12px 10px; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
-.col--chat { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 
 /* ================================ board ================================ */
 
@@ -1163,47 +1168,22 @@ button:disabled { cursor: not-allowed; }
 }
 
 /* ------------------------------- roster -------------------------------- */
-/* The crew circle: seats around the ship's table. .roster__table is a
-   square aspect box; each .roster__seat is positioned by inline style
+/* The crew circle: tokens around the ship's table. .roster__table is a
+   square aspect box; each .roster__token is positioned by inline style
    (left/top computed in Roster.tsx) and pulled back to centre with
    translate(-50%, -50%). */
-
-.roster__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 24px;
-}
-.roster__head .sec__title { margin: 0; }
-.status-pill {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: var(--bg-panel-2);
-  color: var(--ink-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 170px;
-}
-.status-pill--you { border-color: var(--gold); color: var(--gold-bright); background: rgba(212, 167, 74, 0.12); }
-.status-pill--wait { color: var(--ink-dim); }
-.status-pill--ritual { border-color: var(--cult); color: #d8c9ff; background: rgba(122, 58, 156, 0.18); }
 
 .roster__table {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-width: 320px;
-  margin: 6px auto 2px;
+  max-width: 300px;
+  margin: 4px auto 2px;
 }
 /* The table itself: dashed ring + soft wood-and-water glow. */
 .roster__ring {
   position: absolute;
-  inset: 10%;
+  inset: 12%;
   border-radius: 50%;
   border: 2px dashed var(--line-strong);
   background: radial-gradient(circle at 50% 42%, #16233c 0%, #0d1526 62%, #0a111e 100%);
@@ -1224,59 +1204,100 @@ button:disabled { cursor: not-allowed; }
 .roster__hub-glyph { font-size: 22px; opacity: 0.8; }
 .roster__hub-count { font-size: 11px; letter-spacing: 0.15em; }
 
-.roster__seat {
+/* Seat tokens: small fixed circles (name prefix + officer crest). Their size
+   is independent of player count, so 11 seats can never collide — the chord
+   at the 40%-radius ring is >= 87px while the token is only 40px. Detail
+   (guns / resumes / badges) lives in the .roster__list below the table. */
+.roster__token {
   position: absolute;
   transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  /* One fixed card size for every seat: a name row + TWO badge rows, so
-     昵称 / 枪数 / 履历 / 状态 all fit without clipping. */
-  width: 88px;
-  height: 66px;
-  padding: 4px 5px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-strong);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
   background: var(--bg-panel);
   box-sizing: border-box;
-  overflow: visible;
-  text-align: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
   z-index: 2;
 }
-.roster__seat--self { border-color: var(--gold); background: var(--bg-panel-2); z-index: 3; }
-.roster__seat--dead { opacity: 0.5; }
-.roster__seat--dead .roster__seat-name { text-decoration: line-through; }
-.roster__seat-name {
+.roster__token--self { border-color: var(--gold); background: var(--bg-panel-2); z-index: 3; }
+.roster__token--dead { opacity: 0.45; }
+.roster__token-face {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  pointer-events: none;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+/* Officer crests / status dots hang off the token's top-right corner. */
+.roster__token-crest,
+.roster__token-dot {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--bg-panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+}
+.roster__token-dot--cult { background: var(--cult); border-color: var(--cult); }
+
+/* The detail list under the table: one always-visible row per player, so
+   guns / resumes / status never clip or overlap regardless of crew size. */
+.roster__list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.roster__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  min-width: 0;
+}
+.roster__row--self { border-color: var(--gold); background: var(--bg-panel-2); }
+.roster__row--dead { opacity: 0.5; }
+.roster__row--dead .roster__row-name { text-decoration: line-through; }
+.roster__row-name {
   font-size: 12px;
   font-weight: 700;
-  line-height: 15px;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
-.roster__seat-name em { font-style: normal; margin-right: 2px; }
-/* Badge rows: exactly two clipped lines — ammo + resume on the first,
-   status badges (轮休/公开/出局) flow onto the second. */
-.roster__seat-meta {
+.roster__row-name em { font-style: normal; margin-right: 2px; }
+.roster__row-meta {
   display: flex;
   gap: 3px;
-  justify-content: center;
   flex-wrap: wrap;
-  overflow: hidden;
-  max-width: 100%;
-  flex: 1;
-  align-content: flex-start;
-  line-height: 0;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+  min-width: 0;
 }
-.roster__seat-meta .badge { flex: 0 0 auto; }
-/* 9+ players: shrink seats so the ring still breathes. */
-.roster__table--crowded .roster__seat { width: 78px; height: 60px; padding: 3px 4px; }
-.roster__table--crowded .roster__seat-name { font-size: 11px; line-height: 13px; }
-.roster__table--crowded .badge { font-size: 10px; padding: 0 3px; }
+.roster__row-meta .badge { flex: 0 0 auto; }
 
 .badge { font-size: 12px; background: var(--bg-panel-2); border-radius: 6px; padding: 1px 6px; border: 1px solid var(--line); }
 .badge--off { background: #2a3548; }
@@ -1293,11 +1314,104 @@ button:disabled { cursor: not-allowed; }
 .peek li { padding: 2px 0; }
 
 /* --------------------------------- chat -------------------------------- */
+/* Avalon-style floating chat: FAB pinned bottom-right with an unread badge;
+   tapping opens a bottom-sheet drawer. Bubble styles (.chat__row etc.) are
+   shared by the drawer. */
 
-.chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.chatpop__fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-dim);
+  background: linear-gradient(180deg, #16233c, #0d1526);
+  color: var(--gold-bright);
+  font-size: 22px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+.chatpop__fab:hover { transform: scale(1.06); }
+.chatpop__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--blood);
+  border: 1px solid #7a1f1f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatpop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.chatpop__drawer {
+  width: 100%;
+  max-width: 420px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line-strong);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+}
+.chatpop__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.chatpop__head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+.chatpop__head button {
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.chatpop__head button:hover { color: var(--ink); }
+.chatpop__log {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 180px;
+  padding: 8px 12px;
+}
+.chatpop__form { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.chatpop__form input {
+  flex: 1; min-height: var(--tap); padding: 8px 12px; border-radius: var(--radius);
+  border: 1px solid var(--line-strong); background: var(--bg-deep);
+}
+
+/* Message bubbles (shared with the drawer): sender's name above, own
+   messages mirrored right. */
 .chat__log { flex: 1; overflow: auto; min-height: 120px; }
 .chat__empty { color: var(--ink-ghost); font-size: 13px; text-align: center; padding: 24px 0; font-style: italic; }
-/* Avalon-style bubbles: sender's name above, own messages mirrored right. */
 .chat__row { display: flex; align-items: flex-end; gap: 6px; padding: 3px 0; }
 .chat__row--me { flex-direction: row-reverse; }
 .chat__who {
@@ -1306,18 +1420,13 @@ button:disabled { cursor: not-allowed; }
 }
 .chat__bubble {
   max-width: 78%; padding: 6px 11px; border-radius: 12px; font-size: 14px;
-  background: var(--bg-panel-2); border: 1px solid var(--line);
+  background: var(--bg-panel); border: 1px solid var(--line);
   color: var(--ink); word-break: break-word;
   border-bottom-left-radius: 4px;
 }
 .chat__row--me .chat__bubble {
   background: rgba(212, 175, 55, 0.14); border-color: var(--gold-dim);
   color: var(--gold-bright); border-bottom-left-radius: 12px; border-bottom-right-radius: 4px;
-}
-.chat__form { display: flex; gap: 8px; margin-top: 8px; }
-.chat__form input {
-  flex: 1; min-height: var(--tap); padding: 8px 12px; border-radius: var(--radius);
-  border: 1px solid var(--line-strong); background: var(--bg-deep);
 }
 
 /* --------------------------------- tabs -------------------------------- */
@@ -1344,7 +1453,7 @@ button:disabled { cursor: not-allowed; }
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; grid-template-rows: auto minmax(180px, 40vh) minmax(0, 1fr) minmax(150px, 30vh); }
+  .main { grid-template-columns: 1fr; grid-template-rows: auto minmax(180px, 40vh) minmax(0, 1fr); }
   .col--summary { border-right: none; border-bottom: 1px solid var(--line); overflow: visible; }
   /* The summary folds into a slim wrapped strip: no section titles, rows
      flow inline. */
@@ -1356,9 +1465,10 @@ button:disabled { cursor: not-allowed; }
   .summary__row--near .summary__label { color: var(--ink-dim); font-weight: 400; }
   .summary__round { flex-basis: 100%; }
   .col--side { border-left: none; border-top: 1px solid var(--line); }
-  .col--chat { border-left: none; border-top: 1px solid var(--line); }
   .tabs { display: flex; }
-  .topbar__mid { order: 3; flex-basis: 100%; text-align: left; }
+  /* The round/phase status jumps to the very top of the page on mobile,
+     above title and pills — it is the one thing everyone needs to see. */
+  .topbar__mid { order: -1; flex-basis: 100%; text-align: center; font-size: 15px; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }
   .waiting__roster-row { grid-template-columns: 24px 1fr auto; }
 }

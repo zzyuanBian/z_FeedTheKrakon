@@ -4,7 +4,7 @@
  * serves PC and phones.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { type FactionCounts } from '@ftk/engine';
 import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
@@ -14,7 +14,7 @@ import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
-import { ChatPanel } from './ChatPanel.js';
+import { ChatBubble } from './ChatBubble.js';
 import { RoleReveal } from './RoleReveal.js';
 import { lobby, clearSession, loadSession, useGame } from './useGame.js';
 import type { Session } from './session.js';
@@ -431,12 +431,27 @@ export function App() {
     );
   }
 
+  // Every in-session screen (waiting room, role reveal, board) shares the
+  // floating chat bubble — bgio chat rides the match socket, live from the
+  // moment the session exists, so the waiting room is chat-capable too.
+  // Muted only applies once the live view exists (elimination); the
+  // waiting room is pre-game and always open for talk.
+  const shell = (node: ReactNode) => (
+    <WithChat
+      session={session}
+      game={game}
+      muted={game.view ? !game.view.you.alive : false}
+    >
+      {node}
+    </WithChat>
+  );
+
   // We have a session but no live game state yet. If the user just created
   // this match (playerCount is sealed into the session), show the waiting
   // room with the code hero. Otherwise they re-joined an existing match —
   // show a connecting screen that auto-resets if the room is gone.
   if (!game.view) {
-    return (
+    return shell(
       <div className="app app--lobby">
         {session.playerCount ? (
           <WaitingRoom
@@ -486,7 +501,7 @@ export function App() {
     !PLACEHOLDER.test(view.you.name) && activeOthers.every((p) => !PLACEHOLDER.test(p.name));
 
   if (!namesSynced) {
-    return (
+    return shell(
       <div className="app app--lobby">
         <WaitingRoom
           key={session.matchID}
@@ -516,7 +531,7 @@ export function App() {
   // 游戏" switch yet. Stay on the waiting screen; the host sees a gold CTA,
   // other seats see a "等待房主开始" hint.
   if (!allSeatsFilled || !view.hostStarted) {
-    return (
+    return shell(
       <div className="app app--lobby">
         <WaitingRoom
           key={session.matchID}
@@ -550,7 +565,7 @@ export function App() {
   // card — they wait on a dedicated screen until the host raises the target
   // count and a seat opens up for them.
   if (view.you.benched) {
-    return (
+    return shell(
       <div className="app app--lobby">
         <div className="role-reveal">
           <div className="role-reveal__hero">
@@ -567,14 +582,14 @@ export function App() {
   }
   const allConfirmed = view.roleConfirmations.confirmed >= view.roleConfirmations.total;
   if (!view.you.roleConfirmed || !allConfirmed) {
-    return (
+    return shell(
       <div className="app app--lobby">
         <RoleReveal view={view} onConfirm={game.confirmRole} />
       </div>
     );
   }
 
-  return (
+  return shell(
     <div className="app">
       <header className="topbar">
         <div className="topbar__left">
@@ -634,18 +649,6 @@ export function App() {
           )}
           {tab === 'log' && <LogPanel view={view} />}
         </aside>
-
-        {/* Chat is a permanent column right of the board — no tab hides it
-            (Avalon's chat system, always expanded). It stacks below the side
-            column on narrow screens. */}
-        <aside className="col col--chat">
-          <ChatPanel
-            view={view}
-            chat={game.chat}
-            sendChat={game.sendChat}
-            muted={!view.you.alive}
-          />
-        </aside>
       </main>
 
       {over && showGameOver && (
@@ -660,3 +663,34 @@ export function App() {
     </div>
   );
 }
+
+/** Everything the floating chat bubble needs, threaded from the App level so
+ *  it works on every in-session screen (waiting room / reveal / board) with
+ *  one mount point instead of one per return branch. */
+function WithChat({
+  session,
+  game,
+  muted,
+  children,
+}: {
+  session: Session;
+  game: ReturnType<typeof useGame>;
+  /** Eliminated players are muted (pre-sync screens are never muted). */
+  muted: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      {children}
+      <ChatBubble
+        view={game.view}
+        chat={game.chat}
+        sendChat={game.sendChat}
+        muted={muted}
+        mySeat={session.playerID}
+        myName={session.playerName}
+      />
+    </>
+  );
+}
+
