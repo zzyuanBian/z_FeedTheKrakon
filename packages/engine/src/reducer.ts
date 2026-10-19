@@ -77,6 +77,7 @@ function handle(s: GameState, a: Action): void {
     case 'confirmRole':       return confirmRole(s, a);
     case 'hostStartGame':     return hostStartGame(s, a);
     case 'syncName':          return syncName(s, a);
+    case 'syncAvatar':        return syncAvatar(s, a);
     case 'setFactionConfig':  return setFactionConfig(s, a);
     case 'appointTeam':     return appointTeam(s, a);
     case 'mutinyPledge':    return mutinyPledge(s, a);
@@ -135,6 +136,14 @@ function syncName(s: GameState, a: Extract<Action, { type: 'syncName' }>): void 
   const p = s.players[a.actor];
   assert(p, `syncName: unknown actor ${a.actor}`);
   p.name = a.name;
+}
+
+/** Publish a seat's avatar id (mirrors syncName; see its note). Idempotent —
+ *  re-sending the same id (e.g. on reconnect re-sync) is a no-op. */
+function syncAvatar(s: GameState, a: Extract<Action, { type: 'syncAvatar' }>): void {
+  const p = s.players[a.actor];
+  assert(p, `syncAvatar: unknown actor ${a.actor}`);
+  p.avatar = a.avatarId;
 }
 
 /** Pre-game only: the host re-seals the faction breakdown and every team is

@@ -15,6 +15,7 @@ import { FtkGame, SEAT_CAPACITY, type FtkSetupData } from '@ftk/game';
 import type { FactionCounts, PlayerView } from '@ftk/engine';
 import { GAME_NAME, SERVER_ORIGIN } from './config.js';
 import { clearSession, loadSession, saveSession, type Session } from './session.js';
+import { pickAvatarId } from './Avatars.js';
 
 type GameClient = ReturnType<typeof Client>;
 
@@ -67,6 +68,7 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
     playerID,
     credentials: playerCredentials,
     playerName: opts.playerName,
+    avatarId: pickAvatarId([]),
     playerCount: opts.playerCount,
     ...(opts.factionCounts ? { factionCounts: opts.factionCounts } : {}),
   };
@@ -106,6 +108,10 @@ export async function joinMatch(matchID: string, playerName: string): Promise<Se
     playerID,
     credentials: playerCredentials,
     playerName,
+    // Random pick; taken ids aren't visible through the lobby API, so a
+    // duplicate is possible in theory — cosmetic only, resolved by nothing
+    // more than the portraits being different people anyway.
+    avatarId: pickAvatarId([]),
     playerCount: setup.playerCount ?? match.players.length,
     ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
   };
@@ -142,6 +148,9 @@ async function claimSeat(matchID: string, playerName: string): Promise<Session> 
     playerID,
     credentials,
     playerName: playerName.trim(),
+    // A claimer's original avatar isn't recoverable (fresh device, empty
+    // storage) — deal a new one; the seat's name/role/guns are the identity.
+    avatarId: pickAvatarId([]),
     playerCount: setup.playerCount ?? match2.players.length,
     ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
   };
@@ -251,6 +260,12 @@ export function useGame(
         nameSyncd = true;
         const fn = client.moves.syncName as ((...a: unknown[]) => void) | undefined;
         fn?.(session.playerName);
+        // Same bridge, one dispatch later: the avatar rides the same
+        // "publish my lobby-side identity" path into GameState.
+        if (typeof session.avatarId === 'number') {
+          const av = client.moves.syncAvatar as ((...a: unknown[]) => void) | undefined;
+          av?.(session.avatarId);
+        }
       }
     };
 

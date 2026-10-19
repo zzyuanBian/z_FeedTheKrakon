@@ -90,15 +90,16 @@ function move(
       if (!isFtkGame(G)) return INVALID_MOVE;
       if (playerID === null || playerID === undefined) return INVALID_MOVE;
       const action = create(idForIndex(Number(playerID)), ...args);
-      // Role-confirm gate: exempt `confirmRole`, `hostStartGame`, and
-      // `syncName`; block every other action until every seat is in
-      // G.confirmedRole. All three exempt moves are pre-game — syncName
-      // has to fire as soon as the socket connects, before anyone has
-      // a chance to confirm their role.
+      // Role-confirm gate: exempt `confirmRole`, `hostStartGame`, and the
+      // pre-game `sync*` bridges; block every other action until every seat
+      // is in G.confirmedRole. All exempt moves are pre-game — they have to
+      // fire as soon as the socket connects, before anyone has a chance to
+      // confirm their role.
       if (
         action.type !== 'confirmRole'
         && action.type !== 'hostStartGame'
         && action.type !== 'syncName'
+        && action.type !== 'syncAvatar'
         && action.type !== 'setFactionConfig'
       ) {
         // Active seats only: bench seats hold no role card, so requiring
@@ -173,6 +174,10 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
      *  connects — without it, the live-view roster would show placeholder
      *  names forever. */
     syncName: move((actor, name) => as('syncName', actor, { name }), { ignoreStaleStateID: true }),
+
+    /** Pre-game: a seat publishes its avatar id into GameState (mirrors
+     *  syncName; exempt from the role-confirm gate for the same reason). */
+    syncAvatar: move((actor, avatarId) => as('syncAvatar', actor, { avatarId }), { ignoreStaleStateID: true }),
 
     /** Pre-game: the host re-seals the faction breakdown in the waiting room
      *  (every team is re-dealt — legal while no role card has been seen).

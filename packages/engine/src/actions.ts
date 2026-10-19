@@ -18,6 +18,9 @@ export type Action =
    *  keeps match-metadata names and GameState names in two separate stores;
    *  this action bridges them so the live-view roster shows real names. */
   | { type: 'syncName'; actor: PlayerId; name: string }
+  /* pre-game: a seat publishes its chosen avatar id (index into the shared
+   *  AVATARS table, mirrored into GameState the same way syncName is). */
+  | { type: 'syncAvatar'; actor: PlayerId; avatarId: number }
   /* pre-game: the host re-seals the faction breakdown in the waiting room and
    *  every team is re-dealt from scratch. Asserted legal only while no role
    *  card has been projected (not hostStarted, nobody confirmed) — at that

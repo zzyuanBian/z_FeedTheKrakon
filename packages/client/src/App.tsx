@@ -689,6 +689,7 @@ function WithChat({
         muted={muted}
         mySeat={session.playerID}
         myName={session.playerName}
+        myAvatarId={session.avatarId ?? -1}
       />
     </>
   );

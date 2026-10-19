@@ -1231,16 +1231,16 @@ button:disabled { cursor: not-allowed; }
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
   z-index: 2;
 }
-.roster__token--self { border-color: var(--gold); background: var(--bg-panel-2); z-index: 3; }
+.roster__token--self { border-color: var(--gold); background: var(--bg-panel-2); z-index: 3; box-shadow: 0 0 10px rgba(212, 167, 74, 0.35); }
 .roster__token--dead { opacity: 0.45; }
+/* The token's face IS the avatar — the img is clipped round by the token's
+   own border-radius (same box), so no extra wrapper is needed. */
 .roster__token-face {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
   pointer-events: none;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
 }
 /* Officer crests / status dots hang off the token's top-right corner. */
 .roster__token-crest,
@@ -1286,6 +1286,7 @@ button:disabled { cursor: not-allowed; }
 .roster__row--self { border-color: var(--gold); background: var(--bg-panel-2); }
 .roster__row--dead { opacity: 0.5; }
 .roster__row--dead .roster__row-name { text-decoration: line-through; }
+.roster__row-ava { flex: 0 0 auto; }
 .roster__row-name {
   font-size: 12px;
   font-weight: 700;
@@ -1311,6 +1312,14 @@ button:disabled { cursor: not-allowed; }
 .badge--off { background: #2a3548; }
 .badge--cult { background: var(--cult); }
 .badge--dead { background: var(--blood); }
+
+/* ------------------------------- avatars ------------------------------- */
+/* Circular crew portraits (Avatars.tsx). */
+.avatar-img {
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
 
 /* --------------------------------- log --------------------------------- */
 
@@ -1416,15 +1425,22 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid var(--line-strong); background: var(--bg-deep);
 }
 
-/* Message bubbles (shared with the drawer): sender's name above, own
-   messages mirrored right. */
+/* Message bubbles (shared with the drawer): avatar column (name above the
+   portrait), own messages mirrored right. */
 .chat__log { flex: 1; overflow: auto; min-height: 120px; }
 .chat__empty { color: var(--ink-ghost); font-size: 13px; text-align: center; padding: 24px 0; font-style: italic; }
 .chat__row { display: flex; align-items: flex-end; gap: 6px; padding: 3px 0; }
 .chat__row--me { flex-direction: row-reverse; }
+.chat__ava {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
 .chat__who {
-  flex: 0 0 auto; max-width: 30%; overflow: hidden; text-overflow: ellipsis;
-  color: var(--ink-ghost); font-size: 11px; padding-bottom: 4px;
+  max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ink-ghost); font-size: 10px; line-height: 1.2;
 }
 .chat__bubble {
   max-width: 78%; padding: 6px 11px; border-radius: 12px; font-size: 14px;

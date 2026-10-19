@@ -1,11 +1,11 @@
 /**
- * Player roster as the crew circle — tokens around the ship's table, with a
- * compact info list below. You sit at the bottom (6 o'clock); the rest spread
- * clockwise in seat order.
+ * Player roster as the crew circle — avatar tokens around the ship's table,
+ * with a compact info list below. You sit at the bottom (6 o'clock); the
+ * rest spread clockwise in seat order.
  *
  * Why tokens instead of info cards: a 380px sidebar cannot fit 11 fixed-size
  * cards around a ring without overlap (chord distance at 11 seats < card
- * width). Small round tokens (name prefix + officer crest) never collide, and
+ * width). Small round tokens (portrait + officer crest) never collide, and
  * the per-player detail (guns / resumes / status badges) lives in the
  * always-visible list under the table instead. Public information only;
  * `team` exists solely on the viewer's own seat — the type makes leaking
@@ -14,9 +14,7 @@
 
 import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL } from './labels.js';
-
-/** First two characters of a name for the token face; falls back to "?". */
-const tokenFace = (name: string): string => (name.trim() ? name.trim().slice(0, 2) : '?');
+import { AvatarImage } from './Avatars.js';
 
 export function Roster({ view }: { view: PlayerView }) {
   // Bench seats (beyond the target crew size) are not players — never render.
@@ -65,7 +63,7 @@ export function Roster({ view }: { view: PlayerView }) {
               {p.declaredCult && (
                 <span className="roster__token-dot roster__token-dot--cult" title="已被公开为邪教徒">🐙</span>
               )}
-              <span className="roster__token-face">{tokenFace(p.name)}</span>
+              <AvatarImage avatarId={p.avatar} size={40} title={p.name} className="roster__token-face" />
             </div>
           );
         })}
@@ -84,6 +82,7 @@ export function Roster({ view }: { view: PlayerView }) {
                 (p.alive ? '' : ' roster__row--dead')
               }
             >
+              <AvatarImage avatarId={p.avatar} size={24} title={p.name} className="roster__row-ava" />
               <span className="roster__row-name">
                 {officers.captain === p.id && <em title="船长">🧭</em>}
                 {officers.lieutenant === p.id && <em title="大副">🎖️</em>}

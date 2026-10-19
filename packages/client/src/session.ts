@@ -16,6 +16,9 @@ export interface Session {
   playerID: string;
   credentials: string;
   playerName: string;
+  /** Picked at join time (random, room-unique) and bridged into GameState
+   *  via syncAvatar. Optional because older sessions predate the field. */
+  avatarId?: number;
   /** Sealed in when the host creates the room, so the waiting screen can
    *  show "X / N" before the first game state arrives. Optional because older
    *  sessions predate the field. */
@@ -36,6 +39,7 @@ function parse(raw: string | null): Session | null {
       playerID: parsed.playerID,
       credentials: parsed.credentials,
       playerName: parsed.playerName ?? 'Player',
+      ...(typeof parsed.avatarId === 'number' ? { avatarId: parsed.avatarId } : {}),
       ...(typeof parsed.playerCount === 'number' ? { playerCount: parsed.playerCount } : {}),
       ...(parsed.factionCounts
         ? {

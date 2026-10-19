@@ -27,6 +27,8 @@ export interface OtherPlayerView {
   id: PlayerId;
   seat: number;
   name: string;
+  /** Index into the client's shared AVATARS table (-1 = none chosen yet). */
+  avatar: number;
   alive: boolean;
   /** Bench seat: the room physically holds it, but it is beyond the target
    *  crew size, so nobody is dealt in there (pre-game only distinction). */
@@ -139,6 +141,7 @@ function publicPlayer(state: GameState, id: PlayerId): OtherPlayerView {
     id: p.id,
     seat: p.seat,
     name: p.name,
+    avatar: p.avatar,
     alive: p.alive,
     benched: p.seat >= state.settings.playerCount,
     offDuty: p.offDuty,

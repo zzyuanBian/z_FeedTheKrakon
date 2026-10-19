@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import type { ChatLine } from './useGame.js';
+import { AvatarImage } from './Avatars.js';
 
 export interface ChatBubbleProps {
   /** Live player view — null before the first socket sync (waiting room). */
@@ -27,9 +28,11 @@ export interface ChatBubbleProps {
   mySeat: string;
   /** The viewer's display name, from the session (available pre-sync). */
   myName: string;
+  /** The viewer's avatar id, from the session (-1 = none). */
+  myAvatarId?: number;
 }
 
-export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName }: ChatBubbleProps) {
+export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvatarId = -1 }: ChatBubbleProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [seenCount, setSeenCount] = useState(0);
@@ -51,14 +54,19 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName }: Chat
     });
   }, [open, chat.length]);
 
-  // Resolve a bgio seat sender ('0') to a display name. The session gives the
-  // viewer's own name even before the first sync; everyone else resolves from
-  // the live view, falling back to a seat label while names are still
-  // placeholder ("Player N") in the waiting room.
+  // Resolve a bgio seat sender ('0') to a display name + avatar. The session
+  // gives the viewer's own identity even before the first sync; everyone else
+  // resolves from the live view, falling back to a seat label while names
+  // are still placeholder ("Player N") in the waiting room.
   const nameOf = (sender: string): string => {
     if (sender === mySeat) return myName;
     const engineId = /^\d+$/.test(sender) ? `p${Number(sender) + 1}` : sender;
     return view?.others.find((p) => p.id === engineId)?.name ?? `玩家 ${Number(sender) + 1}`;
+  };
+  const avatarOf = (sender: string): number => {
+    if (sender === mySeat) return myAvatarId;
+    const engineId = /^\d+$/.test(sender) ? `p${Number(sender) + 1}` : sender;
+    return view?.others.find((p) => p.id === engineId)?.avatar ?? -1;
   };
 
   const submit = () => {
@@ -99,7 +107,10 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName }: Chat
                 const me = m.sender === mySeat;
                 return (
                   <div key={m.id} className={'chat__row' + (me ? ' chat__row--me' : '')}>
-                    <span className="chat__who">{nameOf(m.sender)}</span>
+                    <div className="chat__ava">
+                      <span className="chat__who">{nameOf(m.sender)}</span>
+                      <AvatarImage avatarId={avatarOf(m.sender)} size={26} title={nameOf(m.sender)} />
+                    </div>
                     <div className="chat__bubble">{m.message}</div>
                   </div>
                 );

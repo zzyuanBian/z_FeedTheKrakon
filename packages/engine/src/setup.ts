@@ -147,6 +147,7 @@ export function createGame(opts: NewGameOptions): GameState {
       id,
       seat,
       name: active ? names[seat]! : '',
+      avatar: -1,
       team: active ? teams[seat]! : 'sailor',
       cultLeader: false,
       convertedAt: null,

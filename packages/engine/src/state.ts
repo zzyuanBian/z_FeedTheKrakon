@@ -182,6 +182,8 @@ export interface Player {
   id: PlayerId;
   seat: number;
   name: string;
+  /** Public. Index into the client's shared AVATARS table (-1 = none yet). */
+  avatar: number;
   /** SECRET. Rewritten in place when this player is Converted to Cult. */
   team: Faction;
   /** SECRET. True for the Cult Leader — the only player whose sacrifice wins the
