@@ -136,12 +136,11 @@ function NameField({
 }) {
   return (
     <label className="themed-field">
-      <span className="themed-field__label">你的名字</span>
       <input
         className="themed-field__input"
         value={value}
         onChange={(e) => onChange(e.target.value.slice(0, 20))}
-        placeholder=""
+        placeholder="输入昵称"
         maxLength={20}
         autoFocus={autoFocus}
       />

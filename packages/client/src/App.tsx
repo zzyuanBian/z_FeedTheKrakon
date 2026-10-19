@@ -449,6 +449,13 @@ export function App() {
             // Seat 0 is the host by construction; claiming it pre-sync avoids
             // the host briefly seeing the joiner view (no CTA, locked panel).
             isHost={session.playerID === '0'}
+            // Host editability must NOT wait for the first socket sync — the
+            // move dispatch works over the socket as soon as it opens, and
+            // passing it here keeps the 推荐 chip / steppers from popping in
+            // a few seconds later (the config panel never changes shape).
+            onSetFactionCounts={
+              session.playerID === '0' ? game.moves.setFactionConfig : undefined
+            }
           />
         ) : (
           <ConnectingScreen matchID={session.matchID} onCancel={resetToLobby} />

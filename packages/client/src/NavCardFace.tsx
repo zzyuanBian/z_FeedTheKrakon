@@ -7,11 +7,11 @@
  */
 
 import type { NavCardId } from '@ftk/engine';
-import { NAV_CARD_LABEL } from './labels.js';
+import { NAV_CARD_HINT, NAV_CARD_LABEL } from './labels.js';
 
 export function NavCardFace({ card }: { card: NavCardId }) {
   return (
-    <div className="navface">
+    <div className="navface" title={NAV_CARD_HINT[card]}>
       <img className="navface__art" src={`cards/sail-${card}.jpg`} alt="" draggable={false} />
       <span className="navface__label">{NAV_CARD_LABEL[card]}</span>
     </div>
