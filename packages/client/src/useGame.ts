@@ -74,18 +74,17 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
   return session;
 }
 
-/** Join the first open seat in a match. */
+/** Join the first open seat in a match. If the name matches a seat that is
+ *  already taken, the seat is CLAIMED instead (friends-table reconnect):
+ *  the server re-issues that seat's credential and the returning player
+ *  takes over their old body — role, guns, resumes all intact. */
 export async function joinMatch(matchID: string, playerName: string): Promise<Session> {
   const match = await lobby.getMatch(GAME_NAME, matchID);
-  // Reject duplicate display names. bgio itself doesn't enforce name
-  // uniqueness, but the in-game roster would be impossible to read if two
-  // seats shared a name. Case-insensitive + trim so " Alice " and "alice"
-  // count as the same.
-  const taken = match.players.some(
+  const takenSeat = match.players.find(
     (p) => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase(),
   );
-  if (taken) {
-    throw new Error('这个名字已经被占用了，换一个吧');
+  if (takenSeat) {
+    return claimSeat(matchID, playerName);
   }
   const open = match.players.find((p) => !p.name);
   if (!open) throw new Error('该房间已满');
@@ -108,6 +107,42 @@ export async function joinMatch(matchID: string, playerName: string): Promise<Se
     credentials: playerCredentials,
     playerName,
     playerCount: setup.playerCount ?? match.players.length,
+    ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
+  };
+  saveSession(session);
+  return session;
+}
+
+/** Take over an existing seat by display name via the server's claim
+ *  endpoint. Used both for reconnection after losing the session and (with
+ *  the duplicate-name flow in joinMatch) for the "hey, that's me" case. */
+async function claimSeat(matchID: string, playerName: string): Promise<Session> {
+  const origin = SERVER_ORIGIN || window.location.origin;
+  const res = await fetch(`${origin}/ftk/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ matchID, playerName: playerName.trim() }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? '认领座位失败，请稍后再试');
+  }
+  const { playerID, credentials } = (await res.json()) as {
+    playerID: string;
+    credentials: string;
+  };
+  // The seat's target crew size / breakdown live in the match setup data.
+  const match2 = await lobby.getMatch(GAME_NAME, matchID);
+  const setup = (match2.setupData ?? {}) as {
+    playerCount?: number;
+    factionCounts?: { sailor: number; pirate: number; cult: number };
+  };
+  const session: Session = {
+    matchID,
+    playerID,
+    credentials,
+    playerName: playerName.trim(),
+    playerCount: setup.playerCount ?? match2.players.length,
     ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
   };
   saveSession(session);

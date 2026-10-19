@@ -389,6 +389,7 @@ function JoinRoom({
   onBack,
   onReady,
   onError,
+  error,
   initialCode = '',
 }: {
   name: string;
@@ -396,6 +397,8 @@ function JoinRoom({
   onBack: () => void;
   onReady: (s: Session) => void;
   onError: (msg: string) => void;
+  /** The join failure to show (duplicate name, full room, bad code, …). */
+  error: string | null;
   initialCode?: string;
 }) {
   const [code, setCode] = useState(normalizeRoomCode(initialCode));
@@ -426,6 +429,7 @@ function JoinRoom({
         {initialCode && <p className="card-hint">已识别房间码，确认名字后登船</p>}
         <NameField value={name} onChange={setName} />
         <CodeInput value={code} onChange={setCode} disabled={busy} />
+        {error && <p className="error-line">{error}</p>}
         <div className="card-actions">
           <button type="button" className="btn-ghost" onClick={onBack} disabled={busy}>
             ← 返回
@@ -548,7 +552,7 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
   const content = useMemo(() => {
     switch (screen) {
       case 'join':
-        return <JoinRoom name={name} setName={setName} initialCode={initialCode} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
+        return <JoinRoom name={name} setName={setName} initialCode={initialCode} error={error} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
       default:
         return <MainMenu name={name} setName={setName} error={error} onCreate={handleCreate} onGo={setScreen} busy={busy} />;
     }

@@ -15,6 +15,7 @@
 
 import Koa from 'koa';
 import Router from '@koa/router';
+import koaBody from 'koa-body';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -113,6 +114,8 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
   const app = server.app as unknown as Koa;
 
   // A tiny lobby convenience: return the seat plan a client should expect.
+  // (The claim-by-name route is registered after the db wrappers below —
+  // it needs the WRAPPED fetch/setMetadata pair.)
   const router = new Router();
   router.get('/ftk/info', (ctx) => {
     ctx.body = {
@@ -167,7 +170,7 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
       };
     };
   };
-  type MetadataLike = { players?: Record<string, { name?: string }> };
+  type MetadataLike = { players?: Record<string, { name?: string; credentials?: string }> };
   const db = koaApp.context.db;
   if (db) {
     const originalFetch = db.fetch.bind(db);
@@ -197,7 +200,7 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
           if (seen.has(n)) {
             // Sync throw inside the awaited join handler surfaces as a Koa
             // error; the `status` property makes it a 409 response.
-            const err = new Error('这个名字已经被占用了，换一个吧') as Error & { status?: number };
+            const err = new Error('该昵称已被占用，换一个吧') as Error & { status?: number };
             err.status = 409;
             throw err;
           }
@@ -207,6 +210,56 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
       return originalSetMetadata(matchID, metadata);
     };
   }
+
+  // Claim a seat by display name (friends-table reconnect, no PIN): a player
+  // who lost their session (new device, cleared storage, 换桌) types the same
+  // nickname + room code and gets the ORIGINAL seat back — the credential is
+  // re-issued for that seat, so they take over their old body: same role
+  // card, guns, resumes, everything. Names are unique per room (the guard
+  // above), so the name IS the identity. Registered AFTER the wrappers so it
+  // uses the wrapped fetch/setMetadata pair. bgio's auth compares the
+  // credential presented on each action against the one stored in metadata,
+  // so persisting the new credential here instantly re-arms the seat.
+  const claim = new Router();
+  // koa-body is mounted per-route by bgio too — the global middleware chain
+  // never parses JSON bodies, so /ftk/claim parses its own.
+  claim.post('/ftk/claim', koaBody(), (ctx) => {
+    // bgio's AppCtx Request type doesn't declare `body` (koa-body adds it at
+    // runtime); read it through a loose cast.
+    const body = (ctx.request as unknown as {
+      body?: { matchID?: string; playerName?: string };
+    }).body;
+    const matchID = String(body?.matchID ?? '');
+    const playerName = String(body?.playerName ?? '').trim();
+    if (!matchID || !playerName) {
+      ctx.status = 400;
+      ctx.body = { error: 'matchID 与昵称必填' };
+      return;
+    }
+    if (!db) {
+      ctx.status = 500;
+      ctx.body = { error: '服务器存储不可用' };
+      return;
+    }
+    const { metadata } = db.fetch(matchID, { metadata: true });
+    const players = metadata?.players ?? {};
+    const seatId = Object.keys(players).find(
+      (id) => (players[id]?.name ?? '').trim().toLowerCase() === playerName.toLowerCase(),
+    );
+    if (!seatId) {
+      ctx.status = 404;
+      ctx.body = { error: '房间里没有这个昵称' };
+      return;
+    }
+    // Re-issue the seat's bearer credential. The setMetadata guard only
+    // rejects duplicate NAMES; this write keeps its own name exactly once.
+    const credentials = generateCredentials();
+    const updated = structuredClone(metadata) as MetadataLike;
+    updated.players![seatId] = { ...updated.players![seatId], credentials };
+    db.setMetadata(matchID, updated);
+    ctx.body = { playerID: seatId, credentials };
+  });
+  app.use(claim.routes()).use(claim.allowedMethods());
 
   return server;
 }
