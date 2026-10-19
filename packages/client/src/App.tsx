@@ -10,6 +10,7 @@ import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
 } from './Lobby.js';
 import { Board } from './Board.js';
+import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
@@ -590,12 +591,14 @@ export function App() {
       </header>
 
       <main className="main">
+        {/* Live game summary, left of the map (a compact strip above the
+            board on narrow screens). */}
+        <aside className="col col--summary">
+          <SummaryPanel view={view} />
+        </aside>
+
         <section className="col col--board">
           <Board view={view} />
-          <div className="boardinfo">
-            <span>牌堆 {view.navigation.deckCount} · 深海 {view.navigation.discardCount}</span>
-            <span>仪式牌堆 {view.rituals.remaining}</span>
-          </div>
         </section>
 
         <aside className="col col--side">

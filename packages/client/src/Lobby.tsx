@@ -141,7 +141,7 @@ function NameField({
         className="themed-field__input"
         value={value}
         onChange={(e) => onChange(e.target.value.slice(0, 20))}
-        placeholder="船长、大副，或随便一个绰号"
+        placeholder=""
         maxLength={20}
         autoFocus={autoFocus}
       />

@@ -25,11 +25,14 @@ export interface RoleRevealProps {
   onConfirm: () => void;
 }
 
-const FACTION_GLYPH: Record<string, string> = {
-  sailor: '⚓',
-  pirate: '☠️',
-  cult: '🐙',
-};
+/** True physical card art, scanned from the tabletop edition.
+ *  `camp-back.jpg` is the shared card back (four colour quadrants + compass).
+ *  `camp-fronts.jpg` is a 2×2 contact sheet of the three wax-seal fronts
+ *  (top-left pirate, top-right cult, bottom-left sailor; the bottom-right
+ *  quadrant is black filler). We crop the needed quadrant in CSS — see
+ *  .role-card__art--{team} in styles.css. */
+const CARD_BACK = 'cards/camp-back.jpg';
+const CARD_FRONTS = 'cards/camp-fronts.jpg';
 
 const ROLE_TITLE: Record<string, string> = {
   sailor: '水手',
@@ -50,7 +53,6 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
 
   const { confirmed, total } = view.roleConfirmations;
   const team = view.you.team;
-  const glyph = FACTION_GLYPH[team] ?? '❓';
   const title = ROLE_TITLE[team] ?? team;
   const copy = ROLE_COPY[team] ?? '';
   const knownNames = view.you.knownCultists.map((id) => {
@@ -85,14 +87,15 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
       >
         <div className="role-card__inner">
           <div className="role-card__face role-card__face--back">
-            <div className="role-card__back-glyph" aria-hidden="true">⚓</div>
-            <div className="role-card__back-title">险恶疑航</div>
+            <img className="role-card__art" src={CARD_BACK} alt="" draggable={false} />
             <div className="role-card__back-hint">点击翻开</div>
           </div>
           <div className={'role-card__face role-card__face--front role-card__face--' + team}>
-            <div className="role-card__glyph">{glyph}</div>
-            <div className="role-card__role">{title}</div>
-            {view.you.cultLeader && <div className="role-card__leader">· 首领 ·</div>}
+            <img className={'role-card__art role-card__art--' + team} src={CARD_FRONTS} alt="" draggable={false} />
+            <div className="role-card__caption">
+              <div className="role-card__role">{title}</div>
+              {view.you.cultLeader && <div className="role-card__leader">· 首领 ·</div>}
+            </div>
           </div>
         </div>
       </button>

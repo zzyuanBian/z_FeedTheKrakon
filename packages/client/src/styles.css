@@ -816,70 +816,73 @@ button:disabled { cursor: not-allowed; }
     0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 }
 
-/* Back of card — dark navy, gold border, big anchor. */
+/* Back of card — the physical tabletop scan (four quadrants + compass). */
 .role-card__face--back {
-  background:
-    radial-gradient(ellipse at 50% 25%, rgba(42, 122, 138, 0.2), transparent 60%),
-    linear-gradient(180deg, #10182a, #070b15);
+  background: #0a0f1a;
   border: 2px solid var(--gold-dim);
-}
-.role-card__back-glyph {
-  font-size: 72px;
-  color: var(--gold);
-  filter: drop-shadow(0 0 18px var(--teal-glow));
-}
-.role-card__back-title {
-  margin-top: 14px;
-  font-family: var(--font-serif);
-  font-weight: 900;
-  font-size: 22px;
-  letter-spacing: 0.18em;
-  color: var(--gold);
+  padding: 0;
 }
 .role-card__back-hint {
-  margin-top: 18px;
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--ink-ghost);
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
 }
 
-/* Front of card — faction-coloured. */
-.role-card__face--front { transform: rotateY(180deg); border: 2px solid var(--gold); }
-.role-card__face--sailor {
-  background: radial-gradient(ellipse at 50% 30%, rgba(72, 194, 207, 0.25), transparent 60%),
-              linear-gradient(180deg, #102a38, #07141d);
-}
-.role-card__face--pirate {
-  background: radial-gradient(ellipse at 50% 30%, rgba(178, 58, 72, 0.25), transparent 60%),
-              linear-gradient(180deg, #2a1218, #150810);
-}
-.role-card__face--cult {
-  background: radial-gradient(ellipse at 50% 30%, rgba(122, 58, 138, 0.35), transparent 60%),
-              linear-gradient(180deg, #24102a, #110618);
-}
-.role-card__glyph { font-size: 72px; line-height: 1; }
-.role-card__face--sailor .role-card__glyph { filter: drop-shadow(0 0 16px var(--teal-glow)); }
-.role-card__face--pirate .role-card__glyph { filter: drop-shadow(0 0 16px rgba(178, 58, 72, 0.5)); }
-.role-card__face--cult .role-card__glyph   { filter: drop-shadow(0 0 16px rgba(122, 58, 138, 0.6)); }
+/* Front of card — the wax-seal scan, cropped per faction from the 2×2
+ * contact sheet. The sheet is 1024×1024: pirate top-left, cult top-right,
+ * sailor bottom-left, black filler bottom-right. We scale the img 2× inside
+ * an overflow-hidden face and shift the wanted quadrant into view. */
+.role-card__face--front { transform: rotateY(180deg); padding: 0; overflow: hidden; border: 2px solid var(--gold); }
+.role-card__face--pirate { border-color: var(--blood); }
+.role-card__face--cult { border-color: var(--cult); }
+.role-card__face--sailor { border-color: var(--teal); }
 
+.role-card__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+.role-card__art--pirate { transform: scale(2); transform-origin: 0% 0%; }   /* top-left quadrant */
+.role-card__art--cult   { transform: scale(2); transform-origin: 100% 0%; } /* top-right quadrant */
+.role-card__art--sailor { transform: scale(2); transform-origin: 0% 100%; } /* bottom-left quadrant */
+
+/* Faction name sits on a translucent band at the bottom of the art. */
+.role-card__caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 0 12px;
+  text-align: center;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.72) 40%);
+  pointer-events: none;
+}
 .role-card__role {
-  margin-top: 16px;
   font-family: var(--font-serif);
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: 0.18em;
   color: var(--gold-bright);
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
 .role-card__leader {
-  margin-top: 6px;
+  margin-top: 2px;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--gold);
-  opacity: 0.8;
 }
 
 /* Info panel that appears after flip. */
@@ -943,8 +946,9 @@ button:disabled { cursor: not-allowed; }
 
 /* ============================== game layout =========================== */
 
-.main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px 300px; min-height: 0; }
+.main { flex: 1; display: grid; grid-template-columns: 200px minmax(0, 1fr) 380px 300px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
+.col--summary { border-right: 1px solid var(--line); background: var(--bg-panel); padding: 12px 10px; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 .col--chat { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
@@ -969,7 +973,58 @@ button:disabled { cursor: not-allowed; }
 }
 .board__ship { font-size: 320px; paint-order: stroke; stroke: #06263f; stroke-width: 30px; filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.5)); }
 .board__banner { font-size: 300px; fill: var(--blood); font-weight: 800; paint-order: stroke; stroke: #000; stroke-width: 16px; }
-.boardinfo { display: flex; gap: 14px; flex-wrap: wrap; color: var(--ink-dim); padding: 8px 4px 0; font-size: 13px; }
+
+/* ------------------------------- summary ------------------------------- */
+/* Narrow live progress column left of the map: voyage distances (BFS to
+ * each win region), current officers, supplies, and transient alerts.
+ * Key numbers are colour-coded by faction; the nearest win row is full
+ * brightness while the others sit dimmed. */
+
+.summary { display: flex; flex-direction: column; gap: 12px; }
+.summary__sec {
+  display: flex; flex-direction: column; gap: 2px;
+  padding-bottom: 10px; border-bottom: 1px dashed var(--line);
+}
+.summary__sec:last-child { border-bottom: none; padding-bottom: 0; }
+.summary__title {
+  margin: 0 0 4px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-ghost);
+}
+.summary__row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  font-size: 13px; color: var(--ink-dim); opacity: 0.78;
+}
+.summary__row--near { opacity: 1; }
+.summary__row--near .summary__label { color: var(--ink); font-weight: 600; }
+.summary__label { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.summary__glyph { flex: 0 0 auto; }
+.summary__val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.summary__val small { font-size: 11px; font-weight: 400; color: var(--ink-ghost); }
+.summary__val--sailor { color: var(--teal-bright); }
+.summary__val--pirate { color: #f5b0b8; }
+.summary__val--kraken { color: #d7a4e4; }
+.summary__val--name { font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.summary__round { color: var(--gold); font-family: var(--font-serif); letter-spacing: 0.04em; opacity: 1; }
+.summary__round b { color: var(--gold-bright); font-size: 15px; }
+
+.summary__sec--alerts { gap: 6px; }
+.summary__alert {
+  font-size: 13px; font-weight: 700; padding: 6px 8px;
+  border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--bg-panel-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.summary__alert--mutiny {
+  color: #f5b0b8; border-color: var(--blood-dim); background: rgba(178, 58, 72, 0.12);
+}
+.summary__alert--wait {
+  color: var(--teal-bright); border-color: var(--teal); background: rgba(42, 122, 138, 0.1);
+}
+.summary__alert--you {
+  color: var(--gold-bright); border-color: var(--gold-dim); background: rgba(212, 167, 74, 0.12);
+}
+.summary__alert--ritual {
+  color: #d7a4e4; border-color: var(--cult); background: rgba(122, 58, 138, 0.12);
+}
 
 /* =============================== controls ============================ */
 
@@ -1122,7 +1177,17 @@ button:disabled { cursor: not-allowed; }
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; grid-template-rows: minmax(180px, 40vh) minmax(0, 1fr) minmax(150px, 30vh); }
+  .main { grid-template-columns: 1fr; grid-template-rows: auto minmax(180px, 40vh) minmax(0, 1fr) minmax(150px, 30vh); }
+  .col--summary { border-right: none; border-bottom: 1px solid var(--line); overflow: visible; }
+  /* The summary folds into a slim wrapped strip: no section titles, rows
+     flow inline. */
+  .summary { flex-direction: row; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
+  .summary__sec { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; border-bottom: none; padding-bottom: 0; }
+  .summary__sec--alerts { gap: 4px; }
+  .summary__title { display: none; }
+  .summary__row { gap: 4px; }
+  .summary__row--near .summary__label { color: var(--ink-dim); font-weight: 400; }
+  .summary__round { flex-basis: 100%; }
   .col--side { border-left: none; border-top: 1px solid var(--line); }
   .col--chat { border-left: none; border-top: 1px solid var(--line); }
   .tabs { display: flex; }
