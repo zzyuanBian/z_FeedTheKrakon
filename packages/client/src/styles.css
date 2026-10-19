@@ -1168,11 +1168,36 @@ button:disabled { cursor: not-allowed; }
    (left/top computed in Roster.tsx) and pulled back to centre with
    translate(-50%, -50%). */
 
+.roster__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+.roster__head .sec__title { margin: 0; }
+.status-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-panel-2);
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+.status-pill--you { border-color: var(--gold); color: var(--gold-bright); background: rgba(212, 167, 74, 0.12); }
+.status-pill--wait { color: var(--ink-dim); }
+.status-pill--ritual { border-color: var(--cult); color: #d8c9ff; background: rgba(122, 58, 156, 0.18); }
+
 .roster__table {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-width: 300px;
+  max-width: 320px;
   margin: 6px auto 2px;
 }
 /* The table itself: dashed ring + soft wood-and-water glow. */
@@ -1206,26 +1231,27 @@ button:disabled { cursor: not-allowed; }
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  /* One fixed card size for every seat — names ellipsize instead of
-     stretching the card, so the ring never looks ragged. */
-  width: 84px;
-  height: 52px;
-  padding: 4px 6px;
+  /* One fixed card size for every seat: a name row + TWO badge rows, so
+     昵称 / 枪数 / 履历 / 状态 all fit without clipping. */
+  width: 88px;
+  height: 66px;
+  padding: 4px 5px;
   border-radius: var(--radius);
   border: 1px solid var(--line-strong);
   background: var(--bg-panel);
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   text-align: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  z-index: 2;
 }
-.roster__seat--self { border-color: var(--gold); background: var(--bg-panel-2); }
+.roster__seat--self { border-color: var(--gold); background: var(--bg-panel-2); z-index: 3; }
 .roster__seat--dead { opacity: 0.5; }
 .roster__seat--dead .roster__seat-name { text-decoration: line-through; }
 .roster__seat-name {
   font-size: 12px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 15px;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -1233,19 +1259,23 @@ button:disabled { cursor: not-allowed; }
   max-width: 100%;
 }
 .roster__seat-name em { font-style: normal; margin-right: 2px; }
-/* Badges get their own single clipped row — two fixed rows per card, always. */
+/* Badge rows: exactly two clipped lines — ammo + resume on the first,
+   status badges (轮休/公开/出局) flow onto the second. */
 .roster__seat-meta {
   display: flex;
   gap: 3px;
   justify-content: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   overflow: hidden;
   max-width: 100%;
-  min-height: 18px;
+  flex: 1;
+  align-content: flex-start;
+  line-height: 0;
 }
+.roster__seat-meta .badge { flex: 0 0 auto; }
 /* 9+ players: shrink seats so the ring still breathes. */
-.roster__table--crowded .roster__seat { width: 72px; height: 46px; padding: 3px 4px; }
-.roster__table--crowded .roster__seat-name { font-size: 11px; line-height: 14px; }
+.roster__table--crowded .roster__seat { width: 78px; height: 60px; padding: 3px 4px; }
+.roster__table--crowded .roster__seat-name { font-size: 11px; line-height: 13px; }
 .roster__table--crowded .badge { font-size: 10px; padding: 0 3px; }
 
 .badge { font-size: 12px; background: var(--bg-panel-2); border-radius: 6px; padding: 1px 6px; border: 1px solid var(--line); }

@@ -10,6 +10,7 @@
 import type { PlayerId, PlayerView } from '@ftk/engine';
 import { SHORT_MAP } from '@ftk/engine';
 import { PHASE_LABEL } from './labels.js';
+import { waitStatus } from './status.js';
 
 /* Movement table + space kinds, built once from the bundled map. */
 const MOVEMENT: Record<number, Partial<Record<string, number>>> = {};
@@ -58,24 +59,8 @@ export function SummaryPanel({ view }: { view: PlayerView }) {
     .filter((n): n is number => n !== null);
   const nearest = reached.length ? Math.min(...reached) : null;
 
-  // Who the game is currently waiting on, if anyone.
-  let wait: { text: string; cls: string } | null = null;
-  if (view.winner === null) {
-    const p = view.pending;
-    if (p) {
-      wait = p.isYou
-        ? { text: '轮到你操作', cls: 'you' }
-        : p.by
-          ? { text: `等待 ${nameOf(p.by)}`, cls: 'wait' }
-          : { text: '仪式进行中', cls: 'ritual' };
-    } else if (view.phase === 'navigation' && view.navigation.awaiting) {
-      const a = view.navigation.awaiting;
-      const verb = view.navigation.stage === 'logbook' ? '定航向' : '出牌';
-      wait = a === view.you.id
-        ? { text: `轮到你${verb}`, cls: 'you' }
-        : { text: `等待 ${nameOf(a)} ${verb}`, cls: 'wait' };
-    }
-  }
+  // Who the game is waiting on (shared with the roster header pill).
+  const wait = waitStatus(view);
 
   const officers: [string, PlayerId | null][] = [
     ['🧭 船长', view.officers.captain],

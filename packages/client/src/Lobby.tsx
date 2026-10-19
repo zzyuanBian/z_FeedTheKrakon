@@ -439,7 +439,7 @@ function JoinRoom({
             <span className="btn-cthulhu__glyph">⚓</span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">
-                {busy ? '正在登船…' : nameOk ? `以 ${name.trim()} 身份加入` : '加入房间'}
+                {busy ? '正在登船…' : '立刻登船'}
               </span>
             </span>
           </button>

@@ -7,12 +7,14 @@
 
 import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL } from './labels.js';
+import { waitStatus } from './status.js';
 
 export function Roster({ view }: { view: PlayerView }) {
   // Bench seats (beyond the target crew size) are not players — never render.
   const seats = [view.you, ...view.others].filter((p) => !p.benched);
   const { officers } = view;
   const n = seats.length;
+  const status = waitStatus(view);
 
   // You at the 6-o'clock position; later seats walk clockwise around the
   // table. Screen coords (y grows downward) put angle 90° at bottom centre.
@@ -23,7 +25,10 @@ export function Roster({ view }: { view: PlayerView }) {
 
   return (
     <section className="roster">
-      <h3 className="sec__title">船员 · {n} 人</h3>
+      <div className="roster__head">
+        <h3 className="sec__title">船员 · {n} 人</h3>
+        {status && <span className={`status-pill status-pill--${status.cls}`}>{status.text}</span>}
+      </div>
       <div className={'roster__table' + (n >= 9 ? ' roster__table--crowded' : '')}>
         <div className="roster__ring" aria-hidden="true" />
         <div className="roster__hub" aria-hidden="true">
@@ -57,7 +62,8 @@ export function Roster({ view }: { view: PlayerView }) {
                 <span className="badge" title="履历">📜{p.resumes}</span>
                 {p.offDuty && <span className="badge badge--off" title="轮休">💤</span>}
                 {p.declaredCult && <span className="badge badge--cult" title="已被公开为邪教徒">🐙</span>}
-                {!p.alive && <span className="badge badge--dead">出局</span>}
+                {!p.alive && <span className="badge badge--dead">出局</span>
+                }
               </span>
             </div>
           );
