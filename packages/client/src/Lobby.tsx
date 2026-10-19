@@ -18,8 +18,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TEAM_COMPOSITIONS, type FactionCounts } from '@ftk/engine';
 import { CODE_LENGTH, isRoomCode, normalizeRoomCode } from '@ftk/room-code';
-import { createMatch, joinMatch } from './useGame.js';
+import { createMatch, joinMatch, lobby } from './useGame.js';
+import { AVATARS, AvatarImage, pickAvatarId } from './Avatars.js';
 import type { Session } from './session.js';
+import { GAME_NAME } from './config.js';
 
 type Screen = 'menu' | 'join';
 
@@ -225,11 +227,73 @@ function CodeInput({
   );
 }
 
+// ----------------------------- avatar picker -----------------------------
+
+/** Human-facing message from a lobby failure. bgio's LobbyClientError puts
+ *  the server's text body (e.g. the 409 该头像已被其他船员选用 guard) in
+ *  `details` — a bare string, or `{ message }` for JSON bodies — while the
+ *  Error itself only says "HTTP status 409". Fall back through both. */
+export function errorMessage(e: unknown): string {
+  if (e && typeof e === 'object') {
+    const details = (e as { details?: unknown }).details;
+    if (typeof details === 'string' && details.trim()) return details;
+    if (details && typeof details === 'object') {
+      const msg = (details as { message?: unknown }).message;
+      if (typeof msg === 'string' && msg.trim()) return msg;
+    }
+  }
+  if (e instanceof Error && e.message) return e.message;
+  return String(e);
+}
+
+/** Grid of the 10 crew portraits. Taken ones (already claimed by a seat in
+ *  this room) are dimmed and refuse clicks; the selection has a gold ring.
+ *  `takenIds` is empty on the menu screen (no room yet) — there every
+ *  portrait is free. */
+export function AvatarPicker({
+  value,
+  onChange,
+  takenIds,
+}: {
+  value: number;
+  onChange: (id: number) => void;
+  takenIds?: Set<number> | undefined;
+}) {
+  return (
+    <div className="avatar-picker" role="radiogroup" aria-label="选择头像">
+      {AVATARS.map((av) => {
+        const taken = takenIds?.has(av.id) ?? false;
+        const selected = av.id === value;
+        return (
+          <button
+            key={av.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            title={taken ? `${av.name}（已被选用）` : av.name}
+            className={
+              'avatar-pick'
+              + (selected ? ' avatar-pick--on' : '')
+              + (taken ? ' avatar-pick--taken' : '')
+            }
+            disabled={taken}
+            onClick={() => onChange(av.id)}
+          >
+            <AvatarImage avatarId={av.id} size={44} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ----------------------------- main menu ---------------------------------
 
 function MainMenu({
   name,
   setName,
+  avatarId,
+  setAvatarId,
   error,
   onCreate,
   onGo,
@@ -237,6 +301,8 @@ function MainMenu({
 }: {
   name: string;
   setName: (v: string) => void;
+  avatarId: number;
+  setAvatarId: (id: number) => void;
   error: string | null;
   /** 「开辟新航线」— creates the match at once and enters the waiting room. */
   onCreate: () => void;
@@ -249,6 +315,7 @@ function MainMenu({
       <GoldTitle />
       <div className="menu-card">
         <NameField value={name} onChange={setName} autoFocus />
+        <AvatarPicker value={avatarId} onChange={setAvatarId} />
         <div className="menu-actions">
           <button
             type="button"
@@ -386,6 +453,8 @@ export function CountStepper({
 function JoinRoom({
   name,
   setName,
+  avatarId,
+  setAvatarId,
   onBack,
   onReady,
   onError,
@@ -394,6 +463,8 @@ function JoinRoom({
 }: {
   name: string;
   setName: (v: string) => void;
+  avatarId: number;
+  setAvatarId: (id: number) => void;
   onBack: () => void;
   onReady: (s: Session) => void;
   onError: (msg: string) => void;
@@ -403,17 +474,55 @@ function JoinRoom({
 }) {
   const [code, setCode] = useState(normalizeRoomCode(initialCode));
   const [busy, setBusy] = useState(false);
+  // Portraits already claimed by seated players — polled from the lobby API
+  // while the typed code looks like a real room code. Stale by a beat at
+  // worst; the server's 409 guard is the hard backstop.
+  const [taken, setTaken] = useState<Set<number>>(new Set());
   const valid = isRoomCode(code);
   const nameOk = name.trim().length > 0;
+
+  useEffect(() => {
+    if (!valid) {
+      setTaken(new Set());
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const match = await lobby.getMatch(GAME_NAME, code);
+        if (cancelled) return;
+        setTaken(
+          new Set(
+            match.players
+              .map((p) => (p.data as { avatarId?: number } | undefined)?.avatarId)
+              .filter((v): v is number => typeof v === 'number' && v >= 0),
+          ),
+        );
+      } catch {
+        /* room not there (yet) — leave the previous set */
+      }
+    };
+    poll();
+    const t = window.setInterval(poll, 2000);
+    return () => { cancelled = true; window.clearInterval(t); };
+  }, [code, valid]);
+
+  // The typed code changed → the taken-set is for a different room. If my
+  // current pick collides there, hop to a free portrait so 立刻登船 never
+  // fails on a stale selection.
+  useEffect(() => {
+    if (valid && taken.has(avatarId)) setAvatarId(pickAvatarId(taken));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taken]);
 
   const join = async () => {
     if (!valid || !nameOk) return;
     setBusy(true);
     try {
-      const session = await joinMatch(code, name.trim());
+      const session = await joinMatch(code, name.trim(), avatarId);
       onReady(session);
     } catch (e) {
-      onError(e instanceof Error ? e.message : String(e));
+      onError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -429,6 +538,7 @@ function JoinRoom({
         {initialCode && <p className="card-hint">已识别房间码，确认名字后登船</p>}
         <NameField value={name} onChange={setName} />
         <CodeInput value={code} onChange={setCode} disabled={busy} />
+        <AvatarPicker value={avatarId} onChange={setAvatarId} takenIds={valid ? taken : undefined} />
         {error && <p className="error-line">{error}</p>}
         <div className="card-actions">
           <button type="button" className="btn-ghost" onClick={onBack} disabled={busy}>
@@ -509,6 +619,8 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
   // — a leftover name from a previous session (often another player on a
   // shared device) silently joining as "km1" is worse than a blank box.
   const [name, setName] = useState('');
+  // The portrait, though, pre-dealt at random (still editable in the grid).
+  const [avatarId, setAvatarId] = useState(() => pickAvatarId([]));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -535,10 +647,11 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
         playerName: name.trim(),
         playerCount: DEFAULT_PLAYER_COUNT,
         factionCounts: { sailor: p.sailor, pirate: p.pirate, cult: p.cult },
+        avatarId,
       });
       wrappedReady(session);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -552,12 +665,12 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
   const content = useMemo(() => {
     switch (screen) {
       case 'join':
-        return <JoinRoom name={name} setName={setName} initialCode={initialCode} error={error} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
+        return <JoinRoom name={name} setName={setName} avatarId={avatarId} setAvatarId={setAvatarId} initialCode={initialCode} error={error} onBack={() => setScreen('menu')} onReady={wrappedReady} onError={wrappedError} />;
       default:
-        return <MainMenu name={name} setName={setName} error={error} onCreate={handleCreate} onGo={setScreen} busy={busy} />;
+        return <MainMenu name={name} setName={setName} avatarId={avatarId} setAvatarId={setAvatarId} error={error} onCreate={handleCreate} onGo={setScreen} busy={busy} />;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, name, error, busy, initialCode]);
+  }, [screen, name, avatarId, error, busy, initialCode]);
 
   return (
     <div className="lobby-shell">

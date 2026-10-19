@@ -39,6 +39,10 @@ export interface CreateOptions {
   /** Optional host override: explicit sailor / pirate / cult counts. When
    *  set, the rulebook table and fivePlayerTwoPirates are bypassed. */
   factionCounts?: FactionCounts;
+  /** The portrait picked in the lobby. Stored in bgio's per-seat lobby
+   *  metadata (`data`) so other joiners can see it's taken, and bridged into
+   *  GameState via syncAvatar once the socket is up. */
+  avatarId: number;
 }
 
 /** Create a match, take seat 0, and return the session.
@@ -62,13 +66,16 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
   const { playerID, playerCredentials } = await lobby.joinMatch(GAME_NAME, matchID, {
     playerID: '0',
     playerName: opts.playerName,
+    // The picked portrait rides bgio's per-seat lobby blob — getMatch
+    // exposes it (credentials stripped) to everyone else in the room.
+    data: { avatarId: opts.avatarId },
   });
   const session: Session = {
     matchID,
     playerID,
     credentials: playerCredentials,
     playerName: opts.playerName,
-    avatarId: pickAvatarId([]),
+    avatarId: opts.avatarId,
     playerCount: opts.playerCount,
     ...(opts.factionCounts ? { factionCounts: opts.factionCounts } : {}),
   };
@@ -80,7 +87,11 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
  *  already taken, the seat is CLAIMED instead (friends-table reconnect):
  *  the server re-issues that seat's credential and the returning player
  *  takes over their old body — role, guns, resumes all intact. */
-export async function joinMatch(matchID: string, playerName: string): Promise<Session> {
+export async function joinMatch(
+  matchID: string,
+  playerName: string,
+  avatarId?: number,
+): Promise<Session> {
   const match = await lobby.getMatch(GAME_NAME, matchID);
   const takenSeat = match.players.find(
     (p) => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase(),
@@ -90,9 +101,25 @@ export async function joinMatch(matchID: string, playerName: string): Promise<Se
   }
   const open = match.players.find((p) => !p.name);
   if (!open) throw new Error('该房间已满');
+  // The picker only offers free portraits, but the lobby snapshot it read may
+  // have gone stale (two joiners at once); the server's 409 names the clash.
+  const taken = new Set(
+    match.players
+      .map((p) => (p.data as { avatarId?: number } | undefined)?.avatarId)
+      .filter((v): v is number => typeof v === 'number' && v >= 0),
+  );
+  let chosen = avatarId;
+  if (typeof chosen === 'number' && taken.has(chosen)) {
+    // Preferred portrait lost the race — deal the next free one instead of
+    // failing the whole join.
+    chosen = pickAvatarId(taken);
+  } else if (typeof chosen !== 'number') {
+    chosen = pickAvatarId(taken);
+  }
   const { playerID, playerCredentials } = await lobby.joinMatch(GAME_NAME, matchID, {
     playerID: open.id.toString(),
     playerName,
+    data: { avatarId: chosen },
   });
   // Seal the host's chosen playerCount + factionCounts into the session so
   // App.tsx can render the WaitingRoom (with the correct "X / N" and the
@@ -108,10 +135,7 @@ export async function joinMatch(matchID: string, playerName: string): Promise<Se
     playerID,
     credentials: playerCredentials,
     playerName,
-    // Random pick; taken ids aren't visible through the lobby API, so a
-    // duplicate is possible in theory — cosmetic only, resolved by nothing
-    // more than the portraits being different people anyway.
-    avatarId: pickAvatarId([]),
+    avatarId: chosen,
     playerCount: setup.playerCount ?? match.players.length,
     ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
   };
@@ -133,9 +157,11 @@ async function claimSeat(matchID: string, playerName: string): Promise<Session> 
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? '认领座位失败，请稍后再试');
   }
-  const { playerID, credentials } = (await res.json()) as {
+  const { playerID, credentials, avatarId } = (await res.json()) as {
     playerID: string;
     credentials: string;
+    /** The seat's portrait, kept in lobby metadata across the claim. */
+    avatarId?: number;
   };
   // The seat's target crew size / breakdown live in the match setup data.
   const match2 = await lobby.getMatch(GAME_NAME, matchID);
@@ -148,9 +174,10 @@ async function claimSeat(matchID: string, playerName: string): Promise<Session> 
     playerID,
     credentials,
     playerName: playerName.trim(),
-    // A claimer's original avatar isn't recoverable (fresh device, empty
-    // storage) — deal a new one; the seat's name/role/guns are the identity.
-    avatarId: pickAvatarId([]),
+    // The seat's old portrait comes back from the claim endpoint (it stayed
+    // in the lobby metadata all along); only a seat that never picked one
+    // falls back to a random deal.
+    avatarId: typeof avatarId === 'number' ? avatarId : pickAvatarId([]),
     playerCount: setup.playerCount ?? match2.players.length,
     ...(setup.factionCounts ? { factionCounts: setup.factionCounts } : {}),
   };

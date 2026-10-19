@@ -27,6 +27,12 @@ import { createRoomCodeUuid } from './room-codes.js';
  *  the human-readable room codes used as matchIDs. */
 const generateCredentials = (): string => randomBytes(18).toString('base64url');
 
+/** How many crew portraits the client ships (public/avatars/avatar-0..9.png).
+ *  The avatar-uniqueness guard lifts once this many seats already hold one —
+ *  an 11-seat room at the margin must be allowed to double up. Keep in sync
+ *  with AVATARS in packages/client/src/Avatars.tsx. */
+const AVATAR_POOL_SIZE = 10;
+
 export interface FtkServerOptions {
   port?: number;
   /** Additional allowed browser origins. localhost is always allowed in dev. */
@@ -170,7 +176,15 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
       };
     };
   };
-  type MetadataLike = { players?: Record<string, { name?: string; credentials?: string }> };
+  type MetadataLike = {
+    players?: Record<string, {
+      name?: string;
+      credentials?: string;
+      /** bgio's per-seat lobby blob. FTK stores the picked portrait here so
+       *  every joiner can see which avatars are already claimed. */
+      data?: { avatarId?: number };
+    }>;
+  };
   const db = koaApp.context.db;
   if (db) {
     const originalFetch = db.fetch.bind(db);
@@ -199,12 +213,40 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
           if (!n) continue;
           if (seen.has(n)) {
             // Sync throw inside the awaited join handler surfaces as a Koa
-            // error; the `status` property makes it a 409 response.
-            const err = new Error('该昵称已被占用，换一个吧') as Error & { status?: number };
+            // error; `status` makes it a 409 response and `expose` ships the
+            // message body instead of Koa's bare "Conflict" default.
+            const err = new Error('该昵称已被占用，换一个吧') as Error & { status?: number; expose?: boolean };
             err.status = 409;
+            err.expose = true;
             throw err;
           }
           seen.add(n);
+        }
+        // Same hard guarantee for avatars: a seat may only claim an avatarId
+        // that no OTHER seat already holds. The client picker greys taken ids
+        // out (via getMatch), this is the race-proof backstop — two players
+        // tapping the same portrait at the same moment resolve to one winner.
+        // 10 portraits, 11 possible seats: a duplicate is ALLOWED once every
+        // portrait is taken (the seat count exceeds the pool), mirroring the
+        // client's pickAvatarId fallback.
+        const owners = new Map<number, string>();
+        for (const [seatId, p] of Object.entries(metadata.players)) {
+          const a = p?.data?.avatarId;
+          if (typeof a !== 'number' || a < 0) continue;
+          const prev = owners.get(a);
+          if (prev !== undefined) {
+            const distinct = owners.size;
+            if (distinct < AVATAR_POOL_SIZE) {
+              const err = new Error('该头像已被其他船员选用，换一个吧') as Error & { status?: number; expose?: boolean };
+              err.status = 409;
+              err.expose = true;
+              throw err;
+            }
+            // Pool exhausted: every portrait is owned, so this duplicate is
+            // the only way to seat an 11th player. Keep walking.
+          } else {
+            owners.set(a, seatId);
+          }
         }
       }
       return originalSetMetadata(matchID, metadata);
@@ -257,7 +299,14 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
     const updated = structuredClone(metadata) as MetadataLike;
     updated.players![seatId] = { ...updated.players![seatId], credentials };
     db.setMetadata(matchID, updated);
-    ctx.body = { playerID: seatId, credentials };
+    // The portrait travels with the seat: a claimer on a fresh device gets
+    // their old avatar back (it stayed in the lobby metadata all along).
+    const avatarId = updated.players![seatId]?.data?.avatarId;
+    ctx.body = {
+      playerID: seatId,
+      credentials,
+      ...(typeof avatarId === 'number' ? { avatarId } : {}),
+    };
   });
   app.use(claim.routes()).use(claim.allowedMethods());
 

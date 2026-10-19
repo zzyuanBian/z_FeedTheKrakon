@@ -73,6 +73,49 @@ describe('multiplayer end to end', () => {
     expect(await spa.text()).toContain('ftk-fixture');
   });
 
+  it('enforces per-room avatar uniqueness and returns the avatar on claim', async () => {
+    const matchID = await createMatch();
+    const joinSeat = async (seat: string, name: string, avatarId: number) =>
+      fetch(`${ORIGIN}/games/feed-the-kraken/${matchID}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerID: seat, playerName: name, data: { avatarId } }),
+      });
+
+    // Two seats, same portrait → the second join must 409 (plain-text body
+    // via Koa's expose flag — LobbyClient surfaces it as error.details).
+    const first = await joinSeat('0', '阿瓦', 3);
+    expect(first.status).toBe(200);
+    const dup = await joinSeat('1', '小黑', 3);
+    expect(dup.status).toBe(409);
+    expect(await dup.text()).toContain('头像');
+
+    // A DIFFERENT portrait joins fine, and getMatch exposes the claimed ids
+    // (credentials stripped) so late joiners can grey taken portraits out.
+    const second = await joinSeat('1', '小黑', 7);
+    expect(second.status).toBe(200);
+    const matchRes = await fetch(`${ORIGIN}/games/feed-the-kraken/${matchID}`);
+    const match = (await matchRes.json()) as {
+      players: { id: number; name?: string; data?: { avatarId?: number } }[];
+    };
+    const avatars = match.players
+      .filter((p) => p.name)
+      .map((p) => p.data?.avatarId)
+      .sort();
+    expect(avatars).toEqual([3, 7]);
+
+    // Claim by name re-issues the seat AND returns its original portrait.
+    const claim = await fetch(`${ORIGIN}/ftk/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchID, playerName: '阿瓦' }),
+    });
+    expect(claim.status).toBe(200);
+    const claimed = (await claim.json()) as { playerID: string; avatarId?: number };
+    expect(claimed.playerID).toBe('0');
+    expect(claimed.avatarId).toBe(3);
+  });
+
   it('filters secrets per player and applies the captain’s appointment', async () => {
     const matchID = await createMatch();
 
