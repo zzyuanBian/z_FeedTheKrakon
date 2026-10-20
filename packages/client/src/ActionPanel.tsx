@@ -185,7 +185,9 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
           ? p.by
             ? `等待 ${name(view, p.by)} 操作…`
             : '仪式进行中，请稍候…'
-          : `当前阶段：${PHASE_LABEL[view.phase]}`}
+          : view.phase === 'appointTeam'
+            ? '当前阶段，船长任命船员'
+            : `当前阶段：${PHASE_LABEL[view.phase]}`}
       </p>
     </div>
   );
