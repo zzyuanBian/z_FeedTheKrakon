@@ -1360,17 +1360,22 @@ button:disabled { cursor: not-allowed; }
   border-radius: 50%;
   object-fit: cover;
   display: block;
-  /* Cold-cache first visit (shared-link joiners): while the JPEG decodes the
-     <img> is transparent, so picker/roster circles read as empty broken rings.
-     A themed disc gives the wait an intentional-looking face; the opaque
-     photo covers it the moment it decodes. color:transparent keeps the alt
-     string from flashing as text inside the circle. */
+  /* color:transparent keeps the alt string from flashing as text while the
+     JPEG decodes (cold cache, e.g. shared-link joiners). */
+  color: transparent;
+}
+
+/* Decoding in progress: a themed disc with a slow brightness shimmer, so
+   picker/roster circles read as an intentional placeholder instead of an
+   empty broken ring. React drops this class the moment onLoad lands, which
+   also stops the animation — it never runs over the real portrait. The disc
+   sizes itself via aspect-ratio because a not-yet-loaded img has no inherent
+   height (the picker's height:auto would otherwise collapse it to 0). */
+.avatar-img--loading {
+  aspect-ratio: 1;
   background:
     radial-gradient(circle at 35% 30%, rgba(72, 194, 207, 0.22), transparent 65%),
     linear-gradient(180deg, #16233a, #0b1220);
-  color: transparent;
-  /* Slow shimmer sweeping over the disc while the real portrait decodes;
-     buried under the opaque image once it lands. */
   animation: avatar-shimmer 1.4s ease-in-out infinite;
 }
 

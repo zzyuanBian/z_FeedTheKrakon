@@ -10,6 +10,8 @@
  * into GameState via the `syncAvatar` move so every seat can render it.
  */
 
+import { useRef, useState } from 'react';
+
 const AVATAR_FILES = [
   '01_captain_edmund',
   '02_navigator_vera',
@@ -68,7 +70,11 @@ export function preloadAvatars(): void {
 }
 
 /** Circular portrait. Sizes are plain pixel strings so the component stays
- *  free of any utility-CSS dependency (the Avalon original used tailwind). */
+ *  free of any utility-CSS dependency (the Avalon original used tailwind).
+ *  While the JPEG decodes (cold cache, e.g. shared-link joiners) the element
+ *  carries `avatar-img--loading`: CSS paints a themed disc + shimmer there,
+ *  swapped for the real photo the moment onLoad lands. A ref complete-check
+ *  covers portraits that finish before React attaches the handler. */
 export function AvatarImage({
   avatarId,
   size = 36,
@@ -81,16 +87,27 @@ export function AvatarImage({
   title?: string;
   className?: string;
 }) {
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  if (imgRef.current?.complete && imgRef.current.naturalWidth > 0 && !loaded) {
+    setLoaded(true);
+  }
   return (
     <img
+      ref={imgRef}
       src={avatarSrc(avatarId)}
       alt={getAvatar(avatarId).name}
       title={title}
-      className={'avatar-img' + (className ? ` ${className}` : '')}
+      className={
+        'avatar-img'
+        + (loaded ? '' : ' avatar-img--loading')
+        + (className ? ` ${className}` : '')
+      }
       style={{ width: size, height: size }}
       draggable={false}
       loading="eager"
       decoding="async"
+      onLoad={() => setLoaded(true)}
     />
   );
 }
