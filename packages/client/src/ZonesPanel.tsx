@@ -15,7 +15,8 @@ import { AvatarImage } from './Avatars.js';
 
 const NAV_BACK = 'cards/nav-back.jpg';
 
-/** 深海弃牌列（地图左侧）。 */
+/** 深海弃牌区（地图左侧）。整张 drop.png 原样呈现——横幅、漩涡都是画里
+ *  自带的，UI 不重画；弃牌牌背叠在上部深色海面，数字徽章是唯一真实数据。 */
 export function DiscardSea({ view }: { view: PlayerView }) {
   const discardCount = view.navigation.discardCount;
   // Up to three decorative backs: 0 count shows none, otherwise scale the
@@ -24,7 +25,7 @@ export function DiscardSea({ view }: { view: PlayerView }) {
 
   return (
     <div className="discard-sea" role="img" aria-label={`深海弃牌区，共 ${discardCount} 张`}>
-      <span className="zones__banner zones__banner--drop">丢弃</span>
+      <img className="discard-sea__art" src="img/zone-drop.jpg" alt="" draggable={false} />
       {backs > 0 && (
         <div className="discard-sea__stack" aria-hidden="true">
           {Array.from({ length: backs }, (_, i) => (
@@ -35,7 +36,7 @@ export function DiscardSea({ view }: { view: PlayerView }) {
               alt=""
               draggable={false}
               style={{
-                transform: `translate(-50%, -50%) translate(${i * 7 - 7}px, ${i * -9}px) rotate(${(i - 1) * 8}deg)`,
+                transform: `translate(-50%, -50%) translate(${i * 6 - 6}px, ${i * 8}px) rotate(${(i - 1) * 9}deg)`,
                 zIndex: i,
               }}
             />
