@@ -10,6 +10,10 @@
     <meta name="mobile-web-app-capable" yes />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>险恶疑航 · Feed the Kraken</title>
+    <!-- Menu + lobby backdrops: kicked off at HTML parse so the first paint
+         already has them (CSS backgrounds otherwise lag one paint behind). -->
+    <link rel="preload" as="image" href="/bg/menu-bg.jpg" />
+    <link rel="preload" as="image" href="/bg/lobby-bg.jpg" />
     <!-- Card scans are big; start fetching them at page load so they're
          already cached when the role-reveal screen or a nav-card choice
          appears. -->

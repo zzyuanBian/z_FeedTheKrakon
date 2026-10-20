@@ -79,41 +79,6 @@ export function scaleCounts(fc: FactionCounts, count: number): FactionCounts {
 
 // ------------------------------- decorators -------------------------------
 
-// ------------------------------- decorators -------------------------------
-
-/** Tentacles drifting up from the bottom edge. Purely decorative. */
-function KrakenBackdrop() {
-  return (
-    <svg
-      className="kraken-bg"
-      viewBox="0 0 800 600"
-      preserveAspectRatio="xMidYMax slice"
-      aria-hidden="true"
-    >
-      <defs>
-        <radialGradient id="glow" cx="50%" cy="110%" r="70%">
-          <stop offset="0%" stopColor="#1c4d5c" stopOpacity="0.55" />
-          <stop offset="55%" stopColor="#0a1f2e" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#050914" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="tentacle" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2a7a8a" stopOpacity="0" />
-          <stop offset="60%" stopColor="#2a7a8a" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#0f2a38" stopOpacity="0.9" />
-        </linearGradient>
-      </defs>
-      <rect width="800" height="600" fill="url(#glow)" />
-      <g fill="none" stroke="url(#tentacle)" strokeWidth="10" strokeLinecap="round">
-        <path d="M80 600 Q 120 420 90 320 T 60 160" />
-        <path d="M200 600 Q 260 460 230 360 T 280 200" />
-        <path d="M400 600 Q 380 470 420 380 T 390 220" />
-        <path d="M600 600 Q 560 460 600 360 T 560 200" />
-        <path d="M740 600 Q 720 440 760 340 T 720 180" />
-      </g>
-    </svg>
-  );
-}
-
 // --------------------------------- atoms ----------------------------------
 
 function GoldTitle() {
@@ -674,7 +639,6 @@ export function Lobby({ savedSession, onReady, onForget }: LobbyProps) {
 
   return (
     <div className="lobby-shell">
-      <KrakenBackdrop />
       <div className="lobby-stack">
         {content}
         {screen === 'menu' && savedSession && (
