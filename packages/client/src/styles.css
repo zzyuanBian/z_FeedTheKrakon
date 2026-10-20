@@ -1140,12 +1140,14 @@ button:disabled { cursor: not-allowed; }
 /* -------------------------------- zones -------------------------------- */
 /* Table zones flanking the map: the discard sea LEFT of the map shows the
    drop art verbatim (its painted banner + vortex ARE the zone's look — no
-   CSS re-drawing), with the nav-back pile floating on the dark upper water
-   and a count badge. The off-duty bench is a strip above the crew circle. */
+   CSS re-drawing). The column is an inline-size container so the pile and
+   badge size in cqw off the art width. The off-duty bench is a strip above
+   the crew circle. */
 .discard-sea {
   align-self: stretch;
   position: relative;
   margin: 12px 0 12px 8px;
+  container-type: inline-size;
 }
 /* The art keeps its intrinsic card shape: width fills the column, height
    floats (aspect 549:948), centered vertically in the column. */
@@ -1163,7 +1165,7 @@ button:disabled { cursor: not-allowed; }
 .discard-sea__stack {
   position: absolute;
   left: 50%;
-  top: 26%; /* the dark water band above the vortex */
+  top: 15%; /* the dark water band above the vortex */
   width: 0;
   height: 0;
   z-index: 2;
@@ -1173,7 +1175,7 @@ button:disabled { cursor: not-allowed; }
   position: absolute;
   left: 0;
   top: 0;
-  width: 72%;
+  width: 72cqw;
   aspect-ratio: 549 / 948;
   object-fit: cover;
   border-radius: 6px;
@@ -1182,9 +1184,13 @@ button:disabled { cursor: not-allowed; }
 }
 .discard-sea__count {
   position: absolute;
-  left: 50%;
+  left: 0;
+  /* Below the deepest the fan can reach (3 backs' height + step + gap);
+     shorter piles leave a slightly larger gap, which still reads as
+     "under the pile". cqw tracks the art width at every column size —
+     .discard-sea is an inline-size container. */
+  top: calc(3 * 72cqw * 948 / 549 + 26px);
   transform: translateX(-50%);
-  bottom: 12%;
   z-index: 3;
   min-width: 34px;
   padding: 2px 10px;
