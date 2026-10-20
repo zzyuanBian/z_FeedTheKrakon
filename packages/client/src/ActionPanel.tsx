@@ -261,7 +261,7 @@ function PendingForm({
       return (
         <TargetPicker
           view={view}
-          title="紧急航行：指派一名紧急领航员（可选轮休中的玩家）"
+          title="紧急航行：指派一名紧急领航员（可选歇班中的玩家）"
           confirmLabel="指派"
           onConfirm={(target) => moves.emergencyNav!(target)}
         />

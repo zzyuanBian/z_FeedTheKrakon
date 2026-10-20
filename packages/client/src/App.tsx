@@ -10,6 +10,7 @@ import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
 } from './Lobby.js';
 import { Board } from './Board.js';
+import { ZonesPanel } from './ZonesPanel.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
@@ -672,6 +673,7 @@ export function App() {
 
         <section className="col col--board">
           <Board view={view} />
+          <ZonesPanel view={view} />
         </section>
 
         <aside className="col col--side">

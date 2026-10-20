@@ -63,6 +63,6 @@ export const PHASE_LABEL: Record<string, string> = {
   loyalty: '忠诚提问',
   navigation: '航行',
   executeCard: '执行航海卡',
-  offDuty: '轮休',
+  offDuty: '歇班',
   gameOver: '游戏结束',
 };

@@ -79,7 +79,7 @@ export function Roster({
               {officers.navigator === p.id && (
                 <span className="roster__token-crest" title="领航员">🏴‍☠️</span>
               )}
-              {p.offDuty && <span className="roster__token-dot" title="轮休">💤</span>}
+              {p.offDuty && <span className="roster__token-dot" title="歇班">💤</span>}
               {p.declaredCult && (
                 <span className="roster__token-dot roster__token-dot--cult" title="已被公开为邪教徒">🐙</span>
               )}
@@ -128,7 +128,7 @@ export function Roster({
                 {team && <span className="badge">{FACTION_ICON[team]}{FACTION_LABEL[team]}</span>}
                 <span className="badge" title="枪">🔫{p.guns}</span>
                 <span className="badge" title="履历">📜{p.resumes}</span>
-                {p.offDuty && <span className="badge badge--off" title="轮休">💤</span>}
+                {p.offDuty && <span className="badge badge--off" title="歇班">💤</span>}
                 {p.declaredCult && <span className="badge badge--cult" title="已被公开为邪教徒">🐙</span>}
                 {!p.alive && <span className="badge badge--dead">出局</span>}
               </span>
