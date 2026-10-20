@@ -50,7 +50,7 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
           <h2>哗变成功！</h2>
         </div>
         <p className="mutiny-reveal__sub">
-          {m.threshold} 枪门槛 · 共 {Object.values(m.pledges ?? {}).reduce((n, g) => n + g, 0)} 枪
+          至少 {m.threshold} 枪 · 共 {Object.values(m.pledges ?? {}).reduce((n, g) => n + g, 0)} 枪
           {tie && captainKnown ? ' · 平局表决后定出新船长' : tie ? ' · 平局，表决进行中…' : ''}
         </p>
 

@@ -291,7 +291,7 @@ export interface PrivateKnowledge {
 export type LogEntry =
   | { t: 'round'; round: number; captain: PlayerId }
   | { t: 'officers'; lieutenant: PlayerId; navigator: PlayerId }
-  | { t: 'mutiny'; total: number; success: boolean; newCaptain: PlayerId | null }
+  | { t: 'mutiny'; total: number; success: boolean; newCaptain: PlayerId | null; pledges: Partial<Record<PlayerId, number>> }
   | { t: 'moved'; from: number; to: number; color: ArrowColor }
   | { t: 'card'; card: NavCardId; captain: PlayerId }
   | { t: 'ritual'; card: RitualCardId }

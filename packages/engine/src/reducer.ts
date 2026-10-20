@@ -328,7 +328,7 @@ function resolveMutiny(s: GameState): boolean {
 
   if (!success) {
     // Failed: nobody loses guns; proceed to navigation with the team as appointed.
-    s.log.push({ t: 'mutiny', total, success: false, newCaptain: null });
+    s.log.push({ t: 'mutiny', total, success: false, newCaptain: null, pledges: { ...s.mutiny.pledges } });
     s.mutiny.active = false;
     beginNavigation(s);
     return true;
@@ -377,7 +377,7 @@ function finishMutiny(s: GameState, total: number, newCaptain: PlayerId): void {
   s.mutiny.newCaptain = newCaptain;
   s.mutiny.active = false;
   s.pending = null;
-  s.log.push({ t: 'mutiny', total, success: true, newCaptain });
+  s.log.push({ t: 'mutiny', total, success: true, newCaptain, pledges: { ...s.mutiny.pledges } });
   // New captain starts a fresh round (off-duty signs do NOT move on a mutiny).
   s.officers = { captain: newCaptain, lieutenant: null, navigator: null };
   s.round += 1;

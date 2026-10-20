@@ -3,7 +3,7 @@
  *
  * - DiscardSea (深海): a slim column LEFT of the map. The drop art keeps its
  *   true tall card proportions and the nav-back pile stacks at real card
- *   size — the gold count badge is the source of truth (the engine only
+ *   size — a text line under the art carries the count (the engine only
  *   exposes the count, the pile is decorative).
  * - OffDutyZone (歇班): a strip ABOVE the crew circle in the right column,
  *   listing resting players' avatars + names; a whisper when nobody rests.
@@ -16,7 +16,7 @@ import { AvatarImage } from './Avatars.js';
 const NAV_BACK = 'cards/nav-back.jpg';
 
 /** 深海弃牌区（地图左侧）。整张 drop.png 原样呈现——横幅、漩涡都是画里
- *  自带的，UI 不重画；弃牌牌背叠在上部深色海面，数字徽章是唯一真实数据。 */
+ *  自带的，UI 不重画；弃牌牌背叠在上部深色海面，张数以图下一行文字呈现。 */
 export function DiscardSea({ view }: { view: PlayerView }) {
   const discardCount = view.navigation.discardCount;
   // Up to three decorative backs: 0 count shows none, otherwise scale the
@@ -25,25 +25,27 @@ export function DiscardSea({ view }: { view: PlayerView }) {
 
   return (
     <div className="discard-sea" role="img" aria-label={`深海弃牌区，共 ${discardCount} 张`}>
-      <img className="discard-sea__art" src="img/zone-drop.jpg" alt="" draggable={false} />
-      {backs > 0 && (
-        <div className="discard-sea__stack" aria-hidden="true">
-          {Array.from({ length: backs }, (_, i) => (
-            <img
-              key={i}
-              className="discard-sea__card"
-              src={NAV_BACK}
-              alt=""
-              draggable={false}
-              style={{
-                transform: `translate(-50%, -50%) translate(${i * 6 - 6}px, ${i * 8}px) rotate(${(i - 1) * 9}deg)`,
-                zIndex: i,
-              }}
-            />
-          ))}
-        </div>
-      )}
-      <span className="discard-sea__count">{discardCount}</span>
+      <div className="discard-sea__artbox">
+        <img className="discard-sea__art" src="img/zone-drop.jpg" alt="" draggable={false} />
+        {backs > 0 && (
+          <div className="discard-sea__stack" aria-hidden="true">
+            {Array.from({ length: backs }, (_, i) => (
+              <img
+                key={i}
+                className="discard-sea__card"
+                src={NAV_BACK}
+                alt=""
+                draggable={false}
+                style={{
+                  transform: `translate(-50%, -50%) translate(${i * 6 - 6}px, ${i * 8}px) rotate(${(i - 1) * 9}deg)`,
+                  zIndex: i,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      <span className="discard-sea__label">弃牌 {discardCount} 张</span>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { Board } from './Board.js';
 import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
+import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
@@ -466,6 +467,9 @@ export function App() {
   }, []);
   const game = useGame(session, resetToLobby);
   syncNameRef.current = game.syncName;
+  // Private guess notes (Avalon-parity marking): one store per match+seat,
+  // sessionStorage-backed, rendered by the roster AND the chat avatars.
+  const playerMarks = usePlayerMarks(session?.matchID ?? '', session?.playerID ?? '');
 
   const [tab, setTab] = useState<'action' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
@@ -559,6 +563,7 @@ export function App() {
       session={session}
       game={game}
       muted={game.view ? !game.view.you.alive : false}
+      marks={playerMarks.marks}
     >
       {node}
     </WithChat>
@@ -785,7 +790,12 @@ export function App() {
           <div className={'side-action' + (tab !== 'action' ? ' side-action--mobile-hidden' : '')}>
             {tab === 'log' ? null : (
               <>
-                <Roster view={view} />
+                <Roster
+                  view={view}
+                  marks={playerMarks.marks}
+                  onToggleMark={playerMarks.toggle}
+                  onClearMarks={playerMarks.clearAll}
+                />
                 {over ? (
                   <div className="panel panel--over">
                     <h3>游戏结束</h3>
@@ -828,12 +838,15 @@ function WithChat({
   session,
   game,
   muted,
+  marks,
   children,
 }: {
   session: Session;
   game: ReturnType<typeof useGame>;
   /** Eliminated players are muted (pre-sync screens are never muted). */
   muted: boolean;
+  /** Private guess notes, shown as dots on message avatars. */
+  marks: PlayerMarks;
   children: ReactNode;
 }) {
   return (
@@ -847,6 +860,7 @@ function WithChat({
         mySeat={session.playerID}
         myName={session.playerName}
         myAvatarId={session.avatarId ?? -1}
+        marks={marks}
       />
     </>
   );

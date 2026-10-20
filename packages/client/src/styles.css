@@ -1260,25 +1260,21 @@ button:disabled { cursor: not-allowed; }
   border: 2px solid #f2ead6;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
 }
-.discard-sea__count {
-  position: absolute;
-  /* Overlaid on the art: top-left of the pile, like a stack counter in a
-     card game. cqw tracks the art width at every column size — .discard-sea
-     is an inline-size container. */
-  left: 8cqw;
-  top: 18cqw;
-  z-index: 3;
-  min-width: 34px;
-  padding: 2px 10px;
+/* Pile count as a plain line of text UNDER the art (the column is a flex
+   column: art area on top, caption below). */
+.discard-sea {
+  display: flex;
+  flex-direction: column;
+}
+.discard-sea__artbox { position: relative; flex: 1; min-height: 0; }
+.discard-sea__label {
+  flex: 0 0 auto;
+  margin-top: 6px;
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 700;
-  color: #eaf4fb;
-  background: rgba(20, 49, 66, 0.88);
-  border-radius: 999px;
-  border: 1px solid rgba(126, 178, 200, 0.6);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--teal-bright);
 }
 
 /* 歇班 strip above the roster circle. */
@@ -1747,6 +1743,22 @@ button:disabled { cursor: not-allowed; }
 
 .log__list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
 .log__list li { padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--ink-dim); }
+/* Key-fact highlights inside a log line (LogPanel's <b class=log__hl>): the
+   surrounding text stays dim, the facts carry the color + weight. */
+.log__hl { font-weight: 700; }
+.log__hl--gold { color: var(--gold-bright); }
+.log__hl--red { color: #f5b0b8; }
+.log__hl--teal { color: var(--teal-bright); }
+/* Mutiny pledges: each crew member's 出枪数 on its own indented line. */
+.log__mutiny-pledges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 2px;
+  padding-left: 10px;
+  font-size: 12px;
+}
+.log__mutiny-pledge { white-space: nowrap; }
 .knowledge { background: var(--bg-panel-2); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 8px; margin-bottom: 10px; }
 .knowledge ul { margin: 0; padding-left: 18px; }
 .peek { padding-left: 18px; }
@@ -1874,6 +1886,123 @@ button:disabled { cursor: not-allowed; }
   background: rgba(212, 175, 55, 0.14); border-color: var(--gold-dim);
   color: var(--gold-bright); border-bottom-left-radius: 12px; border-bottom-right-radius: 4px;
 }
+
+/* --------------------- private player marks (guesses) -------------------- */
+/* Local-only suspicion notes: tap a crew token -> guess sheet; dots ride the
+   token and the chat avatars. sessionStorage-backed, never sent anywhere. */
+.markpop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.markpop__sheet {
+  width: 100%;
+  max-width: 380px;
+  max-height: 75vh;
+  overflow-y: auto;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line-strong);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  padding: 14px 16px 16px;
+}
+.markpop__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.markpop__head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+.markpop__head button {
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.markpop__head button:hover { color: var(--ink); }
+.markpop__hint {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--ink-ghost);
+  font-style: italic;
+}
+.markpop__group { margin-bottom: 12px; }
+.markpop__group-title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin: 0 0 6px;
+}
+.markpop__options { display: flex; flex-wrap: wrap; gap: 8px; }
+.markpop__opt {
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-deep);
+  color: var(--ink-dim);
+  font-size: 13px;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.markpop__opt:hover { border-color: var(--teal); color: var(--ink); }
+.markpop__opt--on { border-width: 2px; padding: 6px 11px; font-weight: 700; }
+.markpop__opt--on.markpop__opt--evil { border-color: var(--blood); color: #f5b0b8; background: rgba(178, 58, 72, 0.16); }
+.markpop__opt--on.markpop__opt--good { border-color: var(--teal-bright); color: var(--teal-bright); background: rgba(72, 194, 207, 0.12); }
+.markpop__foot { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+.markpop__clear {
+  background: none;
+  border: none;
+  color: var(--ink-ghost);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+.markpop__clear:hover { color: #f5b0b8; }
+.markpop__done { flex: 1; }
+
+/* Dot cluster pinned to a token / chat avatar. */
+.mark-dots {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+.mark-dots__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+}
+.mark-dots__dot--evil { background: var(--blood); }
+.mark-dots__dot--good { background: var(--teal-bright); }
+
+/* Guess badges in the roster list rows. */
+.badge--mark { border-width: 1px; font-weight: 700; }
+.badge--mark-evil { border-color: var(--blood-dim); color: #f5b0b8; }
+.badge--mark-good { border-color: var(--teal); color: var(--teal-bright); }
+
+/* Markable crew tokens: pointer cursor + hover lift (keeping the centring
+   translate), mirroring the picker. */
+.roster__token--markable { cursor: pointer; }
+.roster__token--markable:hover { transform: translate(-50%, calc(-50% - 2px)); }
+.roster__row:not(.roster__row--self) { cursor: pointer; }
+.chat__ava-wrap { position: relative; display: inline-block; line-height: 0; }
 
 /* --------------------------------- tabs -------------------------------- */
 
