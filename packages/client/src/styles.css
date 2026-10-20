@@ -1539,6 +1539,126 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid var(--line-strong); background: var(--bg-deep);
 }
 
+/* --------------------- private player marks (guesses) -------------------- */
+/* Local-only suspicion notes: tap a crew token → guess sheet; dots ride the
+   token and the chat avatars. sessionStorage-backed, never sent anywhere. */
+.markpop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.markpop__sheet {
+  width: 100%;
+  max-width: 380px;
+  max-height: 75vh;
+  overflow-y: auto;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line-strong);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  padding: 14px 16px 16px;
+}
+.markpop__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.markpop__head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+.markpop__head button {
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.markpop__head button:hover { color: var(--ink); }
+.markpop__hint {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--ink-ghost);
+  font-style: italic;
+}
+.markpop__group { margin-bottom: 12px; }
+.markpop__group-title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin: 0 0 6px;
+}
+.markpop__options { display: flex; flex-wrap: wrap; gap: 8px; }
+.markpop__opt {
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-deep);
+  color: var(--ink-dim);
+  font-size: 13px;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.markpop__opt:hover { border-color: var(--teal); color: var(--ink); }
+.markpop__opt--on { border-width: 2px; padding: 6px 11px; font-weight: 700; }
+.markpop__opt--on.markpop__opt--evil { border-color: var(--blood); color: #f5b0b8; background: rgba(178, 58, 72, 0.16); }
+.markpop__opt--on.markpop__opt--good { border-color: var(--teal-bright); color: var(--teal-bright); background: rgba(72, 194, 207, 0.12); }
+.markpop__opt--on.markpop__opt--role { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(212, 167, 74, 0.12); }
+.markpop__foot { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+.markpop__clear {
+  background: none;
+  border: none;
+  color: var(--ink-ghost);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+.markpop__clear:hover { color: #f5b0b8; }
+.markpop__done { flex: 1; }
+
+/* Dot cluster pinned to a token / chat avatar. */
+.mark-dots {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+.mark-dots__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+}
+.mark-dots__dot--evil { background: var(--blood); }
+.mark-dots__dot--good { background: var(--teal-bright); }
+.mark-dots__dot--role { background: var(--gold-bright); }
+
+/* Guess badges in the roster list rows. */
+.badge--mark { border-width: 1px; font-weight: 700; }
+.badge--mark-evil { border-color: var(--blood-dim); color: #f5b0b8; }
+.badge--mark-good { border-color: var(--teal); color: var(--teal-bright); }
+.badge--mark-role { border-color: var(--gold-dim); color: var(--gold-bright); }
+
+/* Markable crew tokens: pointer cursor + hover lift (keeping the centring
+   translate), mirroring the picker. */
+.roster__token--markable { cursor: pointer; }
+.roster__token--markable:hover { transform: translate(-50%, calc(-50% - 2px)); }
+.roster__row:not(.roster__row--self) { cursor: pointer; }
+.chat__ava-wrap { position: relative; display: inline-block; line-height: 0; }
+
 /* Message bubbles (shared with the drawer): avatar column (name above the
    portrait), own messages mirrored right. */
 .chat__log { flex: 1; overflow: auto; min-height: 120px; }
