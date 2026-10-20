@@ -144,7 +144,10 @@ export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
         </div>
       )}
 
-      {flipped && !alreadyConfirmed && (
+      {/* Persistent once flipped — the flip auto-sends confirmRole, so gating
+          this on !alreadyConfirmed would wipe the role hint seconds after it
+          appeared (the confirmation broadcast flips that flag). */}
+      {flipped && (
         <div className="role-reveal__info">
           <p className="role-reveal__copy">{copy}</p>
           {team === 'cult' && view.you.cultLeader && knownNames.length > 0 && (
