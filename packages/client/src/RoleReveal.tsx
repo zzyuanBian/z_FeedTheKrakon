@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
+import { AvatarImage } from './Avatars.js';
 
 export interface RoleRevealProps {
   view: PlayerView;
@@ -158,6 +159,43 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
         <span className="role-reveal__count">
           已准备 <strong>{confirmed}</strong> / {total}
         </span>
+      </div>
+
+      {/* Crew readiness list, Avalon-style: every active seat with its
+          ✓/未准备 mark so the table can see who is holding up the reveal.
+          bySeat runs along seatOrder (active seats only) and seat ids are
+          `p<seat+1>`, so row i maps to playerId `p${i + 1}`. Benched players
+          hold no role card and are skipped, mirroring the count. */}
+      <div className="role-reveal__readiness">
+        <div className="role-reveal__readiness-title">船员准备情况</div>
+        <ul className="role-reveal__readiness-list">
+          {[...view.others.map((p) => ({ ...p, me: false })), { ...view.you, me: true }]
+            .filter((p) => !p.benched)
+            .sort((a, b) => a.seat - b.seat)
+            .map((p) => {
+              const seatIdx = Number(p.id.slice(1)) - 1;
+              const ready = view.roleConfirmations.bySeat[seatIdx] === true;
+              return (
+                <li
+                  key={p.id}
+                  className={
+                    'role-reveal__readiness-row'
+                    + (p.me ? ' role-reveal__readiness-row--me' : '')
+                    + (ready ? ' role-reveal__readiness-row--ready' : '')
+                  }
+                >
+                  <AvatarImage avatarId={p.avatar} size={26} className="role-reveal__readiness-ava" />
+                  <span className="role-reveal__readiness-name">
+                    {p.name}
+                    {p.me && <span className="role-reveal__readiness-me">（我）</span>}
+                  </span>
+                  <span className="role-reveal__readiness-mark">
+                    {ready ? '✓ 已准备' : '未准备'}
+                  </span>
+                </li>
+              );
+            })}
+        </ul>
       </div>
 
       <button

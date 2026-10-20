@@ -1025,6 +1025,57 @@ button:disabled { cursor: not-allowed; }
 .role-reveal__status strong { color: var(--gold-bright); font-size: 16px; }
 .role-reveal__confirm { margin-top: 8px; }
 
+/* Per-seat readiness (Avalon-style ready list under the role card). */
+.role-reveal__readiness {
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  animation: role-reveal-fade 0.4s ease;
+}
+.role-reveal__readiness-title {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin-bottom: 8px;
+}
+.role-reveal__readiness-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.role-reveal__readiness-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  border-bottom: 1px dashed var(--line);
+}
+.role-reveal__readiness-row:last-child { border-bottom: none; }
+.role-reveal__readiness-row--me { background: rgba(72, 194, 207, 0.07); }
+.role-reveal__readiness-ava { flex: none; }
+.role-reveal__readiness-name {
+  flex: 1;
+  font-size: 15px;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.role-reveal__readiness-me { color: var(--teal-bright); font-size: 12px; }
+.role-reveal__readiness-mark {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-ghost);
+}
+.role-reveal__readiness-row--ready .role-reveal__readiness-mark { color: #58c98a; }
+
 /* ============================== game layout =========================== */
 
 .main { flex: 1; display: grid; grid-template-columns: 200px minmax(0, 1fr) 380px; min-height: 0; }
