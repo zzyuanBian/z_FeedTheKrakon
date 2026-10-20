@@ -13,7 +13,6 @@ import { Board } from './Board.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
-import { ArtImage } from './ArtImage.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
 import { ChatBubble } from './ChatBubble.js';
@@ -377,9 +376,6 @@ function WaitingRoom({
           onClick={handleStart}
           disabled={!canStart || startRequested}
         >
-          <span className="btn-cthulhu__glyph">
-            <ArtImage src="img/map-glyph.png" size={38} />
-          </span>
           <span className="btn-cthulhu__body">
             <span className="btn-cthulhu__title">
               {startRequested ? '正在发号…' : !canStart ? `等人齐 (${filled}/${playerCount})` : '开始游戏'}

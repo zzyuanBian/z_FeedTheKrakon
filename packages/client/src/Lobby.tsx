@@ -522,9 +522,6 @@ function JoinRoom({
             disabled={!valid || !nameOk || busy}
             onClick={join}
           >
-            <span className="btn-cthulhu__glyph">
-              <ArtImage src="img/seal-sailor.png" size={38} />
-            </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">
                 {busy ? '正在登船…' : '立刻登船'}
