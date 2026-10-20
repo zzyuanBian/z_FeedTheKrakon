@@ -1360,6 +1360,23 @@ button:disabled { cursor: not-allowed; }
   border-radius: 50%;
   object-fit: cover;
   display: block;
+  /* Cold-cache first visit (shared-link joiners): while the JPEG decodes the
+     <img> is transparent, so picker/roster circles read as empty broken rings.
+     A themed disc gives the wait an intentional-looking face; the opaque
+     photo covers it the moment it decodes. color:transparent keeps the alt
+     string from flashing as text inside the circle. */
+  background:
+    radial-gradient(circle at 35% 30%, rgba(72, 194, 207, 0.22), transparent 65%),
+    linear-gradient(180deg, #16233a, #0b1220);
+  color: transparent;
+  /* Slow shimmer sweeping over the disc while the real portrait decodes;
+     buried under the opaque image once it lands. */
+  animation: avatar-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes avatar-shimmer {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
 }
 
 /* --------------------------------- log --------------------------------- */
