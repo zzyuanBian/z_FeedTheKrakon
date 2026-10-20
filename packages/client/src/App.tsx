@@ -10,7 +10,7 @@ import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
 } from './Lobby.js';
 import { Board } from './Board.js';
-import { ZonesPanel } from './ZonesPanel.js';
+import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
@@ -671,9 +671,13 @@ export function App() {
           <SummaryPanel view={view} />
         </aside>
 
+        {/* 深海 discard zone: its own slim column LEFT of the map so the
+            card-back pile can show at true card proportions instead of being
+            crushed into a short wide strip. Sits under the summary strip. */}
+        <DiscardSea view={view} />
+
         <section className="col col--board">
           <Board view={view} />
-          <ZonesPanel view={view} />
         </section>
 
         <aside className="col col--side">
@@ -685,6 +689,8 @@ export function App() {
               记录
             </button>
           </div>
+
+          <OffDutyZone view={view} />
 
           {tab === 'action' && (
             <>
