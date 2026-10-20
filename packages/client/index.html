@@ -14,6 +14,12 @@
          already has them (CSS backgrounds otherwise lag one paint behind). -->
     <link rel="preload" as="image" href="/bg/menu-bg.jpg" />
     <link rel="preload" as="image" href="/bg/lobby-bg.jpg" />
+    <!-- CTA map cutout + faction wax seals: small, needed on the very first
+         screens, preloaded so the glyph placeholder disc never even shows. -->
+    <link rel="preload" as="image" href="/img/map-glyph.png" />
+    <link rel="preload" as="image" href="/img/seal-sailor.png" />
+    <link rel="preload" as="image" href="/img/seal-pirate.png" />
+    <link rel="preload" as="image" href="/img/seal-cult.png" />
     <!-- Card scans are big; start fetching them at page load so they're
          already cached when the role-reveal screen or a nav-card choice
          appears. -->

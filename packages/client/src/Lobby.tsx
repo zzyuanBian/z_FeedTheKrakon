@@ -20,6 +20,7 @@ import { TEAM_COMPOSITIONS, type FactionCounts } from '@ftk/engine';
 import { CODE_LENGTH, isRoomCode, normalizeRoomCode } from '@ftk/room-code';
 import { createMatch, joinMatch, lobby } from './useGame.js';
 import { AVATARS, AvatarImage, pickAvatarId } from './Avatars.js';
+import { ArtImage } from './ArtImage.js';
 import type { Session } from './session.js';
 import { GAME_NAME } from './config.js';
 
@@ -84,7 +85,6 @@ export function scaleCounts(fc: FactionCounts, count: number): FactionCounts {
 function GoldTitle() {
   return (
     <div className="title-block">
-      <div className="title-ornament" aria-hidden="true">⚓</div>
       <h1 className="title-main">险恶疑航</h1>
       <p className="title-sub">Feed the Kraken</p>
       <p className="title-tag">深海之下，克苏鲁已醒。别喂错人了。</p>
@@ -289,7 +289,7 @@ function MainMenu({
             onClick={onCreate}
           >
             <span className="btn-cthulhu__glyph">
-              <img src="img/map-glyph.png" alt="" draggable={false} />
+              <ArtImage src="img/map-glyph.png" size={38} />
             </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">开辟新航线</span>
@@ -303,7 +303,7 @@ function MainMenu({
             onClick={() => onGo('join')}
           >
             <span className="btn-cthulhu__glyph">
-              <img src="img/seal-sailor.png" alt="" draggable={false} />
+              <ArtImage src="img/seal-sailor.png" size={38} />
             </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">登上友船</span>
@@ -349,7 +349,7 @@ export function FactionStepper({
     <div className={`faction-stepper faction-stepper--${accent}` + (locked ? ' faction-stepper--locked' : '')}>
       <span className="faction-stepper__head">
         <span className="faction-stepper__glyph" aria-hidden="true">
-          <img src={glyph} alt="" draggable={false} />
+          <ArtImage src={glyph} size={34} />
         </span>
         <span className="faction-stepper__label">{label}</span>
         {!locked && (
@@ -523,7 +523,7 @@ function JoinRoom({
             onClick={join}
           >
             <span className="btn-cthulhu__glyph">
-              <img src="img/seal-sailor.png" alt="" draggable={false} />
+              <ArtImage src="img/seal-sailor.png" size={38} />
             </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">

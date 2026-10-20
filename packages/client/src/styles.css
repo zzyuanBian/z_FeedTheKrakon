@@ -109,13 +109,6 @@ button:disabled { cursor: not-allowed; }
 /* ---------- titles ---------- */
 
 .title-block { text-align: center; margin-bottom: 12px; }
-.title-ornament {
-  font-size: 32px;
-  color: var(--gold);
-  opacity: 0.85;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 0 12px var(--teal-glow));
-}
 .title-main {
   font-family: var(--font-serif);
   font-weight: 900;
@@ -364,12 +357,6 @@ button:disabled { cursor: not-allowed; }
   gap: 10px;
 }
 .faction-stepper__glyph { width: 34px; height: 34px; flex: 0 0 34px; }
-.faction-stepper__glyph img {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
-}
 .faction-stepper__label {
   flex: 1;
   font-family: var(--font-serif);
@@ -439,12 +426,6 @@ button:disabled { cursor: not-allowed; }
   font-size: 28px;
   text-align: center;
   line-height: 1;
-}
-.btn-cthulhu__glyph img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 .btn-cthulhu__body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .btn-cthulhu__title {
@@ -1484,6 +1465,24 @@ button:disabled { cursor: not-allowed; }
 @keyframes avatar-shimmer {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.35); }
+}
+
+/* Art glyphs (map cutout, faction wax seals — ArtImage.tsx). Same load-state
+   pattern as avatars: the real image keeps its drop shadow; while decoding
+   the element paints a quiet themed disc (no shimmer — these are small
+   decorations) that swaps for the art the moment onLoad lands. */
+.art-img {
+  object-fit: contain;
+  display: block;
+  color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+.art-img--loading {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(72, 194, 207, 0.16), transparent 65%),
+    linear-gradient(180deg, #16233a, #0b1220);
+  border: 1px solid var(--line-strong);
 }
 
 /* --------------------------------- log --------------------------------- */
