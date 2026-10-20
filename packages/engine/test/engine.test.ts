@@ -152,6 +152,29 @@ describe('viewFor — the information gate', () => {
     const b = viewFor(g, g.seatOrder[1]!);
     expect(a).toEqual(b);
   });
+
+  it('shows pirates their teammates, cult leader their flock, nobody else anybody', () => {
+    const g = newGame(7);
+    const pirate = g.seatOrder.find((id) => g.players[id]!.team === 'pirate')!;
+    const pirateView = viewFor(g, pirate);
+    const wantPirates = g.seatOrder.filter(
+      (id) => id !== pirate && g.players[id]!.team === 'pirate',
+    );
+    expect(pirateView.you.teammates).toEqual(wantPirates);
+
+    const leader = g.seatOrder.find((id) => g.players[id]!.cultLeader)!;
+    const leaderView = viewFor(g, leader);
+    expect(leaderView.you.teammates).toEqual(leaderView.you.knownCultists);
+
+    // A plain cultist (11p game has one; other counts have none) and every
+    // sailor must see nobody.
+    for (const id of g.seatOrder) {
+      const p = g.players[id]!;
+      if (p.team === 'sailor' || (p.team === 'cult' && !p.cultLeader)) {
+        expect(viewFor(g, id).you.teammates).toEqual([]);
+      }
+    }
+  });
 });
 
 describe('rng', () => {

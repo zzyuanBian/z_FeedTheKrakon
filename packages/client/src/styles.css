@@ -1269,6 +1269,19 @@ button:disabled { cursor: not-allowed; }
 }
 .zones__banner--rest { background: rgba(150, 42, 48, 0.94); }
 
+/* Right column body: on PC both halves render stacked (actions above, log
+   below); the mobile media query turns the classes into a tab switch. */
+.side-action { display: flex; flex-direction: column; gap: 8px; }
+.side-log {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  max-height: 260px;
+  overflow: auto;
+  flex: 0 0 auto;
+}
+.side-log .sec__title { margin-top: 0; }
+
 /* ------------------------------- summary ------------------------------- */
 /* Narrow live progress column left of the map: voyage distances (BFS to
  * each win region), current officers, supplies, and transient alerts.
@@ -1517,6 +1530,30 @@ button:disabled { cursor: not-allowed; }
   font-style: normal;
 }
 .roster__token-dot--cult { background: var(--cult); border-color: var(--cult); }
+
+/* Teammate badge (private sight: pirate gathering / leader's flock) hangs
+   off the token's TOP-LEFT — the top-right corner belongs to crests/dots. */
+.roster__token-mate {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  font-size: 11px;
+  line-height: 1;
+  background: var(--blood);
+  border: 1px solid var(--blood-dim);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.roster__token-mate--cult { background: var(--cult); border-color: var(--cult); }
+/* Same badge inline in the roster list rows. */
+.roster__row-mate { color: #f5b0b8; font-style: normal; }
+.roster__row-mate--cult { color: var(--teal-bright); }
 
 /* The detail list under the table: one always-visible row per player, so
    guns / resumes / status never clip or overlap regardless of crew size. */
@@ -1915,6 +1952,10 @@ button:disabled { cursor: not-allowed; }
   .summary__row--near .summary__label { color: var(--ink-dim); font-weight: 400; }
   .col--side { border-left: none; border-top: 1px solid var(--line); }
   .tabs { display: flex; }
+  /* Mobile tab switch: exactly one of the two halves renders. */
+  .side-action--mobile-hidden { display: none; }
+  .side-log--mobile-hidden { display: none; }
+  .side-log { border-top: none; margin-top: 0; max-height: none; }
   /* The round/phase status jumps to the very top of the page on mobile,
      above title and pills — it is the one thing everyone needs to see.
      Still absolutely centered on the bar (identical on every seat). */

@@ -81,10 +81,15 @@ export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
   const team = view.you.team;
   const title = ROLE_TITLE[team] ?? team;
   const copy = ROLE_COPY[team] ?? '';
-  const knownNames = view.you.knownCultists.map((id) => {
+  // Teammate sight (engine `teammates`): pirates see their secret-gathering
+  // partners, the cult leader their flock. Name lookup falls back to the raw
+  // id defensively — every teammate is a live seat so this always resolves.
+  const mateNames = view.you.teammates.map((id) => {
     if (id === view.you.id) return view.you.name;
     return view.others.find((p) => p.id === id)?.name ?? id;
   });
+  // Headline depends on whose sight this is.
+  const mateTitle = view.you.cultLeader ? '克苏鲁选中了这些人：' : '你的海盗同伴：';
 
   const handleFlip = () => {
     if (flipped || sentRef.current) return;
@@ -150,13 +155,15 @@ export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
       {flipped && (
         <div className="role-reveal__info">
           <p className="role-reveal__copy">{copy}</p>
-          {team === 'cult' && view.you.cultLeader && knownNames.length > 0 && (
+          {mateNames.length > 0 && (
             <div className="role-reveal__known">
-              <div className="role-reveal__known-title">克苏鲁选中了这些人：</div>
+              <div className="role-reveal__known-title">{mateTitle}</div>
               <ul className="role-reveal__known-list">
-                {knownNames.map((n) => (
+                {mateNames.map((n) => (
                   <li key={n}>
-                    <span className="role-reveal__known-glyph" aria-hidden="true">🐙</span>
+                    <span className="role-reveal__known-glyph" aria-hidden="true">
+                      {view.you.cultLeader ? '🐙' : '☠️'}
+                    </span>
                     {n}
                   </li>
                 ))}

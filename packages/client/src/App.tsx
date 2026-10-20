@@ -692,26 +692,33 @@ export function App() {
 
           <OffDutyZone view={view} />
 
-          {tab === 'action' && (
-            <>
-              <Roster
-                view={view}
-                marks={playerMarks.marks}
-                onToggleMark={playerMarks.toggle}
-                onClearMarks={playerMarks.clearAll}
-              />
-              {over ? (
-                <div className="panel panel--over">
-                  <h3>游戏结束</h3>
-                  <p>{view.winner && FACTION_LABEL[view.winner]} 获胜</p>
-                  <p className="hint">{view.winReason}</p>
-                </div>
-              ) : (
-                <ActionPanel view={view} moves={game.moves} />
-              )}
-            </>
-          )}
-          {tab === 'log' && <LogPanel view={view} />}
+          {/* PC: the tab strip is hidden — roster + actions stack up top and
+              the log stays permanently visible underneath. Mobile: the tabs
+              switch between the two. */}
+          <div className={'side-action' + (tab !== 'action' ? ' side-action--mobile-hidden' : '')}>
+            {tab === 'log' ? null : (
+              <>
+                <Roster
+                  view={view}
+                  marks={playerMarks.marks}
+                  onToggleMark={playerMarks.toggle}
+                  onClearMarks={playerMarks.clearAll}
+                />
+                {over ? (
+                  <div className="panel panel--over">
+                    <h3>游戏结束</h3>
+                    <p>{view.winner && FACTION_LABEL[view.winner]} 获胜</p>
+                    <p className="hint">{view.winReason}</p>
+                  </div>
+                ) : (
+                  <ActionPanel view={view} moves={game.moves} />
+                )}
+              </>
+            )}
+          </div>
+          <div className={'side-log' + (tab === 'log' ? '' : ' side-log--mobile-hidden')}>
+            <LogPanel view={view} />
+          </div>
         </aside>
       </main>
 

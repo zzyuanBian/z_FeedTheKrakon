@@ -96,6 +96,10 @@ export interface PlayerView {
     /** Only the Cult Leader sees fellow cultists at game start (like Merlin's
      *  sight in Avalon). Empty for sailors / pirates / non-leader cultists. */
     knownCultists: PlayerId[];
+    /** Starting teammates this viewer legitimately knows: a pirate's secret-
+     *  gathering sight, or the leader's flock (same as knownCultists). Empty
+     *  for sailors and plain cultists — per the rules they know nobody. */
+    teammates: PlayerId[];
   };
   others: OtherPlayerView[];
   /** Public: the faction breakdown this game is configured with — what the
@@ -181,6 +185,19 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     ? state.seatOrder.filter((id) => id !== viewer && state.players[id]!.team === 'cult')
     : [];
 
+  // Teammate sight. The Pirates hold their secret gathering before play
+  // (p.8) — every pirate legitimately knows their fellow pirates from the
+  // start. The Cult Leader likewise knows their flock (they perform every
+  // conversion ritual themselves). Everyone else — sailors, plain cultists
+  // (p.8: no secret gathering of the cult) — knows nobody. The list rides
+  // ONLY the viewer's own view, so it cannot leak to other seats.
+  const teammates: PlayerId[] =
+    you.team === 'pirate'
+      ? state.seatOrder.filter((id) => id !== viewer && state.players[id]!.team === 'pirate')
+      : you.cultLeader
+        ? knownCultists
+        : [];
+
   // Per-seat confirmation status for the role-reveal UI — active seats only;
   // bench seats hold no role card and must not block or inflate the count.
   const active = activeSeatIds(state);
@@ -203,6 +220,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       cultLeader: you.cultLeader,
       roleConfirmed: state.confirmedRole.includes(viewer),
       knownCultists,
+      teammates,
     },
     others,
     factionCounts: effectiveFactionCounts(state.settings),

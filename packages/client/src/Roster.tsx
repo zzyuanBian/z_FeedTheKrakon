@@ -22,6 +22,13 @@ import { FACTION_ICON, FACTION_LABEL } from './labels.js';
 import { AvatarImage } from './Avatars.js';
 import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks.js';
 
+/** Set of the viewer's starting teammates (pirate gathering / leader's
+ *  flock) — rendered as a persistent badge on those seats. Private by
+ *  construction: the engine ships `teammates` only in the viewer's own view. */
+function teammateSet(view: PlayerView): Set<string> {
+  return new Set(view.you.teammates ?? []);
+}
+
 export function Roster({
   view,
   marks,
@@ -38,6 +45,7 @@ export function Roster({
   const { officers } = view;
   const n = seats.length;
   const [marking, setMarking] = useState<string | null>(null);
+  const mates = teammateSet(view);
 
   // You at the 6-o'clock position; later seats walk clockwise around the
   // table. Screen coords (y grows downward) put angle 90° at bottom centre.
@@ -79,6 +87,14 @@ export function Roster({
               {officers.navigator === p.id && (
                 <span className="roster__token-crest" title="领航员">🏴‍☠️</span>
               )}
+              {mates.has(p.id) && (
+                <span
+                  className={'roster__token-mate ' + (view.you.cultLeader ? 'roster__token-mate--cult' : '')}
+                  title={view.you.cultLeader ? '你的邪教同伴' : '你的海盗同伴'}
+                >
+                  {view.you.cultLeader ? '🐙' : '☠️'}
+                </span>
+              )}
               {p.offDuty && <span className="roster__token-dot" title="歇班">💤</span>}
               {p.declaredCult && (
                 <span className="roster__token-dot roster__token-dot--cult" title="已被公开为邪教徒">🐙</span>
@@ -111,6 +127,14 @@ export function Roster({
                 {officers.captain === p.id && <em title="船长">🧭</em>}
                 {officers.lieutenant === p.id && <em title="大副">🎖️</em>}
                 {officers.navigator === p.id && <em title="领航员">🏴‍☠️</em>}
+                {mates.has(p.id) && (
+                  <em
+                    className={'roster__row-mate ' + (view.you.cultLeader ? 'roster__row-mate--cult' : '')}
+                    title={view.you.cultLeader ? '你的邪教同伴' : '你的海盗同伴'}
+                  >
+                    {view.you.cultLeader ? '🐙' : '☠️'}
+                  </em>
+                )}
                 {p.name}
                 {self && ' (你)'}
               </span>
