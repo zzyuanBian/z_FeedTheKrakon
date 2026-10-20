@@ -325,6 +325,11 @@ export interface GameState {
   /** Players who have acknowledged their role card at game start. Until this
    *  set equals `seatOrder`, every non-`confirmRole` move is gated out. */
   confirmedRole: PlayerId[];
+  /** Active seats whose client has completed its first socket sync (dispatched
+   *  syncName at least once). A seat that joined the lobby but never showed up
+   *  here is a GHOST: it holds a name in metadata, but no client will ever
+   *  confirm its role card, so the start gate refuses to deal it in. */
+  syncedSeats: PlayerId[];
   /** Host's explicit "开始游戏" gate. The waiting-room UI blocks the
    *  transition to role-reveal until this flips true, so the host can hold
    *  the start until everyone is actually at their keyboard. */

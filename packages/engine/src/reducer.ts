@@ -18,12 +18,12 @@ import {
   type GameState, type NavCardId, type PlayerId,
 } from './state.js';
 import {
-  checkVictory, eligibleOfficers, endGame, grantGuns, livingPlayers, moveShip,
+  activeSeatIds, checkVictory, eligibleOfficers, endGame, grantGuns, livingPlayers, moveShip,
   takeGuns, walkClockwise,
 } from './helpers.js';
 import { makeRng, type Rng } from './rng.js';
 import { mutinyThreshold, offDutyRoles } from './rules.js';
-import { applyDeal, dealTeams, validateFactionCounts } from './setup.js';
+import { applyDeal, dealTeams, rescaleCounts, validateFactionCounts } from './setup.js';
 
 /* ------------------------------ utilities ------------------------------- */
 
@@ -79,6 +79,7 @@ function handle(s: GameState, a: Action): void {
     case 'syncName':          return syncName(s, a);
     case 'syncAvatar':        return syncAvatar(s, a);
     case 'setFactionConfig':  return setFactionConfig(s, a);
+    case 'clearSeat':         return clearSeat(s, a);
     case 'appointTeam':     return appointTeam(s, a);
     case 'mutinyPledge':    return mutinyPledge(s, a);
     case 'mutinyTieBreak':  return mutinyTieBreak(s, a);
@@ -125,6 +126,22 @@ function seatIndex(id: PlayerId): number {
  *  clicks are no-ops, which keeps the move safe to retry on a laggy link. */
 function hostStartGame(s: GameState, a: Extract<Action, { type: 'hostStartGame' }>): void {
   assert(a.actor === s.host, `only the host (${s.host}) may start; got ${a.actor}`);
+  // Every active seat must have a LIVE client behind it (synced at least
+  // once). A seat that joined the lobby but never synced is a ghost: no
+  // client will ever confirm its role card and the whole table would
+  // deadlock at "X / N 已确认". The host clears ghosts with clearSeat.
+  const ghosts = activeSeatIds(s).filter((id) => !s.syncedSeats.includes(id));
+  assert(
+    ghosts.length === 0,
+    `ghost seat(s) ${ghosts.join(', ')} never synced; clear them first`,
+  );
+  // ...and every active seat must still claim a name (a leaver's syncName('')
+  // vacates it; the seat must be re-claimed or the count lowered).
+  const unnamed = activeSeatIds(s).filter((id) => !s.players[id]!.name.trim());
+  assert(
+    unnamed.length === 0,
+    `active seat(s) ${unnamed.join(', ')} have not claimed a name yet`,
+  );
   s.hostStarted = true;
 }
 
@@ -136,6 +153,10 @@ function syncName(s: GameState, a: Extract<Action, { type: 'syncName' }>): void 
   const p = s.players[a.actor];
   assert(p, `syncName: unknown actor ${a.actor}`);
   p.name = a.name;
+  // First sync marks the seat as really present (a live client is listening).
+  // Vacating via syncName('') keeps the flag — the seat WAS synced; it is the
+  // name that left. Ghost detection keys off syncedSeats, not the name.
+  if (!s.syncedSeats.includes(a.actor)) s.syncedSeats.push(a.actor);
 }
 
 /** Publish a seat's avatar id (mirrors syncName; see its note). Idempotent —
@@ -180,6 +201,73 @@ function setFactionConfig(s: GameState, a: Extract<Action, { type: 'setFactionCo
     const active = seatIndex(id) < nextCount;
     p.alive = active;
     p.guns = active ? STARTING_GUNS : 0;
+  }
+  s.gunSupply = GUN_SUPPLY_TOTAL - STARTING_GUNS * nextCount;
+  s.mutiny.threshold = mutinyThreshold(nextCount);
+}
+
+/** Pre-game: the host clears a GHOST seat — one whose client never synced, or
+ *  which was vacated by a leaver's syncName(''). "Clearing" means removing it
+ *  from the game entirely: the target crew size shrinks to drop the seat (and
+ *  any other vacancies after it) from the active ring. This is the manual
+ *  escape hatch for exactly the deadlock the start gate guards against: a
+ *  seat no client will ever confirm. Host-only, strictly pre-game, same
+ *  window as setFactionConfig.
+ *
+ *  Requires the ghost to be a TAIL vacancy: every active seat after it must
+ *  also be unclaimed. Otherwise the host lowers the count with the stepper
+ *  (a mid-ring shrink is a deliberate config act, not a cleanup). The
+ *  breakdown is rescaled for the new size; teams are NOT re-dealt here —
+ *  only the ring length changes, and the next deal (start/re-config) uses
+ *  the shrunk ring. */
+function clearSeat(s: GameState, a: Extract<Action, { type: 'clearSeat' }>): void {
+  assert(a.actor === s.host, `only the host (${s.host}) may clear a seat`);
+  assert(!s.hostStarted, 'seats cannot be cleared once the game has started');
+  assert(s.confirmedRole.length === 0, 'seats cannot be cleared once roles are revealed');
+  const p = s.players[a.target];
+  assert(p, `clearSeat: unknown player ${a.target}`);
+  assert(p.seat < s.settings.playerCount, 'clearSeat: seat is not in the active ring');
+  // The ghost must be unclaimed: an occupied seat is someone's body — the
+  // host has no business clearing it (and the crew size stepper is the tool
+  // for asking a real player to leave).
+  const claimed = s.players[a.target]!.name.trim() !== '' && s.syncedSeats.includes(a.target);
+  assert(!claimed, 'clearSeat: seat is claimed by a live player');
+  // Tail-vacancy requirement: every seat after the target must already be
+  // unclaimed, so shrinking to the target's index strands nobody.
+  const targetIdx = seatIndex(a.target);
+  const after = s.seatOrder
+    .slice(targetIdx + 1, s.settings.playerCount)
+    .filter((id) => {
+      const q = s.players[id]!;
+      return q.name.trim() !== '' || s.syncedSeats.includes(id);
+    });
+  assert(after.length === 0, 'clearSeat: real players are seated after this ghost');
+  // Shrink: the target and every vacancy after it leave the active ring. The
+  // 5-player floor holds — a full table of ghosts is cleared one click at a
+  // time down to the minimum, never below it.
+  const nextCount = Math.max(5, targetIdx);
+  assert(nextCount < s.settings.playerCount, 'clearSeat: shrink would strand claimed seats');
+  s.settings.playerCount = nextCount;
+  s.settings.factionCounts = rescaleCounts(
+    s.settings.factionCounts ?? { sailor: 3, pirate: 2, cult: 1 },
+    nextCount,
+  );
+  // Re-deal teams for the new ring (pre-game: nothing has been projected, so
+  // reshuffling leaks nothing — the same licence setFactionConfig uses).
+  const { teams, captainIndex } = withRng(s, (rng) =>
+    dealTeams(rng, nextCount, s.settings.factionCounts!));
+  applyDeal(s, teams, captainIndex);
+  // Deactivate the vacated tail seats (the same stamping setFactionConfig
+  // does): dead, no guns, no name — they are inert placeholders again.
+  for (const id of s.seatOrder) {
+    const q = s.players[id]!;
+    const active = seatIndex(id) < nextCount;
+    q.alive = active;
+    q.guns = active ? STARTING_GUNS : 0;
+    if (!active) {
+      q.name = '';
+      q.avatar = -1;
+    }
   }
   s.gunSupply = GUN_SUPPLY_TOTAL - STARTING_GUNS * nextCount;
   s.mutiny.threshold = mutinyThreshold(nextCount);

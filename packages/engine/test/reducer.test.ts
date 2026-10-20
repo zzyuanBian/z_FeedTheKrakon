@@ -223,8 +223,26 @@ describe('setFactionConfig', () => {
     expect(() => reduce(s, { type: 'setFactionConfig', actor: notHost, factionCounts: { sailor: 4, pirate: 2, cult: 1 } })).toThrow();
     expect(() => reduce(s, { type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 4, pirate: 2, cult: 2 } })).toThrow(); // sum != 7
     expect(() => reduce(s, { type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 0, pirate: 6, cult: 1 } })).toThrow();
-    const started = reduce(s, { type: 'hostStartGame', actor: s.host });
+    // Every seat syncs first (as live clients do on connect); a ghost seat
+    // would rightly block the start below.
+    const synced = s.seatOrder.reduce(
+      (acc, id) => reduce(acc, { type: 'syncName', actor: id, name: acc.players[id]!.name || `Name ${id}` }),
+      s,
+    );
+    const started = reduce(synced, { type: 'hostStartGame', actor: s.host });
     expect(() => reduce(started, { type: 'setFactionConfig', actor: s.host, factionCounts: { sailor: 4, pirate: 2, cult: 1 } })).toThrow();
+  });
+
+  it('refuses to start while an active seat never synced (ghost)', () => {
+    const s = game(6);
+    const synced = s.seatOrder.slice(0, 5).reduce(
+      (acc, id) => reduce(acc, { type: 'syncName', actor: id, name: `Name ${id}` }),
+      s,
+    );
+    // p6 never synced — the start must be refused, even though every name
+    // (setup-time "Player N") is non-empty. This is the 5→6 人间 bug: the
+    // ghost's role card could never be confirmed.
+    expect(() => reduce(synced, { type: 'hostStartGame', actor: synced.host })).toThrow(/ghost/);
   });
 
   it('keeps a game reproducible after a re-deal', () => {

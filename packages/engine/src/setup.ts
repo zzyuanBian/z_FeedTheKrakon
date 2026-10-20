@@ -56,6 +56,17 @@ export function effectiveFactionCounts(settings: GameSettings): FactionCounts {
   };
 }
 
+/** Rescale a breakdown for a smaller player count: keep the cult, split the
+ *  rest roughly 60/40 sailor/pirate. Engine-side mirror of the waiting room's
+ *  `scaleCounts` — used when a ghost cleanup shrinks the crew and the old
+ *  breakdown no longer sums to the ring. */
+export function rescaleCounts(fc: FactionCounts, count: number): FactionCounts {
+  const cult = Math.min(fc.cult, Math.max(0, count - 2));
+  const rest = Math.max(2, count - cult);
+  const pirate = Math.max(1, Math.floor(rest * 0.4));
+  return { sailor: rest - pirate, pirate, cult };
+}
+
 /** Deal one team to each seat using the rulebook's captain-card procedure
  *  (p.8): draw the captain index, shuffle the chips, set the captain's chip
  *  aside, then deal the rest in seat order. Returns the per-seat teams plus
@@ -181,6 +192,7 @@ export function createGame(opts: NewGameOptions): GameState {
     seatOrder,
     host: seatOrder[0]!,
     confirmedRole: [],
+    syncedSeats: [],
     hostStarted: false,
     ship: { spaceId: startSpace.id, emergency: false },
     officers: { captain: firstCaptain, lieutenant: null, navigator: null },

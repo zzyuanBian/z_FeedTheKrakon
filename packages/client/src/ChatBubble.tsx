@@ -16,7 +16,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import type { ChatLine } from './useGame.js';
 import { AvatarImage } from './Avatars.js';
-import { MarkDots, type PlayerMarks } from './marks.js';
 
 export interface ChatBubbleProps {
   /** Live player view — null before the first socket sync (waiting room). */
@@ -31,11 +30,9 @@ export interface ChatBubbleProps {
   myName: string;
   /** The viewer's avatar id, from the session (-1 = none). */
   myAvatarId?: number;
-  /** Private guess notes (marks.tsx), shown as dots on message avatars. */
-  marks?: PlayerMarks;
 }
 
-export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvatarId = -1, marks = {} }: ChatBubbleProps) {
+export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvatarId = -1 }: ChatBubbleProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [seenCount, setSeenCount] = useState(0);
@@ -71,9 +68,6 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
     if (sender === mySeat) return myAvatarId;
     return view?.others.find((p) => p.id === engineIdOf(sender))?.avatar ?? -1;
   };
-  // Marks are keyed by engine id ('p3'), chat senders by bgio seat ('2').
-  const marksOf = (sender: string): string[] => marks[engineIdOf(sender)] ?? [];
-
   const submit = () => {
     const t = text.trim();
     if (!t || muted) return;
@@ -116,7 +110,6 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
                       <span className="chat__who">{nameOf(m.sender)}</span>
                       <span className="chat__ava-wrap">
                         <AvatarImage avatarId={avatarOf(m.sender)} size={26} title={nameOf(m.sender)} />
-                        <MarkDots playerMarks={marksOf(m.sender)} playerId={m.sender} />
                       </span>
                     </div>
                     <div className="chat__bubble">{m.message}</div>

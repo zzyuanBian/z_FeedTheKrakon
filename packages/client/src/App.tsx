@@ -13,12 +13,12 @@ import { Board } from './Board.js';
 import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
 import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
-import { usePlayerMarks, type PlayerMarks } from './marks.js';
+import { MutinyReveal } from './MutinyReveal.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
 import { ChatBubble } from './ChatBubble.js';
 import { RoleReveal } from './RoleReveal.js';
-import { lobby, clearSession, loadSession, useGame } from './useGame.js';
+import { lobby, clearSession, loadSession, leaveMatch, useGame } from './useGame.js';
 import type { Session } from './session.js';
 import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
 import { FACTION_LABEL, PHASE_LABEL } from './labels.js';
@@ -109,6 +109,8 @@ function WaitingRoom({
   factionCounts,
   onSetFactionCounts,
   benchCount = 0,
+  onBootSeat,
+  ghosts,
 }: {
   session: Session;
   onLeave: () => void;
@@ -127,6 +129,11 @@ function WaitingRoom({
   onSetFactionCounts?: ((fc: FactionCounts, nextCount?: number) => void) | undefined;
   /** How many players are waiting on the bench (beyond the target size). */
   benchCount?: number | undefined;
+  /** Host only: clear an unclaimed (ghost) seat via the clearSeat move. */
+  onBootSeat?: ((targetId: string) => void) | undefined;
+  /** Active seats whose GameState name is unclaimed (never synced, or the
+   *  player left) — engine ids, from App's live view. */
+  ghosts?: string[] | undefined;
 }) {
   const [polledSeats, setPolledSeats] = useState<RosterSeat[]>([]);
   const [copied, setCopied] = useState(false);
@@ -187,14 +194,11 @@ function WaitingRoom({
   // precompute `isMe` in the shape itself.
   const seats: { id: string; name: string; isMe: boolean; benched: boolean }[] = liveView
     ? liveView.seats
-        // Active seats hide placeholder names; bench seats show only when a
-        // REAL player sits there — a seat the host shrank away keeps its
-        // setup-time "Player N" placeholder, and a never-joined bench seat is
-        // nameless. Neither belongs in the roster.
-        .filter((s) =>
-          s.benched
-            ? s.name !== '' && !/^Player \d+$/.test(s.name)
-            : !/^Player \d+$/.test(s.name))
+        // Active AND bench seats hide placeholder / empty names: a seat the
+        // host shrank away keeps its setup-time "Player N" placeholder, and
+        // one that left via 放弃这条航线 clears its GameState name to ''.
+        // Neither belongs in the roster.
+        .filter((s) => s.name !== '' && !/^Player \d+$/.test(s.name))
         .map((s) => ({ id: s.id, name: s.name, isMe: !!s.isMe, benched: !!s.benched }))
     : polledSeats
         .filter((s) => s.name)
@@ -245,6 +249,29 @@ function WaitingRoom({
     setDraft(nextFc);
     onSetFactionCounts?.(nextFc, next);
   };
+
+  // Ghost seats: active seats whose GameState name is unclaimed (empty, or
+  // still the setup-time placeholder because the client died before its
+  // syncName landed — exactly the ghost that deadlocks the start gate). The
+  // authoritative list comes from App's live view; here they render as 空位
+  // rows the host can clear.
+  const ghostIds = ghosts ?? [];
+
+  // Booting a ghost: the engine's clearSeat does the whole job in one move —
+  // it shrinks the crew so the ghost (and every vacancy after it) leaves the
+  // active ring, rescales the breakdown and re-deals. Nothing else to do here.
+  const bootSeat = (targetId: string) => {
+    onBootSeat?.(targetId);
+  };
+
+  // The 发号 latch must not wedge: if hostStartGame was rejected server-side
+  // (a race — a ghost appeared between the gate check and the click), re-arm
+  // so the host can retry instead of staring at 正在发号… forever.
+  useEffect(() => {
+    if (!startRequested) return;
+    const t = window.setTimeout(() => setStartRequested(false), 3000);
+    return () => window.clearTimeout(t);
+  }, [startRequested]);
 
   return (
     <div className="waiting">
@@ -343,7 +370,7 @@ function WaitingRoom({
           <span>{filled} / {playerCount}{benchCount > 0 ? ` · 候补 ${benchCount}` : ''}</span>
         </div>
         <ul className="waiting__roster-list">
-          {seats.length === 0 && (
+          {seats.length === 0 && ghostIds.length === 0 && (
             <li className="waiting__roster-loading">读取船员名单中…</li>
           )}
           {(() => {
@@ -367,6 +394,26 @@ function WaitingRoom({
               );
             });
           })()}
+          {/* Ghost rows: active seats whose name is unclaimed (never synced,
+              or vacated by a leave). The host can clear them (clearSeat) —
+              without this a dead tab would hold the start gate hostage
+              forever. Engine ids, so only the live-view branch has them. */}
+          {ghostIds.map((id) => (
+            <li key={id} className="waiting__roster-row waiting__roster-row--ghost">
+              <span className="waiting__roster-seat">—</span>
+              <span className="waiting__roster-name">空位（连接中断）</span>
+              {isHost && onBootSeat && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-ghost--sm waiting__roster-boot"
+                  title="清除此空位，腾出席位"
+                  onClick={() => bootSeat(id)}
+                >
+                  清除
+                </button>
+              )}
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -403,14 +450,22 @@ function WaitingRoom({
 
 export function App() {
   const [session, setSession] = useState<Session | null>(() => loadSession());
+  // The live connection's syncName — assigned after useGame below, read by
+  // resetToLobby. A ref because the callback outlives render order (it is
+  // also useGame's onStale, which can fire during the same effect pass).
+  const syncNameRef = useRef<((name: string) => void) | null>(null);
+  // 放弃这条航线: announce the departure (clear the GameState name over the
+  // socket + free the lobby seat server-side) BEFORE dropping the local
+  // session — otherwise other players' rosters keep the ghost forever.
+  const sessionRef = useRef<Session | null>(session);
+  sessionRef.current = session;
   const resetToLobby = useCallback(() => {
-    clearSession();
+    const s = sessionRef.current;
+    if (s) void leaveMatch(s, syncNameRef.current);
     setSession(null);
   }, []);
   const game = useGame(session, resetToLobby);
-  // Private guess notes (Avalon-parity marking): one store per match+seat,
-  // sessionStorage-backed, rendered by the roster AND the chat avatars.
-  const playerMarks = usePlayerMarks(session?.matchID ?? '', session?.playerID ?? '');
+  syncNameRef.current = game.syncName;
 
   const [tab, setTab] = useState<'action' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
@@ -462,6 +517,18 @@ export function App() {
   }, [counting, launchAt, launchLeft, markLaunched]);
   const launchCountdown = counting ? launchLeft : null;
 
+  // Mutiny-success veil: edge-triggered on the reveal broadcast. Every
+  // client sees the same public pledges at the same moment. Dismissing sets
+  // the flag; when the mutiny window ends (`revealed` back to false — next
+  // round's appointment clears it) the flag resets so the NEXT mutiny
+  // re-pops the veil. `revealed && success` stays true through the tie-break
+  // chain, so the veil persists until the new captain is known + dismissed.
+  const [mutinyDismissed, setMutinyDismissed] = useState(false);
+  const mutinyRevealed = !!game.view?.mutiny.revealed && game.view.mutiny.success;
+  useEffect(() => {
+    if (!mutinyRevealed) setMutinyDismissed(false);
+  }, [mutinyRevealed]);
+
   // On mobile the three panels are tabs; auto-focus the action tab when the
   // player has something to do.
   const needsMe = !!game.view?.pending?.isYou;
@@ -492,7 +559,6 @@ export function App() {
       session={session}
       game={game}
       muted={game.view ? !game.view.you.alive : false}
-      marks={playerMarks.marks}
     >
       {node}
     </WithChat>
@@ -547,10 +613,14 @@ export function App() {
   // window between socket-sync and syncName landing. Bench seats stay out
   // of both checks — nobody is dealt in there, nobody needs to sync.
   const PLACEHOLDER = /^Player \d+$/;
+  // A seat that LEFT (放弃这条航线 clears its GameState name via syncName(''))
+  // reads as an empty string: not a placeholder, just absent. Both count as
+  // unclaimed — the host sees 等人齐 instead of a game that can never confirm.
+  const unclaimed = (name: string) => !name || PLACEHOLDER.test(name);
   const activeOthers = view.others.filter((p) => !p.benched);
   const benchOthers = view.others.filter((p) => p.benched && p.name && !PLACEHOLDER.test(p.name));
   const namesSynced =
-    !PLACEHOLDER.test(view.you.name) && activeOthers.every((p) => !PLACEHOLDER.test(p.name));
+    !unclaimed(view.you.name) && activeOthers.every((p) => !unclaimed(p.name));
 
   if (!namesSynced) {
     return shell(
@@ -573,9 +643,18 @@ export function App() {
     );
   }
 
-  // Step 1 — waiting for active seats to fill. Every active GameState name is
-  // real now, so the placeholder check is purely informational here.
-  const unfilledSeats = activeOthers.filter((p) => PLACEHOLDER.test(p.name)).length;
+  // Step 1 — waiting for active seats to fill. A seat counts as unfilled when
+  // its GameState name is unclaimed (never synced, or vacated by a leave) OR
+  // its client never synced at all (a ghost: name may read "Player N" but no
+  // client is listening, so its role card could never be confirmed). Ghosts
+  // surface as host-bootable 空位 rows instead of a dead 等人齐.
+  const ghostOf = (p: { name: string; synced?: boolean }) =>
+    unclaimed(p.name) || p.synced === false;
+  const unfilledSeats = activeOthers.filter(ghostOf).length;
+  const unclaimedGhostIds = [
+    ...(ghostOf(view.you) ? [view.you.id] : []),
+    ...activeOthers.filter(ghostOf).map((p) => p.id),
+  ];
   const realPlayers = 1 + activeOthers.length - unfilledSeats;
   const allSeatsFilled = unfilledSeats === 0;
 
@@ -604,6 +683,8 @@ export function App() {
           factionCounts={view.factionCounts}
           onSetFactionCounts={view.isHost ? game.moves.setFactionConfig : undefined}
           benchCount={benchOthers.length}
+          onBootSeat={view.isHost ? game.moves.clearSeat : undefined}
+          ghosts={unclaimedGhostIds}
         />
       </div>
     );
@@ -680,30 +761,31 @@ export function App() {
           <Board view={view} />
         </section>
 
+        {/* 游戏记录: its own column directly RIGHT of the map (PC). Mobile
+            keeps it as the 记录 tab inside the side column. */}
+        <aside className="col col--log">
+          <LogPanel view={view} />
+        </aside>
+
         <aside className="col col--side">
           <div className="tabs">
             <button className={'tab' + (tab === 'action' ? ' tab--on' : '')} onClick={() => setTab('action')}>
               行动{needsMe ? ' ●' : ''}
             </button>
-            <button className={'tab' + (tab === 'log' ? ' tab--on' : '')} onClick={() => setTab('log')}>
+            <button className={'tab tab--mobile-only' + (tab === 'log' ? ' tab--on' : '')} onClick={() => setTab('log')}>
               记录
             </button>
           </div>
 
           <OffDutyZone view={view} />
 
-          {/* PC: the tab strip is hidden — roster + actions stack up top and
-              the log stays permanently visible underneath. Mobile: the tabs
-              switch between the two. */}
+          {/* PC: the tab strip is hidden — the log lives in its own column,
+              so the side column is actions only. Mobile: the tabs switch
+              between 行动 and the 记录 duplicate. */}
           <div className={'side-action' + (tab !== 'action' ? ' side-action--mobile-hidden' : '')}>
             {tab === 'log' ? null : (
               <>
-                <Roster
-                  view={view}
-                  marks={playerMarks.marks}
-                  onToggleMark={playerMarks.toggle}
-                  onClearMarks={playerMarks.clearAll}
-                />
+                <Roster view={view} />
                 {over ? (
                   <div className="panel panel--over">
                     <h3>游戏结束</h3>
@@ -716,11 +798,15 @@ export function App() {
               </>
             )}
           </div>
-          <div className={'side-log' + (tab === 'log' ? '' : ' side-log--mobile-hidden')}>
+          <div className={'side-log side-log--mobile-only' + (tab === 'log' ? '' : ' side-log--mobile-hidden')}>
             <LogPanel view={view} />
           </div>
         </aside>
       </main>
+
+      {mutinyRevealed && !mutinyDismissed && (
+        <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
+      )}
 
       {over && showGameOver && (
         <div className="modal" onClick={() => setShowGameOver(false)}>
@@ -742,15 +828,12 @@ function WithChat({
   session,
   game,
   muted,
-  marks,
   children,
 }: {
   session: Session;
   game: ReturnType<typeof useGame>;
   /** Eliminated players are muted (pre-sync screens are never muted). */
   muted: boolean;
-  /** Private guess notes, shown as dots on message avatars. */
-  marks: PlayerMarks;
   children: ReactNode;
 }) {
   return (
@@ -764,7 +847,6 @@ function WithChat({
         mySeat={session.playerID}
         myName={session.playerName}
         myAvatarId={session.avatarId ?? -1}
-        marks={marks}
       />
     </>
   );

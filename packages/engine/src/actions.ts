@@ -29,6 +29,11 @@ export type Action =
       /** Retune the target crew size as well (Avalon-style lobby: the room
        *  keeps its seats; this just re-draws how many of them play). */
       nextCount?: number }
+  /* pre-game: the host clears an unclaimed seat's name (a joiner whose tab
+   *  died before syncName, or a leaver whose syncName('') never landed —
+   *  exactly the ghost that would deadlock the start gate). Host-only, and
+   *  only while the config is still open. */
+  | { type: 'clearSeat'; actor: PlayerId; target: PlayerId }
   /* phase 1 — appointing the navigation team */
   | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId; navigator: PlayerId }
   /* phase 2 — a question of loyalty */

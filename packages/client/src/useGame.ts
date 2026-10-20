@@ -185,6 +185,35 @@ async function claimSeat(matchID: string, playerName: string): Promise<Session> 
   return session;
 }
 
+/** Vacate a seat (放弃这条航线). Two-step handshake so EVERYONE sees the
+ *  leaver go, not just the leaving browser:
+ *   1. `syncName('')` over the live socket clears the seat's name in the
+ *      GameState — every connected client's roster drops them on the next
+ *      broadcast, and the engine's start-gate sees the seat as unfilled.
+ *   2. POST /ftk/leave clears the lobby metadata (name + portrait), so the
+ *      seat shows empty in the join picker, the portrait is freed, and a
+ *      duplicate-name claim can't resurrect the ghost.
+ *  Best-effort: the local session is cleared either way — a failed step 2
+ *  (socket already dead) must not trap the player in the room. */
+export async function leaveMatch(session: Session, sync: ((name: string) => void) | null): Promise<void> {
+  try {
+    sync?.('');
+  } catch { /* socket may already be gone */ }
+  try {
+    const origin = SERVER_ORIGIN || window.location.origin;
+    await fetch(`${origin}/ftk/leave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        matchID: session.matchID,
+        playerID: session.playerID,
+        credentials: session.credentials,
+      }),
+    });
+  } catch { /* the room is somebody else's problem now */ }
+  clearSession();
+}
+
 export interface ChatLine {
   id: string;
   sender: string;

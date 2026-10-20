@@ -33,6 +33,11 @@ export interface OtherPlayerView {
   /** Bench seat: the room physically holds it, but it is beyond the target
    *  crew size, so nobody is dealt in there (pre-game only distinction). */
   benched: boolean;
+  /** True once this seat's client completed its first socket sync (dispatched
+   *  syncName). A joined-but-never-synced seat is a ghost — the waiting room
+   *  shows it as an bootable 空位, and the host cannot start until it is
+   *  cleared or the player returns. Public: it drives no secret. */
+  synced: boolean;
   offDuty: boolean;
   declaredCult: boolean;
   unconvertible: boolean;
@@ -148,6 +153,7 @@ function publicPlayer(state: GameState, id: PlayerId): OtherPlayerView {
     avatar: p.avatar,
     alive: p.alive,
     benched: p.seat >= state.settings.playerCount,
+    synced: state.syncedSeats.includes(id),
     offDuty: p.offDuty,
     declaredCult: p.declaredCult,
     unconvertible: p.unconvertible,

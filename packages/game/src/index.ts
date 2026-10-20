@@ -101,6 +101,7 @@ function move(
         && action.type !== 'syncName'
         && action.type !== 'syncAvatar'
         && action.type !== 'setFactionConfig'
+        && action.type !== 'clearSeat'
       ) {
         // Active seats only: bench seats hold no role card, so requiring
         // their confirmation would deadlock the gate forever.
@@ -189,6 +190,11 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
         factionCounts,
         ...(nextCount !== undefined ? { nextCount } : {}),
       }), { ignoreStaleStateID: true }),
+
+    /** Pre-game: the host clears an unclaimed/ghost seat so the room can
+     *  start (see the engine's clearSeat). Exempt from the role-confirm
+     *  gate for the same reason as setFactionConfig. */
+    clearSeat: move((actor, target) => as('clearSeat', actor, { target }), { ignoreStaleStateID: true }),
 
     /** Pre-game: acknowledge the role card. Exempt from the role-confirm gate
      *  (see move() factory) — in fact, this is the ONLY move that is legal

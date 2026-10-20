@@ -101,6 +101,9 @@ describe('move wrapper', () => {
     expect(applyOn(s, 'appointTeam', seat(c), team[0], team[1])).toBe(INVALID_MOVE);
 
     // …while the pre-game moves sail through: name bridge + host start.
+    // (Every active seat syncs first — a ghost seat would rightly block the
+    // start; see the engine's hostStartGame gate.)
+    for (const id of activeSeats(s)) s = step(s, 'syncName', seat(id), `名字 ${id}`);
     s = step(s, 'syncName', '0', '阿明');
     expect(s.players.p1!.name).toBe('阿明');
     s = step(s, 'hostStartGame', '0');

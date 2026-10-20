@@ -10,17 +10,11 @@
  * always-visible list under the table instead. Public information only;
  * `team` exists solely on the viewer's own seat — the type makes leaking
  * another player's faction impossible.
- *
- * Avalon-parity: tapping ANOTHER player's token opens the private marking
- * sheet (faction/role guesses, this browser only). Marks render as colored
- * dots pinned to the token and as badges in the list below.
  */
 
-import { useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL } from './labels.js';
 import { AvatarImage } from './Avatars.js';
-import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks.js';
 
 /** Set of the viewer's starting teammates (pirate gathering / leader's
  *  flock) — rendered as a persistent badge on those seats. Private by
@@ -29,22 +23,11 @@ function teammateSet(view: PlayerView): Set<string> {
   return new Set(view.you.teammates ?? []);
 }
 
-export function Roster({
-  view,
-  marks,
-  onToggleMark,
-  onClearMarks,
-}: {
-  view: PlayerView;
-  marks: PlayerMarks;
-  onToggleMark: (playerId: string, mark: string) => void;
-  onClearMarks: () => void;
-}) {
+export function Roster({ view }: { view: PlayerView }) {
   // Bench seats (beyond the target crew size) are not players — never render.
   const seats = [view.you, ...view.others].filter((p) => !p.benched);
   const { officers } = view;
   const n = seats.length;
-  const [marking, setMarking] = useState<string | null>(null);
   const mates = teammateSet(view);
 
   // You at the 6-o'clock position; later seats walk clockwise around the
@@ -63,19 +46,16 @@ export function Roster({
         {seats.map((p, i) => {
           const self = p.id === view.you.id;
           const a = angleOf(i);
-          const myMarks = marks[p.id] ?? [];
           return (
             <div
               key={p.id}
               className={
                 'roster__token' +
                 (self ? ' roster__token--self' : '') +
-                (p.alive ? '' : ' roster__token--dead') +
-                (self ? '' : ' roster__token--markable')
+                (p.alive ? '' : ' roster__token--dead')
               }
               style={{ left: `${50 + R * Math.cos(a)}%`, top: `${50 + R * Math.sin(a)}%` }}
-              title={self ? p.name : `${p.name}（点击标记）`}
-              onClick={() => !self && setMarking(p.id)}
+              title={p.name}
             >
               {/* Officer crests as corner badges. */}
               {officers.captain === p.id && (
@@ -100,8 +80,6 @@ export function Roster({
                 <span className="roster__token-dot roster__token-dot--cult" title="已被公开为邪教徒">🐙</span>
               )}
               <AvatarImage avatarId={p.avatar} size={40} title={p.name} className="roster__token-face" />
-              {/* Private guess notes, pinned to the token's lower edge. */}
-              <MarkDots playerMarks={myMarks} playerId={p.id} />
             </div>
           );
         })}
@@ -111,7 +89,6 @@ export function Roster({
         {seats.map((p) => {
           const self = p.id === view.you.id;
           const team = self ? view.you.team : null;
-          const myMarks = marks[p.id] ?? [];
           return (
             <li
               key={p.id}
@@ -120,7 +97,6 @@ export function Roster({
                 (self ? ' roster__row--self' : '') +
                 (p.alive ? '' : ' roster__row--dead')
               }
-              onClick={() => !self && setMarking(p.id)}
             >
               <AvatarImage avatarId={p.avatar} size={24} title={p.name} className="roster__row-ava" />
               <span className="roster__row-name">
@@ -139,16 +115,6 @@ export function Roster({
                 {self && ' (你)'}
               </span>
               <span className="roster__row-meta">
-                {/* Guess badges: click a row (not self) to edit them. */}
-                {!self &&
-                  myMarks.map((m) => (
-                    <span
-                      key={m}
-                      className={`badge badge--mark badge--mark-${markOption(m)?.tone ?? 'good'}`}
-                    >
-                      {markOption(m)?.label ?? m}
-                    </span>
-                  ))}
                 {team && <span className="badge">{FACTION_ICON[team]}{FACTION_LABEL[team]}</span>}
                 <span className="badge" title="枪">🔫{p.guns}</span>
                 <span className="badge" title="履历">📜{p.resumes}</span>
@@ -160,17 +126,6 @@ export function Roster({
           );
         })}
       </ul>
-
-      {marking && (
-        <PlayerMarkModal
-          view={view}
-          playerId={marking}
-          marks={marks}
-          onToggle={onToggleMark}
-          onClearAll={onClearMarks}
-          onClose={() => setMarking(null)}
-        />
-      )}
     </section>
   );
 }

@@ -310,6 +310,51 @@ export function createFtkServer(opts: FtkServerOptions = {}): ReturnType<typeof 
   });
   app.use(claim.routes()).use(claim.allowedMethods());
 
+  // Leave a seat (放弃这条航线): frees the seat's name and portrait in the
+  // lobby metadata so every other player's roster drops the leaver and the
+  // portrait returns to the picker. The GameState name is cleared separately
+  // by the client via syncName('') over the socket — this route only owns the
+  // lobby side. Credential-checked: a seat is a bearer secret, so only its
+  // holder may vacate it. Idempotent — leaving twice is a clean no-op.
+  const leave = new Router();
+  leave.post('/ftk/leave', koaBody(), (ctx) => {
+    const body = (ctx.request as unknown as {
+      body?: { matchID?: string; playerID?: string; credentials?: string };
+    }).body;
+    const matchID = String(body?.matchID ?? '');
+    const playerID = String(body?.playerID ?? '');
+    const credentials = String(body?.credentials ?? '');
+    if (!matchID || !playerID || !credentials) {
+      ctx.status = 400;
+      ctx.body = { error: 'matchID、playerID 与 credentials 必填' };
+      return;
+    }
+    if (!db) {
+      ctx.status = 500;
+      ctx.body = { error: '服务器存储不可用' };
+      return;
+    }
+    const { metadata } = db.fetch(matchID, { metadata: true });
+    const seat = metadata?.players?.[playerID];
+    if (!seat) {
+      ctx.status = 404;
+      ctx.body = { error: '房间不存在或座位不存在' };
+      return;
+    }
+    if (seat.credentials !== credentials) {
+      ctx.status = 403;
+      ctx.body = { error: '座位凭证不匹配' };
+      return;
+    }
+    const updated = structuredClone(metadata) as MetadataLike;
+    const held = updated.players![playerID]!;
+    delete held.name;
+    if (held.data) delete held.data.avatarId;
+    db.setMetadata(matchID, updated);
+    ctx.body = { ok: true };
+  });
+  app.use(leave.routes()).use(leave.allowedMethods());
+
   return server;
 }
 
