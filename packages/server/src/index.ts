@@ -27,7 +27,7 @@ import { createRoomCodeUuid } from './room-codes.js';
  *  the human-readable room codes used as matchIDs. */
 const generateCredentials = (): string => randomBytes(18).toString('base64url');
 
-/** How many crew portraits the client ships (public/avatars/avatar-0..9.png).
+/** How many crew portraits the client ships (public/avatars/avatar-0..9.jpg).
  *  The avatar-uniqueness guard lifts once this many seats already hold one —
  *  an 11-seat room at the margin must be allowed to double up. Keep in sync
  *  with AVATARS in packages/client/src/Avatars.tsx. */

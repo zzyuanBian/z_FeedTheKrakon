@@ -3,7 +3,7 @@
  * client/src/components/Avatars.tsx): a fixed id→portrait table, a random
  * picker, and an <AvatarImage> component. The Avalon art is replaced with
  * the project's own 10 crew portraits (images/avatars → public/avatars,
- * served at /avatars/avatar-<id>.png).
+ * served at /avatars/avatar-<id>.jpg).
  *
  * An avatar is picked once when a player joins the lobby (random, avoiding
  * ids already used in the room) and rides the session; the id is bridged
@@ -43,7 +43,11 @@ export function getAvatar(id: number): { id: number; name: string } {
 
 export function avatarSrc(id: number): string {
   const idx = id >= 0 && id < AVATAR_FILES.length ? id : 0;
-  return `/avatars/avatar-${idx}.png`;
+  // 128px JPEG (~9KB each): the largest portrait ever displayed is the 44px
+  // lobby picker (88px on a 2x screen), so 128 has headroom to spare. The
+  // original 313px PNGs weighed ~200KB apiece — 2MB for the set, which made
+  // the lobby portraits pop in one by one on a cold cache.
+  return `/avatars/avatar-${idx}.jpg`;
 }
 
 /** Pick a random avatar id, avoiding ids already claimed in this room. When
