@@ -288,7 +288,9 @@ function MainMenu({
             disabled={!nameOk || busy}
             onClick={onCreate}
           >
-            <span className="btn-cthulhu__glyph">🐙</span>
+            <span className="btn-cthulhu__glyph">
+              <img src="img/map-glyph.png" alt="" draggable={false} />
+            </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">开辟新航线</span>
               <span className="btn-cthulhu__hint">创建房间，进房后再调配置</span>
@@ -300,7 +302,9 @@ function MainMenu({
             disabled={!nameOk || busy}
             onClick={() => onGo('join')}
           >
-            <span className="btn-cthulhu__glyph">⚓</span>
+            <span className="btn-cthulhu__glyph">
+              <img src="img/seal-sailor.png" alt="" draggable={false} />
+            </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">登上友船</span>
               <span className="btn-cthulhu__hint">输入 5 位房间码</span>
@@ -331,6 +335,7 @@ export function FactionStepper({
   onDelta,
 }: {
   label: string;
+  /** Image URL of the faction's wax-seal icon (public/img/seal-*.png). */
   glyph: string;
   value: number;
   accent: 'gold' | 'blood' | 'cult';
@@ -343,7 +348,9 @@ export function FactionStepper({
   return (
     <div className={`faction-stepper faction-stepper--${accent}` + (locked ? ' faction-stepper--locked' : '')}>
       <span className="faction-stepper__head">
-        <span className="faction-stepper__glyph" aria-hidden="true">{glyph}</span>
+        <span className="faction-stepper__glyph" aria-hidden="true">
+          <img src={glyph} alt="" draggable={false} />
+        </span>
         <span className="faction-stepper__label">{label}</span>
         {!locked && (
           <span className="faction-stepper__controls">
@@ -515,7 +522,9 @@ function JoinRoom({
             disabled={!valid || !nameOk || busy}
             onClick={join}
           >
-            <span className="btn-cthulhu__glyph">⚓</span>
+            <span className="btn-cthulhu__glyph">
+              <img src="img/seal-sailor.png" alt="" draggable={false} />
+            </span>
             <span className="btn-cthulhu__body">
               <span className="btn-cthulhu__title">
                 {busy ? '正在登船…' : '立刻登船'}

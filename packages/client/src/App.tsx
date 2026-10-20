@@ -284,7 +284,7 @@ function WaitingRoom({
         <div className="faction-grid">
           <FactionStepper
             label="水手"
-            glyph="⚓"
+            glyph="img/seal-sailor.png"
             value={draft.sailor}
             accent="gold"
             disabled={!editable}
@@ -294,7 +294,7 @@ function WaitingRoom({
           />
           <FactionStepper
             label="海盗"
-            glyph="☠️"
+            glyph="img/seal-pirate.png"
             value={draft.pirate}
             accent="blood"
             disabled={!editable}
@@ -304,7 +304,7 @@ function WaitingRoom({
           />
           <FactionStepper
             label="邪教徒"
-            glyph="🐙"
+            glyph="img/seal-cult.png"
             value={draft.cult}
             accent="cult"
             disabled={!editable}
@@ -376,7 +376,9 @@ function WaitingRoom({
           onClick={handleStart}
           disabled={!canStart || startRequested}
         >
-          <span className="btn-cthulhu__glyph">🐙</span>
+          <span className="btn-cthulhu__glyph">
+            <img src="img/map-glyph.png" alt="" draggable={false} />
+          </span>
           <span className="btn-cthulhu__body">
             <span className="btn-cthulhu__title">
               {startRequested ? '正在发号…' : !canStart ? `等人齐 (${filled}/${playerCount})` : '开始游戏'}
@@ -414,6 +416,53 @@ export function App() {
 
   const [tab, setTab] = useState<'action' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
+
+  // Launch countdown (role-reveal → board): when the all-confirmed broadcast
+  // lands, hold every client on the reveal screen for a shared 5-second
+  // count, then release the whole table onto the board on the same state.
+  // The countdown is cosmetic — the server's confirmedRole gate is what
+  // actually admits moves — but the App gate must KEEP holding the reveal
+  // screen while it runs, or the board would render the instant the last
+  // player confirms and nobody would see the count.
+  //
+  // A sessionStorage "launched" flag (per match+seat) keeps a mid-game
+  // refresh from replaying the countdown: once this tab has seen the board
+  // for this match, a reload drops straight through to it.
+  const launchGateKey = session ? `ftk-launched:${session.matchID}:${session.playerID}` : '';
+  const [launched, setLaunched] = useState(false);
+  useEffect(() => {
+    if (!launchGateKey) return;
+    let ever = false;
+    try { ever = sessionStorage.getItem(launchGateKey) === '1'; } catch { /* private mode */ }
+    setLaunched(ever);
+  }, [launchGateKey]);
+  const markLaunched = useCallback(() => {
+    if (!launchGateKey) return;
+    setLaunched(true);
+    try { sessionStorage.setItem(launchGateKey, '1'); } catch { /* private mode */ }
+  }, [launchGateKey]);
+  const [launchAt, setLaunchAt] = useState<number | null>(null);
+  const [launchLeft, setLaunchLeft] = useState(5);
+  const allConfirmed =
+    !!game.view
+    && game.view.roleConfirmations.total > 0
+    && game.view.roleConfirmations.confirmed >= game.view.roleConfirmations.total;
+  const counting = allConfirmed && !launched;
+  useEffect(() => {
+    if (counting && launchAt === null) setLaunchAt(Date.now());
+    if (!counting && launchAt !== null) setLaunchAt(null);
+  }, [counting, launchAt]);
+  useEffect(() => {
+    if (launchAt === null) return;
+    const tick = () => setLaunchLeft(Math.max(0, Math.ceil((launchAt + 5000 - Date.now()) / 1000)));
+    tick();
+    const t = window.setInterval(tick, 250);
+    return () => window.clearInterval(t);
+  }, [launchAt]);
+  useEffect(() => {
+    if (counting && launchAt !== null && launchLeft <= 0) markLaunched();
+  }, [counting, launchAt, launchLeft, markLaunched]);
+  const launchCountdown = counting ? launchLeft : null;
 
   // On mobile the three panels are tabs; auto-focus the action tab when the
   // player has something to do.
@@ -585,11 +634,11 @@ export function App() {
       </div>
     );
   }
-  const allConfirmed = view.roleConfirmations.confirmed >= view.roleConfirmations.total;
-  if (!view.you.roleConfirmed || !allConfirmed) {
+  const allSeatsConfirmed = view.roleConfirmations.confirmed >= view.roleConfirmations.total;
+  if (!view.you.roleConfirmed || !allSeatsConfirmed || !launched) {
     return shell(
       <div className="app app--lobby">
-        <RoleReveal view={view} onConfirm={game.confirmRole} />
+        <RoleReveal view={view} onConfirm={game.confirmRole} countdown={launchCountdown} />
       </div>
     );
   }

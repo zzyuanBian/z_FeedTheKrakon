@@ -1,29 +1,27 @@
 /**
  * Role-reveal screen (Avalon-style).
  *
- * Each player sees a face-down card that they flip by tapping. Once flipped:
- *   - their own faction + role title
- *   - for the Cult Leader: a list of fellow cultists (Merlin-sight)
- *   - for pirates: a reminder that they're undercover
- *   - for sailors: a reminder of duty
- *
- * A "我准备好了" button becomes enabled after the flip. Once the player
- * confirms, the server marks them in `state.confirmedRole`. When every seat
- * has confirmed, the move gate in @ftk/game lifts and the captain can make
- * their first appointment.
+ * Each player sees a face-down card that they flip by tapping. Flipping IS
+ * readiness: after the flip animation plays the client broadcasts
+ * `confirmRole` on its own (the old "我准备好了" button is gone). Once every
+ * seat is in `state.confirmedRole`, the move gate in @ftk/game lifts and App
+ * holds this screen up for a shared 5-second countdown before revealing the
+ * board.
  *
  * `alreadyConfirmed` covers the refresh-after-confirm case: the player has
  * already done their bit, so skip the flip and show a "waiting on others"
  * message.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 
 export interface RoleRevealProps {
   view: PlayerView;
   onConfirm: () => void;
+  /** Shared launch countdown, owned by App (null while still waiting). */
+  countdown: number | null;
 }
 
 /** True physical card art, scanned from the tabletop edition.
@@ -70,11 +68,14 @@ const ROLE_COPY: Record<string, string> = {
   cult: '你是克苏鲁的仆从。等待时机，转化船员。',
 };
 
-export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
+export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
   const artReady = useCardArtReady();
   const alreadyConfirmed = view.you.roleConfirmed;
   const [flipped, setFlipped] = useState(alreadyConfirmed);
-  const [submitted, setSubmitted] = useState(alreadyConfirmed);
+  // Flip-then-confirm: the reveal broadcast doubles as the readiness signal.
+  // A ref guards the 0.9s timer against double fires (React 18 strict mode,
+  // re-renders) so exactly one `confirmRole` goes out per flip.
+  const sentRef = useRef(alreadyConfirmed);
 
   const { confirmed, total } = view.roleConfirmations;
   const team = view.you.team;
@@ -85,10 +86,17 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
     return view.others.find((p) => p.id === id)?.name ?? id;
   });
 
-  const handleConfirm = () => {
-    if (!flipped || submitted) return;
-    setSubmitted(true);
-    onConfirm();
+  const handleFlip = () => {
+    if (flipped || sentRef.current) return;
+    setFlipped(true);
+    // Let the 0.8s flip animation finish so the player has actually SEEN
+    // their card before readiness registers.
+    window.setTimeout(() => {
+      if (!sentRef.current) {
+        sentRef.current = true;
+        onConfirm();
+      }
+    }, 900);
   };
 
   return (
@@ -107,7 +115,7 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
         <button
           type="button"
           className={'role-card' + (flipped ? ' role-card--flipped' : '')}
-          onClick={() => !flipped && setFlipped(true)}
+          onClick={handleFlip}
           aria-label={flipped ? '身份卡（已翻开）' : '点击翻开身份卡'}
           disabled={flipped}
         >
@@ -160,7 +168,6 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
           已准备 <strong>{confirmed}</strong> / {total}
         </span>
       </div>
-
       {/* Crew readiness list, Avalon-style: every active seat with its
           ✓/未准备 mark so the table can see who is holding up the reveal.
           bySeat runs along seatOrder (active seats only) and seat ids are
@@ -198,19 +205,14 @@ export function RoleReveal({ view, onConfirm }: RoleRevealProps) {
         </ul>
       </div>
 
-      <button
-        type="button"
-        className="btn-cthulhu btn-cthulhu--gold role-reveal__confirm"
-        onClick={handleConfirm}
-        disabled={!flipped || submitted}
-      >
-        <span className="btn-cthulhu__glyph">✓</span>
-        <span className="btn-cthulhu__body">
-          <span className="btn-cthulhu__title">
-            {!flipped ? '先翻开卡牌' : submitted ? '已确认，等待其他船员…' : '我准备好了'}
-          </span>
-        </span>
-      </button>
+      {/* Shared launch countdown — App owns the timer so every client sees
+          the same number the moment the all-ready broadcast lands. */}
+      {countdown !== null && (
+        <div className="role-reveal__launch" role="status" aria-live="assertive">
+          <p className="role-reveal__launch-label">全员已准备，即将启航</p>
+          <span className="role-reveal__launch-num">{countdown}</span>
+        </div>
+      )}
     </div>
   );
 }

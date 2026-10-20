@@ -363,7 +363,13 @@ button:disabled { cursor: not-allowed; }
   align-items: center;
   gap: 10px;
 }
-.faction-stepper__glyph { font-size: 20px; text-align: center; width: 28px; }
+.faction-stepper__glyph { width: 34px; height: 34px; flex: 0 0 34px; }
+.faction-stepper__glyph img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
 .faction-stepper__label {
   flex: 1;
   font-family: var(--font-serif);
@@ -426,9 +432,19 @@ button:disabled { cursor: not-allowed; }
 
 .btn-cthulhu__glyph {
   flex: 0 0 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 28px;
   text-align: center;
   line-height: 1;
+}
+.btn-cthulhu__glyph img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 .btn-cthulhu__body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .btn-cthulhu__title {
@@ -1024,6 +1040,41 @@ button:disabled { cursor: not-allowed; }
 }
 .role-reveal__status strong { color: var(--gold-bright); font-size: 16px; }
 .role-reveal__confirm { margin-top: 8px; }
+
+/* Shared launch countdown (all seats ready → 5s → board). Full-screen veil
+   over the reveal screen; the number pops with a scale-in beat per tick. */
+.role-reveal__launch {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(4, 6, 13, 0.82);
+  backdrop-filter: blur(3px);
+}
+.role-reveal__launch-label {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  letter-spacing: 0.22em;
+  color: var(--teal-bright);
+}
+.role-reveal__launch-num {
+  font-family: var(--font-serif);
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--gold-bright);
+  text-shadow: 0 0 40px rgba(212, 167, 74, 0.45);
+  animation: launch-pop 1s ease-out;
+}
+@keyframes launch-pop {
+  0% { transform: scale(1.7); opacity: 0; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 /* Per-seat readiness (Avalon-style ready list under the role card). */
 .role-reveal__readiness {
