@@ -6,8 +6,8 @@
  *             monospace for the room code.
  *
  * Layout: the lobby is a centered, single-column card; the game view is a
- *         four-column desktop grid that collapses to map-first + tabs on
- *         phones.
+ *         three-column desktop grid (left rail = discard over the log) that
+ *         collapses to map-first + tabs on phones.
  */
 
 :root {
@@ -1334,8 +1334,18 @@ button:disabled { cursor: not-allowed; }
 
 /* ============================== game layout =========================== */
 
-.main { flex: 1; display: grid; grid-template-columns: 148px minmax(0, 1fr) 260px 380px; min-height: 0; }
+.main { flex: 1; display: grid; grid-template-columns: 260px minmax(0, 1fr) 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
+/* Left rail: 深海 discard zone stacked over the 游戏记录 column. */
+.col--rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 0 12px 8px;
+  gap: 8px;
+}
+.col--rail .col--log { flex: 1; min-height: 0; border-left: none; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 
@@ -1367,23 +1377,24 @@ button:disabled { cursor: not-allowed; }
    badge size in cqw off the art width. The off-duty bench is a strip above
    the crew circle. */
 .discard-sea {
-  align-self: stretch;
+  /* Stacked above the log in the left rail: the art box fills the rail
+     width, its tall card shape sizing the zone. */
+  flex: 0 0 auto;
   position: relative;
-  margin: 12px 0 12px 8px;
+  margin: 0;
   container-type: inline-size;
-  /* Center the art box vertically in the tall column. */
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
-/* The artbox hugs the art's intrinsic card shape (aspect 549:948) instead of
-   stretching the full column — the count label and the card pile then key
-   off the ART's own box, never drifting away from it. */
+/* The artbox hugs the art's intrinsic card shape (aspect 549:948) but is
+   capped by the rail's available height above the log — the count label and
+   the card pile key off the ART's own box, never drifting away from it. */
 .discard-sea__artbox {
   position: relative;
   width: 100%;
   aspect-ratio: 549 / 948;
-  max-height: 100%;
+  max-height: 34vh;
+  margin: 0 auto;
 }
 .discard-sea__art {
   position: absolute;
@@ -1757,6 +1768,26 @@ button:disabled { cursor: not-allowed; }
 }
 .roster__token-dot--cult { background: var(--cult); border-color: var(--cult); }
 
+/* Lieutenant / navigator medals (rulebook scans with transparency) replace
+   the emoji crests for those two offices. Sized like the emoji roundel but
+   free-standing — the art carries its own dark rim, no extra border. */
+.roster__token-medal {
+  position: absolute;
+  top: -14px;
+  right: -12px;
+  width: 30px;
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+.roster__row-medal {
+  width: 18px;
+  height: auto;
+  margin-right: 2px;
+  vertical-align: -4px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
 /* Teammate badge (private sight: pirate gathering / leader's flock) hangs
    off the token's TOP-LEFT — the top-right corner belongs to crests/dots. */
 .roster__token-mate {
@@ -1938,11 +1969,11 @@ button:disabled { cursor: not-allowed; }
 
 /* --------------------------------- log --------------------------------- */
 
-/* Storm-deck backdrop (暴风雨甲板图): full art, NEVER cropped. Layers,
+/* Storm-deck backdrop (暴风雨甲板图): fills the whole log column. Layers,
    top of the stack first: a readability veil over the art, the art itself
-   (contain + bottom-anchored = always whole, always proportional), and a
-   night-sky gradient that extends the painted storm upward/downward where
-   the column is taller or narrower than the image (扩图). */
+   (cover + bottom-anchored = no letterbox bars on any column height; only
+   the painted storm sky trims off the top), and a night-sky gradient
+   underlay visible behind transparent PNG edges (扩图). */
 .log {
   position: relative;
   min-height: 100%;
@@ -1950,7 +1981,7 @@ button:disabled { cursor: not-allowed; }
   flex-direction: column;
   background:
     linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
-    url('/img/log-bg.png') bottom center / contain no-repeat,
+    url('/img/log-bg.png') bottom center / cover no-repeat,
     linear-gradient(180deg, #101c30, #0a1322);
 }
 .log__list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
@@ -2262,7 +2293,13 @@ button:disabled { cursor: not-allowed; }
      painted sea art hides and the artbox itself becomes a square plinth
      holding the card-back pile + count badge. */
   .main { position: relative; }
-  .main > .discard-sea {
+  /* The PC left rail dissolves: discard becomes the map-corner buoy and the
+     log rides the side column's 记录 tab. */
+  .col--rail {
+    display: contents;
+    padding: 0;
+  }
+  .main > .col--rail > .discard-sea {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -2294,8 +2331,9 @@ button:disabled { cursor: not-allowed; }
   /* The log pane is PC-hidden (base display:none); on mobile the active
      记录 tab flips it back on. */
   .side-pane--log:not(.side-pane--off) { display: flex; }
-  /* The dedicated log column folds away on mobile — the log rides the
-     记录 tab inside the side column instead. */
+  /* The PC log column folds away on mobile — the log rides the 记录 tab
+     inside the side column instead. The rail wrapper is display:contents,
+     so hiding col--log hides the whole rail. */
   .col--log { display: none; }
 
   /* The round/phase status jumps to the very top of the page on mobile,

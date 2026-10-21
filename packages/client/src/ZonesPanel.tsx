@@ -1,10 +1,11 @@
 /**
  * Board zones, split to flank the map like the physical game's table:
  *
- * - DiscardSea (深海): a slim column LEFT of the map. The drop art keeps its
- *   true tall card proportions and the nav-back pile stacks at real card
- *   size — a text line pinned to the art's bottom edge carries the count
- *   (the engine only exposes the count, the pile is decorative).
+ * - DiscardSea (深海): stacked ABOVE the log in the PC left rail. The drop
+ *   art keeps its true tall card proportions and the nav-back pile stacks at
+ *   real card size — a text line pinned to the art's bottom edge carries the
+ *   count (the engine only exposes the count, the pile is decorative). On
+ *   mobile it shrinks to a corner buoy on the map.
  * - OffDutyZone (歇班): a strip ABOVE the crew circle in the right column,
  *   listing resting players' avatars + names; a whisper when nobody rests.
  *   The viewer themselves may be resting — their avatar shows here too.

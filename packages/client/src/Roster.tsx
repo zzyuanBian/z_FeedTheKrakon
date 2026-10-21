@@ -83,15 +83,15 @@ export function Roster({
               title={self ? p.name : `${p.name}（点击标记）`}
               onClick={() => !self && setMarking(p.id)}
             >
-              {/* Officer crests as corner badges. */}
+              {/* Officer crests as corner badges (rulebook medal scans). */}
               {officers.captain === p.id && (
                 <span className="roster__token-crest" title="船长">🧭</span>
               )}
               {officers.lieutenant === p.id && (
-                <span className="roster__token-crest" title="大副">🎖️</span>
+                <img className="roster__token-medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />
               )}
               {officers.navigator === p.id && (
-                <span className="roster__token-crest" title="领航员">🏴‍☠️</span>
+                <img className="roster__token-medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />
               )}
               {mates.has(p.id) && (
                 <span
@@ -143,8 +143,8 @@ export function Roster({
               <AvatarImage avatarId={p.avatar} size={24} title={p.name} className="roster__row-ava" />
               <span className="roster__row-name">
                 {officers.captain === p.id && <em title="船长">🧭</em>}
-                {officers.lieutenant === p.id && <em title="大副">🎖️</em>}
-                {officers.navigator === p.id && <em title="领航员">🏴‍☠️</em>}
+                {officers.lieutenant === p.id && <img className="roster__row-medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />}
+                {officers.navigator === p.id && <img className="roster__row-medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />}
                 {mates.has(p.id) && (
                   <em
                     className={'roster__row-mate ' + (view.you.cultLeader ? 'roster__row-mate--cult' : '')}

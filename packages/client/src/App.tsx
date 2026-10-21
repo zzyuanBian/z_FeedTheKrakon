@@ -786,27 +786,26 @@ export function App() {
       </header>
 
       <main className="main">
-        {/* 深海 discard zone: its own slim column LEFT of the map so the
-            card-back pile can show at true card proportions instead of being
-            crushed into a short wide strip. Sits under the summary strip. */}
-        <DiscardSea view={view} />
+        {/* PC left rail: 深海 discard zone stacked ABOVE the 游戏记录 column.
+            (Mobile keeps discard as the map-corner buoy and folds the log
+            into the side column's 记录 tab.) */}
+        <div className="col col--rail">
+          <DiscardSea view={view} />
+          <aside className="col col--log">
+            <LogPanel view={view} />
+          </aside>
+        </div>
 
         <section className="col col--board">
           <Board view={view} />
         </section>
 
-        {/* 游戏记录: its own column directly RIGHT of the map (PC). Mobile
-            folds it into the side column's 记录 tab. */}
-        <aside className="col col--log">
-          <LogPanel view={view} />
-        </aside>
-
         <aside className="col col--side">
           {/* Mobile IA (方案A): the map stays pinned above; this column's tab
               strip is its header and the active pane scrolls beneath it. On
-              PC the strip is hidden and all panes show in column order
+              PC the strip is hidden and the panes stack in column order
               (歇班 → roster → actions); the log pane stays PC-hidden since
-              the log has its own column there. */}
+              the log lives in the left rail there. */}
           <div className="tabs">
             <button className={'tab' + (tab === 'action' ? ' tab--on' : '')} onClick={() => setTab('action')}>
               行动{needsMe ? ' ●' : ''}
