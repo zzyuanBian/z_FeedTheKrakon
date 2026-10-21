@@ -786,12 +786,15 @@ export function App() {
       </header>
 
       <main className="main">
-        {/* 深海 discard zone: its own slim column LEFT of the map so the
-            card-back pile can show at true card proportions. 游戏记录 gets
-            its own column directly RIGHT of the map (对翼: sea left, archive
-            right). Mobile keeps discard as the map-corner buoy and folds the
-            log into the side column's 记录 tab. */}
-        <DiscardSea view={view} />
+        {/* 对翼 left wing: 歇班 strip on top, 深海 discard sea below — one
+            190px column, so both arts scale uniformly (aspect-ratio boxes,
+            never one-axis stretched). 游戏记录 keeps its own column right of
+            the map. Mobile unchanged: discard = map-corner buoy, off-duty +
+            roster live in the 船员 tab. */}
+        <div className="col col--wing">
+          <OffDutyZone view={view} />
+          <DiscardSea view={view} />
+        </div>
 
         <section className="col col--board">
           <Board view={view} />
@@ -805,8 +808,9 @@ export function App() {
           {/* Mobile IA (方案A): the map stays pinned above; this column's tab
               strip is its header and the active pane scrolls beneath it. On
               PC the strip is hidden and the panes stack in column order
-              (歇班 → roster → actions); the log pane stays PC-hidden since
-              the log lives in the left rail there. */}
+              (roster → actions); the log pane stays PC-hidden since the log
+              has its own column there. PC's 歇班 strip lives atop the left
+              wing column instead. */}
           <div className="tabs">
             <button className={'tab' + (tab === 'action' ? ' tab--on' : '')} onClick={() => setTab('action')}>
               行动{needsMe ? ' ●' : ''}
@@ -822,7 +826,10 @@ export function App() {
           <div
             className={'side-pane side-pane--crew' + (tab === 'crew' ? '' : ' side-pane--off')}
           >
-            <OffDutyZone view={view} />
+            {/* Mobile only: on PC the 歇班 strip tops the left wing column. */}
+            <div className="side-pane__offduty">
+              <OffDutyZone view={view} />
+            </div>
             <Roster
               view={view}
               marks={playerMarks.marks}

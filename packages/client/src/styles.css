@@ -1336,6 +1336,22 @@ button:disabled { cursor: not-allowed; }
 
 .main { flex: 1; display: grid; grid-template-columns: 190px minmax(0, 1fr) 300px 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
+/* Left wing (对翼): 歇班 strip above the 深海 discard sea — one column, so
+   both art boxes share the width and scale UNIFORMLY (aspect-ratio keeps
+   each at its intrinsic proportion; never one-axis stretched). */
+.col--wing {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 0 12px 8px;
+  gap: 10px;
+}
+.col--wing .offduty { flex: 0 0 auto; margin: 0; }
+.col--wing .discard-sea { flex: 1; min-height: 0; justify-content: flex-start; }
+/* PC hides the crew pane's off-duty duplicate; mobile hides the wing's. */
+.col--wing .offduty { display: block; }
+.side-pane__offduty { display: none; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 
@@ -1367,15 +1383,16 @@ button:disabled { cursor: not-allowed; }
    badge size in cqw off the art width. The off-duty bench is a strip above
    the crew circle. */
 .discard-sea {
-  /* Its own slim column LEFT of the map (对翼布局): centered vertically in
-     the tall column, sized by container queries off the art width. */
+  /* Lower half of the left wing (below 歇班): fills the remaining height,
+     the art box top-aligned, sized by container queries off the art width.
+     aspect-ratio + max-height keep the art WHOLE and proportional — the
+     box scales both axes together, never one-axis stretched. */
   align-self: stretch;
   position: relative;
-  margin: 12px 0 12px 8px;
+  margin: 0;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 /* The artbox hugs the art's intrinsic card shape (aspect 549:948) instead of
    stretching the full column — the count label and the card pile key
@@ -1385,6 +1402,9 @@ button:disabled { cursor: not-allowed; }
   width: 100%;
   aspect-ratio: 549 / 948;
   max-height: 100%;
+  /* Uniform shrink when the wing runs out of height: aspect-ratio + auto
+     width scale both axes together (capped by the box's height budget). */
+  margin: 0 auto;
 }
 .discard-sea__art {
   position: absolute;
@@ -2283,9 +2303,13 @@ button:disabled { cursor: not-allowed; }
      painted sea art hides and the artbox itself becomes a square plinth
      holding the card-back pile + count badge. */
   .main { position: relative; }
+  /* The left wing dissolves on mobile (display:contents): its 歇班 strip is
+     already hidden and the discard sea becomes the map-corner buoy,
+     positioned against .main itself. */
+  .col--wing { display: contents; }
   /* The discard sea becomes the map-corner buoy: square plinth, painted
      art hidden, card-back pile + count badge only. */
-  .main > .discard-sea {
+  .discard-sea {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -2298,6 +2322,10 @@ button:disabled { cursor: not-allowed; }
   .discard-sea__stack { top: 44%; }
   .discard-sea__card { width: 58cqw; border-width: 1px; }
   .discard-sea__label { bottom: 2px; font-size: 11px; }
+  /* The left wing keeps only the discard sea (the buoy above); its 歇班
+     strip hides — the 船员 tab shows the off-duty duplicate instead. */
+  .col--wing .offduty { display: none; }
+  .side-pane__offduty { display: block; }
   .offduty { margin: 0 0 8px; }
 
   /* Side column = tab strip + one visible pane; the pane scrolls so the
