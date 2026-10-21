@@ -1,0 +1,24 @@
+# Render.com deployment (free tier) — temporary host while Railway is under
+# maintenance. Deploys straight from GitHub; one service serves BOTH the API
+# and the built client (@ftk/server hosts packages/client/dist itself).
+#
+# The build mirrors what `npm run build` does at the repo root, but spelled
+# out per workspace so a failure names the package that broke.
+services:
+  - type: web
+    name: feed-the-kraken
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci && npm run build --workspace=@ftk/engine && npm run build --workspace=@ftk/game && npm run build --workspace=@ftk/client
+    startCommand: npm start
+    healthCheckPath: /ftk/info
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Render routes at *.onrender.com; the game is same-origin (client is
+      # served by the game server itself), so no ORIGINS entry is needed —
+      # bgio's CORS only matters for cross-origin browser calls, which the
+      # client avoids (SERVER_ORIGIN falls back to window.location.origin).
+      - key: PORT
+        value: 8000
