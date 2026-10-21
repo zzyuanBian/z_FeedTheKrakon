@@ -6,8 +6,8 @@
  *             monospace for the room code.
  *
  * Layout: the lobby is a centered, single-column card; the game view is a
- *         three-column desktop grid (left rail = discard over the log) that
- *         collapses to map-first + tabs on phones.
+ *         four-column desktop grid (对翼: discard sea left of the map, log
+ *         right of it) that collapses to map-first + tabs on phones.
  */
 
 :root {
@@ -1334,18 +1334,8 @@ button:disabled { cursor: not-allowed; }
 
 /* ============================== game layout =========================== */
 
-.main { flex: 1; display: grid; grid-template-columns: 260px minmax(0, 1fr) 380px; min-height: 0; }
+.main { flex: 1; display: grid; grid-template-columns: 190px minmax(0, 1fr) 300px 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
-/* Left rail: 游戏记录 column with the 深海 discard zone below it. */
-.col--rail {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  padding: 12px 0 12px 8px;
-  gap: 8px;
-}
-.col--rail .col--log { flex: 1; min-height: 0; border-left: none; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 
@@ -1377,24 +1367,24 @@ button:disabled { cursor: not-allowed; }
    badge size in cqw off the art width. The off-duty bench is a strip above
    the crew circle. */
 .discard-sea {
-  /* Stacked below the log in the left rail: the art box fills the rail
-     width, its tall card shape sizing the zone. */
-  flex: 0 0 auto;
+  /* Its own slim column LEFT of the map (对翼布局): centered vertically in
+     the tall column, sized by container queries off the art width. */
+  align-self: stretch;
   position: relative;
-  margin: 0;
+  margin: 12px 0 12px 8px;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
-/* The artbox hugs the art's intrinsic card shape (aspect 549:948) but is
-   capped by the rail's available height above the log — the count label and
-   the card pile key off the ART's own box, never drifting away from it. */
+/* The artbox hugs the art's intrinsic card shape (aspect 549:948) instead of
+   stretching the full column — the count label and the card pile key
+   off the ART's own box, never drifting away from it. */
 .discard-sea__artbox {
   position: relative;
   width: 100%;
   aspect-ratio: 549 / 948;
-  max-height: 34vh;
-  margin: 0 auto;
+  max-height: 100%;
 }
 .discard-sea__art {
   position: absolute;
@@ -2293,13 +2283,9 @@ button:disabled { cursor: not-allowed; }
      painted sea art hides and the artbox itself becomes a square plinth
      holding the card-back pile + count badge. */
   .main { position: relative; }
-  /* The PC left rail dissolves: discard becomes the map-corner buoy and the
-     log rides the side column's 记录 tab. */
-  .col--rail {
-    display: contents;
-    padding: 0;
-  }
-  .main > .col--rail > .discard-sea {
+  /* The discard sea becomes the map-corner buoy: square plinth, painted
+     art hidden, card-back pile + count badge only. */
+  .main > .discard-sea {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -2331,9 +2317,8 @@ button:disabled { cursor: not-allowed; }
   /* The log pane is PC-hidden (base display:none); on mobile the active
      记录 tab flips it back on. */
   .side-pane--log:not(.side-pane--off) { display: flex; }
-  /* The PC log column folds away on mobile — the log rides the 记录 tab
-     inside the side column instead. The rail wrapper is display:contents,
-     so hiding col--log hides the whole rail. */
+  /* The dedicated log column folds away on mobile — the log rides the
+     记录 tab inside the side column instead. */
   .col--log { display: none; }
 
   /* The round/phase status jumps to the very top of the page on mobile,

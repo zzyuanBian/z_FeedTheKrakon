@@ -1,7 +1,7 @@
 /**
  * Board zones, split to flank the map like the physical game's table:
  *
- * - DiscardSea (深海): stacked ABOVE the log in the PC left rail. The drop
+ * - DiscardSea (深海): a slim column LEFT of the map (对翼布局). The drop
  *   art keeps its true tall card proportions and the nav-back pile stacks at
  *   real card size — a text line pinned to the art's bottom edge carries the
  *   count (the engine only exposes the count, the pile is decorative). On

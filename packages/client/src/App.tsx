@@ -786,15 +786,20 @@ export function App() {
       </header>
 
       <main className="main">
-        {/* PC left rail: 游戏记录 column with the 深海 discard zone stacked
-            below it. (Mobile keeps discard as the map-corner buoy and folds
-            the log into the side column's 记录 tab.) */}
-        <div className="col col--rail">
-          <aside className="col col--log">
-            <LogPanel view={view} />
-          </aside>
-          <DiscardSea view={view} />
-        </div>
+        {/* 深海 discard zone: its own slim column LEFT of the map so the
+            card-back pile can show at true card proportions. 游戏记录 gets
+            its own column directly RIGHT of the map (对翼: sea left, archive
+            right). Mobile keeps discard as the map-corner buoy and folds the
+            log into the side column's 记录 tab. */}
+        <DiscardSea view={view} />
+
+        <section className="col col--board">
+          <Board view={view} />
+        </section>
+
+        <aside className="col col--log">
+          <LogPanel view={view} />
+        </aside>
 
         <section className="col col--board">
           <Board view={view} />
