@@ -56,9 +56,11 @@ export function LogPanel({ view }: { view: PlayerView }) {
       )}
       <h3 className="sec__title">记录</h3>
       <ul className="log__list">
-        {reversed.map((e, i) => (
-          <li key={i}>{renderEntry(view, e)}</li>
-        ))}
+        {reversed.map((e, i) => renderEntry(view, e))
+          .filter((node): node is ReactNode => node !== null)
+          .map((node, i) => (
+            <li key={i}>{node}</li>
+          ))}
       </ul>
     </section>
   );
@@ -95,9 +97,8 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number]): ReactNode 
         </>
       );
     case 'moved':
-      return (
-        <>船从 <B tone="gold">{e.from}</B> 驶向 <B tone="gold">{e.to}</B></>
-      );
+      // The ship's move is already visible on the map; the log stays quiet.
+      return null;
     case 'card':
       return (
         <>{nameOf(view, e.captain)} 翻开航海卡：<B tone="gold">{NAV_CARD_LABEL[e.card]}</B></>

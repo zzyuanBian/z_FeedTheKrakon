@@ -534,32 +534,37 @@ export function App() {
     if (!mutinyRevealed) setMutinyDismissed(false);
   }, [mutinyRevealed]);
 
-  // Ritual veil: pops for every seat while a ritual's pending is open (the
-  // same full-screen family as the mutiny reveal), PLUS a one-shot secret
-  // beat for the player who was just converted — their view gains
-  // `convertedBy` at the conversion broadcast, and we latch it until
-  // dismissed so the veil holds even after the leader resolves the ritual.
-  // BOTH branches honour `ritualDismissed`: the conversion broadcast is the
-  // SAME one that clears the ritual pending, so the old ternary sent the
-  // freshly-converted player down a branch that never read the flag — their
-  // 沉入黑暗 click did nothing.
+  // Ritual veil (闭眼仪式): eyelids slide shut for every seat while a
+  // ritual's pending is open, plus a one-shot secret beat for the player
+  // just converted — their view gains `convertedBy` at the conversion
+  // broadcast (the SAME one that clears the ritual pending). Both windows
+  // drive `ritualVeilActive`; the component plays its own close/open
+  // animation and calls onGone after the lids part, which only clears the
+  // unmount gate. Dismissal (沉入黑暗/睁开双眼) sets ritualDismissed — BOTH
+  // branches honour it: the old ternary sent the freshly-converted player
+  // down a branch that never read the flag, so their click did nothing.
   const ritualPending = game.view?.pending?.kind === 'ritual';
   const convertedBy = game.view?.you.convertedBy ?? null;
   const [ritualDismissed, setRitualDismissed] = useState(false);
   const [seenConversion, setSeenConversion] = useState<string | null>(null);
+  const [veilMounted, setVeilMounted] = useState(false);
   const freshConversion = !!convertedBy && seenConversion !== convertedBy;
-  const showRitualVeil =
+  const ritualVeilActive =
     !!game.view && game.view.winner === null &&
     (ritualPending || freshConversion) && !ritualDismissed;
+  // Mount the veil the moment a window opens; onGone (lids finished parting)
+  // unmounts it. Keeps the exit animation alive across the active→idle edge.
+  useEffect(() => {
+    if (ritualVeilActive) setVeilMounted(true);
+  }, [ritualVeilActive]);
   // Re-arm on each NEW ritual window.
   useEffect(() => {
     if (ritualPending) setRitualDismissed(false);
   }, [ritualPending]);
-  // Latch the conversion the moment the veil closes — keying on the
+  // Latch the conversion the moment the veil is dismissed — keying on the
   // converter id means a SECOND conversion of the same player (rule
   // illegal, but defensive) would still re-pop. Latching only on dismiss
-  // (not on !showRitualVeil) keeps the click from being instantly
-  // overwritten while the veil is still open.
+  // keeps the click from being instantly overwritten while open.
   useEffect(() => {
     if (ritualDismissed && freshConversion && convertedBy) setSeenConversion(convertedBy);
   }, [ritualDismissed, freshConversion, convertedBy]);
@@ -849,8 +854,14 @@ export function App() {
         <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
       )}
 
-      {showRitualVeil && (
-        <RitualReveal view={view} onDone={() => setRitualDismissed(true)} />
+      {veilMounted && (
+        <RitualReveal
+          view={view}
+          active={ritualVeilActive}
+          freshConversion={freshConversion}
+          onDismiss={() => setRitualDismissed(true)}
+          onGone={() => setVeilMounted(false)}
+        />
       )}
 
       {over && showGameOver && (

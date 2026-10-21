@@ -91,21 +91,24 @@ function CardList({ cards }: { cards: NavCardId[] }) {
 }
 
 function TargetPicker({
-  view, title, confirmLabel, excludeSelf, onConfirm,
+  view, title, confirmLabel, excludeSelf, targets, onConfirm,
 }: {
   view: PlayerView;
   title: string;
   confirmLabel: string;
   excludeSelf?: boolean;
+  /** Optional explicit candidate list (defaults to all alive others). */
+  targets?: PlayerId[];
   onConfirm: (target: PlayerId) => void;
 }) {
   const [pick, setPick] = useState<PlayerId | null>(null);
-  const targets = pickableTargets(view, excludeSelf ?? true);
+  const list = targets ?? pickableTargets(view, excludeSelf ?? true);
   return (
     <div className="picker">
       <p className="hint">{title}</p>
+      {list.length === 0 && <p className="hint">没有可选目标</p>}
       <div className="picker__grid">
-        {targets.map((id) => (
+        {list.map((id) => (
           <button
             key={id}
             className={'chip' + (pick === id ? ' chip--on' : '')}
@@ -364,13 +367,31 @@ function RitualForm({
 }) {
   const [grants, setGrants] = useState<Record<PlayerId, number>>({});
   if (ritual === 'conversion') {
-    // The actor IS the Cult Leader (already Cult), so they can never be a legal
-    // target. Other already-converted cultists stay in the list because teams
-    // are secret — a real player cannot know either.
+    // The actor IS the Cult Leader, and a cultist can never be re-converted.
+    // The leader legitimately knows their flock (starting sight + every
+    // conversion they performed — `knownCultists` is computed live), so
+    // cultists are REMOVED from the list: picking one would be rejected by
+    // the engine and leave the ritual stuck forever.
+    const flock = new Set(view.you.knownCultists ?? []);
+    const convertible = pickableTargets(view, true).filter((id) => !flock.has(id));
+    if (convertible.length === 0) {
+      // Nobody left to convert: the ritual ends without a convert (the
+      // engine's ritualAck closes any ritual).
+      return (
+        <div className="panel">
+          <h3 className="panel__title">邪教皈依</h3>
+          <p className="hint">船上已无可转化的人。仪式无声地结束了…</p>
+          <button className="btn btn--primary" onClick={() => moves.ritualAck!()}>
+            结束仪式
+          </button>
+        </div>
+      );
+    }
     return (
       <TargetPicker
         view={view}
-        title="邪教皈依：选择一名可转化的玩家，使其成为邪教徒"
+        targets={convertible}
+        title="邪教皈依：选择一名可转化的玩家，使其成为邪教徒（邪教徒不可再转化）"
         confirmLabel="皈依"
         onConfirm={(target) => moves.ritualConversion!(target)}
       />

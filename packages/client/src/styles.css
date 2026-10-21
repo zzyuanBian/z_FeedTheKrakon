@@ -1135,13 +1135,50 @@ button:disabled { cursor: not-allowed; }
 .mutiny-reveal__captain-name { font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--gold-bright); }
 .mutiny-reveal__close { margin-top: 14px; width: 100%; }
 
-/* Ritual veil (RitualReveal.tsx): the Cult ceremony — same full-screen
-   family as the mutiny reveal, but abyssal violet: slow tentacle-breath
-   glow, drifting whisper text, no urgency. */
-.ritual-reveal {
+/* Ritual veil (RitualReveal.tsx): 闭眼仪式 — two eyelids slide over the
+   board, abyssal violet. The content (glyph/title/whispers) fades in once
+   the lids are shut and fades out before they part, so nobody watches the
+   text get sliced by the closing lids. Bystanders get NO button — the
+   lids part on their own when the ritual resolves (一起睁眼). */
+.ritual-veil {
   position: fixed;
   inset: 0;
   z-index: 70;
+  pointer-events: auto;
+}
+.ritual-veil__lid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50.5%;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 100%, rgba(122, 58, 138, 0.25), transparent 70%),
+    linear-gradient(180deg, #0b0614 0%, #120a1e 55%, #1a0f2a 100%);
+  transition: transform 1s cubic-bezier(0.6, 0, 0.3, 1);
+  will-change: transform;
+}
+/* Faint lid seam: a lash-line of violet glow where the lids meet. */
+.ritual-veil__lid--top {
+  top: 0;
+  transform: translateY(-101%);
+  border-bottom: 1px solid rgba(122, 58, 138, 0.55);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+}
+.ritual-veil__lid--bottom {
+  bottom: 0;
+  transform: translateY(101%);
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 0%, rgba(122, 58, 138, 0.25), transparent 70%),
+    linear-gradient(0deg, #0b0614 0%, #120a1e 55%, #1a0f2a 100%);
+  border-top: 1px solid rgba(122, 58, 138, 0.55);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8);
+}
+.ritual-veil--closed .ritual-veil__lid--top { transform: translateY(0); }
+.ritual-veil--closed .ritual-veil__lid--bottom { transform: translateY(0); }
+.ritual-veil__content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1149,17 +1186,27 @@ button:disabled { cursor: not-allowed; }
   gap: 10px;
   padding: 20px;
   text-align: center;
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(122, 58, 138, 0.4), transparent 70%),
-    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(20, 8, 30, 0.9), transparent 80%),
-    rgba(8, 4, 14, 0.9);
-  backdrop-filter: blur(4px);
-  animation: ritual-veil-in 0.9s ease;
+  opacity: 0;
+  transition: opacity 0.7s ease 0.9s; /* fades in AFTER the lids land */
 }
-@keyframes ritual-veil-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.ritual-veil--closed .ritual-veil__content { opacity: 1; }
+.ritual-veil--leaving .ritual-veil__content {
+  opacity: 0;
+  transition: opacity 0.25s ease; /* fade out BEFORE the lids part */
 }
+/* Bystanders' breathing mantra — the only thing moving in the dark. */
+.ritual-veil__breathe {
+  margin: 8px 0 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: #b98bc9;
+  text-shadow: 0 0 18px rgba(122, 58, 138, 0.8);
+  animation: ritual-breath 3.2s ease-in-out infinite;
+}
+/* The ritual-reveal content styles below are shared by all three seats'
+   inner panels (leader / convert / bystander). */
 .ritual-reveal__glyphs {
   font-size: 56px;
   line-height: 1;
@@ -1197,7 +1244,7 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid var(--cult);
   background: rgba(122, 58, 138, 0.14);
   box-shadow: 0 0 40px rgba(122, 58, 138, 0.3);
-  animation: ritual-veil-in 1.4s ease;
+  animation: ritual-breath 1.4s ease;
 }
 .ritual-reveal__master-label {
   font-size: 11px;
