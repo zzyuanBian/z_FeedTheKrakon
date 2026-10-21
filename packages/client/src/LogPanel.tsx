@@ -61,7 +61,7 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number]): ReactNode 
         <>
           {e.success
             ? <>哗变成功（共 <B tone="red">{e.total}</B> 枪）！新船长 <B tone="red">{e.newCaptain ? nameOf(view, e.newCaptain) : '?'}</B></>
-            : <>哗变失败（共 <B tone="teal">{e.total}</B> 枪），团队不变</>}
+            : <>未哗变，采用团队（共 <B tone="teal">{e.total}</B> 枪）</>}
           {Object.keys(e.pledges).length > 0 && (
             <span className="log__mutiny-pledges">
               {Object.entries(e.pledges)

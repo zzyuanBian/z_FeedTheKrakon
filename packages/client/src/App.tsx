@@ -15,6 +15,7 @@ import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
+import { RitualReveal } from './RitualReveal.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
 import { ChatBubble } from './ChatBubble.js';
@@ -533,6 +534,28 @@ export function App() {
     if (!mutinyRevealed) setMutinyDismissed(false);
   }, [mutinyRevealed]);
 
+  // Ritual veil: pops for every seat while a ritual's pending is open (the
+  // same full-screen family as the mutiny reveal), PLUS a one-shot secret
+  // beat for the player who was just converted — their view gains
+  // `convertedBy` at the conversion broadcast, and we latch it until
+  // dismissed so the veil holds even after the leader resolves the ritual.
+  const ritualPending = game.view?.pending?.kind === 'ritual';
+  const convertedBy = game.view?.you.convertedBy ?? null;
+  const [ritualDismissed, setRitualDismissed] = useState(false);
+  const [seenConversion, setSeenConversion] = useState<string | null>(null);
+  const showRitualVeil =
+    !!game.view && game.view.winner === null &&
+    (ritualPending ? !ritualDismissed : !!convertedBy && seenConversion !== convertedBy);
+  useEffect(() => {
+    if (ritualPending) setRitualDismissed(false);
+  }, [ritualPending]);
+  // Record the conversion once the (dismissable) veil has shown it — keying
+  // on the converter id means a SECOND conversion of the same player (rule
+  // illegal, but defensive) would still re-pop.
+  useEffect(() => {
+    if (!showRitualVeil && convertedBy) setSeenConversion(convertedBy);
+  }, [showRitualVeil, convertedBy]);
+
   // On mobile the three panels are tabs; auto-focus the action tab when the
   // player has something to do.
   const needsMe = !!game.view?.pending?.isYou;
@@ -816,6 +839,10 @@ export function App() {
 
       {mutinyRevealed && !mutinyDismissed && (
         <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
+      )}
+
+      {showRitualVeil && (
+        <RitualReveal view={view} onDone={() => setRitualDismissed(true)} />
       )}
 
       {over && showGameOver && (

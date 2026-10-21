@@ -630,6 +630,9 @@ function ritualConversion(s: GameState, a: Extract<Action, { type: 'ritualConver
   assert(!t.unconvertible, 'that player has been examined and is unconvertible');
   t.team = 'cult';
   t.convertedAt = s.round;
+  // The converted player is told WHO leads the cult (projected only on their
+  // own view; also surfaced to them via `teammates` — see view.ts).
+  t.convertedBy = a.actor;
   s.log.push({ t: 'converted' });
   finishRitual(s);
 }

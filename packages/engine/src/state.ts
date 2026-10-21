@@ -191,6 +191,10 @@ export interface Player {
   cultLeader: boolean;
   /** Round index at which this player was converted, or null. */
   convertedAt: number | null;
+  /** SECRET-to-the-converted. The Cult Leader who performed the conversion
+   *  (null unless converted mid-game). Projected ONLY on the converted
+   *  player's own view — plain cultists dealt in at start still know nobody. */
+  convertedBy: PlayerId | null;
   /** Public except during a mutiny, when each player's contribution is hidden. */
   guns: number;
   /** Captain's résumés accumulate here (public). */

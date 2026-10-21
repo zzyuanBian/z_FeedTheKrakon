@@ -1135,6 +1135,104 @@ button:disabled { cursor: not-allowed; }
 .mutiny-reveal__captain-name { font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--gold-bright); }
 .mutiny-reveal__close { margin-top: 14px; width: 100%; }
 
+/* Ritual veil (RitualReveal.tsx): the Cult ceremony — same full-screen
+   family as the mutiny reveal, but abyssal violet: slow tentacle-breath
+   glow, drifting whisper text, no urgency. */
+.ritual-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(122, 58, 138, 0.4), transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(20, 8, 30, 0.9), transparent 80%),
+    rgba(8, 4, 14, 0.9);
+  backdrop-filter: blur(4px);
+  animation: ritual-veil-in 0.9s ease;
+}
+@keyframes ritual-veil-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ritual-reveal__glyphs {
+  font-size: 56px;
+  line-height: 1;
+  filter: drop-shadow(0 0 24px rgba(122, 58, 138, 0.8));
+  animation: ritual-breath 3.2s ease-in-out infinite;
+}
+@keyframes ritual-breath {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+.ritual-reveal__title {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  letter-spacing: 0.18em;
+  color: #d7a4e4;
+  text-shadow: 0 0 30px rgba(122, 58, 138, 0.8);
+}
+.ritual-reveal__sub {
+  margin: 0;
+  max-width: 340px;
+  font-size: 14px;
+  color: var(--ink-dim);
+  font-style: italic;
+  line-height: 1.7;
+}
+.ritual-reveal__master {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 16px 26px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--cult);
+  background: rgba(122, 58, 138, 0.14);
+  box-shadow: 0 0 40px rgba(122, 58, 138, 0.3);
+  animation: ritual-veil-in 1.4s ease;
+}
+.ritual-reveal__master-label {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--ink-ghost);
+}
+.ritual-reveal__master-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: #e9c9f2;
+}
+.ritual-reveal__master-ava { border-radius: 50%; border: 2px solid var(--cult); }
+.ritual-reveal__master-role {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: #d7a4e4;
+}
+.ritual-reveal__whisper {
+  margin: 2px 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--ink-ghost);
+  font-style: italic;
+  animation: ritual-whisper 4s ease-in-out infinite;
+}
+@keyframes ritual-whisper {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+.ritual-reveal__close { min-width: 200px; }
+
 /* Per-seat readiness (Avalon-style ready list under the role card). */
 .role-reveal__readiness {
   width: 100%;
@@ -1252,54 +1350,65 @@ button:disabled { cursor: not-allowed; }
 .discard-sea__stack {
   position: absolute;
   left: 50%;
-  top: 15%; /* the dark water band above the vortex */
+  top: 28%; /* the dark sea band under the 丢弃 banner — the discard area */
   width: 0;
   height: 0;
   z-index: 2;
 }
-/* Full card backs floating on the sea (nav-back is 549:948). */
+/* Full card backs floating on the sea. nav-back.jpg is a SQUARE 300×300
+   scan — the aspect-ratio is 1/1 and object-fit shows the whole image, so
+   the ship's-wheel back displays complete, uncropped. */
 .discard-sea__card {
   position: absolute;
   left: 0;
   top: 0;
-  width: 72cqw;
-  aspect-ratio: 549 / 948;
-  object-fit: cover;
+  width: 62cqw;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
   border-radius: 6px;
   border: 2px solid #f2ead6;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+  background: #0a0f1a;
 }
 /* Pile count hugging the art's bottom edge (the artbox IS the art's box, so
-   bottom: 2px sits right on the painted art). */
+   bottom: 2px sits right on the painted art). Bright gold + bold: the thin
+   teal mono line was too quiet against the dark art. */
 .discard-sea__label {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 2px;
+  bottom: 4px;
   z-index: 3;
   text-align: center;
-  font-family: var(--font-mono);
-  font-size: 13px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 800;
   letter-spacing: 0.06em;
-  color: var(--teal-bright);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  color: var(--gold-bright);
+  text-shadow:
+    0 0 6px rgba(0, 0, 0, 0.95),
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 14px rgba(212, 167, 74, 0.35);
   pointer-events: none;
 }
 
-/* 歇班 strip above the roster circle. */
+/* 歇班 strip above the roster circle. The zone art (782×581) keeps its
+   full height — aspect-ratio pins the box to the resource's shape so the
+   painted banner is never cropped and resting crew never hides behind the
+   box edge; width stretches to the column, height follows. */
 .offduty {
   position: relative;
   border-radius: var(--radius);
   border: 1px solid var(--line-strong);
   overflow: hidden;
-  min-height: 64px;
+  aspect-ratio: 782 / 581;
   margin: 12px 12px 8px;
   background: url('/img/zone-rest.jpg') center / cover no-repeat;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
 }
 .offduty__empty {
   margin: 0;
-  padding: 26px 12px 8px;
+  padding: 40px 12px 10px;
   text-align: center;
   font-style: italic;
   font-size: 12px;
@@ -1310,10 +1419,13 @@ button:disabled { cursor: not-allowed; }
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-content: flex-start;
   gap: 4px 14px;
   margin: 0;
-  padding: 22px 10px 8px;
+  padding: 34px 10px 8px;
   list-style: none;
+  max-height: 100%;
+  overflow-y: auto;
 }
 .offduty__crew-item {
   display: flex;
@@ -2102,7 +2214,7 @@ button:disabled { cursor: not-allowed; }
     width: min(200px, 60vw);
     min-height: 220px;
   }
-  .discard-sea__card { width: 62%; }
+  .discard-sea__card { width: 52%; }
   .offduty { margin: 10px 12px 0; }
   .col--summary { border-right: none; border-bottom: 1px solid var(--line); overflow: visible; }
   /* The summary folds into a slim wrapped strip: no section titles, rows

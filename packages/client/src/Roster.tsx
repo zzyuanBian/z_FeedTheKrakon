@@ -24,10 +24,12 @@ import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks
 import { navPickStatus } from './status.js';
 
 /** Set of the viewer's starting teammates (pirate gathering / leader's
- *  flock) — rendered as a persistent badge on those seats. Private by
- *  construction: the engine ships `teammates` only in the viewer's own view. */
+ *  flock) — rendered as a persistent badge on those seats. A player
+ *  converted mid-game also sees their converter (the Cult Leader). Private
+ *  by construction: the engine ships `teammates` only in the viewer's own
+ *  view. */
 function teammateSet(view: PlayerView): Set<string> {
-  return new Set(view.you.teammates ?? []);
+  return new Set([...(view.you.teammates ?? []), ...(view.you.convertedBy ? [view.you.convertedBy] : [])]);
 }
 
 export function Roster({

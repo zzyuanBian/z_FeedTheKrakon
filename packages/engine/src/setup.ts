@@ -107,6 +107,7 @@ export function applyDeal(s: GameState, teams: Faction[], captainIndex: number):
     p.team = teams[seat]!;
     p.cultLeader = false;
     p.convertedAt = null;
+    p.convertedBy = null;
     p.declaredCult = false;
   });
   // Designate one Cult player as the Cult Leader.
@@ -162,6 +163,7 @@ export function createGame(opts: NewGameOptions): GameState {
       team: active ? teams[seat]! : 'sailor',
       cultLeader: false,
       convertedAt: null,
+      convertedBy: null,
       guns: active ? STARTING_GUNS : 0,
       resumes: 0,
       alive: active,
