@@ -801,10 +801,6 @@ export function App() {
           <LogPanel view={view} />
         </aside>
 
-        <section className="col col--board">
-          <Board view={view} />
-        </section>
-
         <aside className="col col--side">
           {/* Mobile IA (方案A): the map stays pinned above; this column's tab
               strip is its header and the active pane scrolls beneath it. On
