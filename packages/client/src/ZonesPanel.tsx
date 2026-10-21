@@ -51,12 +51,20 @@ export function DiscardSea({ view }: { view: PlayerView }) {
   );
 }
 
-/** 歇班条（右侧玩家圆桌上方）。 */
+/**
+ * 歇班区. Two renders by breakpoint:
+ *  - PC: the portrait zone art (banner painted in) with the resting crew's
+ *    avatars listed on the parchment — the mobile-only elements are hidden
+ *    by CSS (the banner text is redundant, the art already says 歇班).
+ *  - Mobile: NO image at all — just a whisper text line (the tall art would
+ *    dominate the small pane).
+ */
 export function OffDutyZone({ view }: { view: PlayerView }) {
   const offDuty = [...view.others, view.you].filter((p) => p.offDuty).sort((a, b) => a.seat - b.seat);
 
   return (
     <div className="offduty">
+      {/* Painted into the PC art; suppressed on mobile along with the art. */}
       <span className="zones__banner zones__banner--rest">歇班</span>
       {offDuty.length === 0 ? (
         <p className="offduty__empty">无人歇班</p>

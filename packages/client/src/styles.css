@@ -1336,12 +1336,8 @@ button:disabled { cursor: not-allowed; }
 
 .main { flex: 1; display: grid; grid-template-columns: 190px minmax(0, 1fr) 300px 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
-/* Left wing (对翼): 歇班 parchment pinned to the TOP of the column, 深海
-   discard sea pinned to the BOTTOM; the middle gap stays modest because
-   both boxes keep the same 549:948 portrait shape (the off-duty art is a
-   purpose-built portrait twin, zone-rest-tall.jpg) and stretch just enough
-   to fill (flex-grow). aspect-ratio + width binding = uniform scaling;
-   growth is proportional, never one-axis. */
+/* Left wing (对翼): 歇班 parchment at the TOP of the column (natural
+   portrait size, no stretching), 深海 discard sea below filling the rest. */
 .col--wing {
   display: flex;
   flex-direction: column;
@@ -1470,12 +1466,12 @@ button:disabled { cursor: not-allowed; }
 }
 
 /* 歇班 box. Two renders:
-   - PC wing (.col--wing .offduty): TALL portrait twin of the discard art —
-     the purpose-built zone-rest-tall.jpg (549×948) fills the box edge to
-     edge; the painted caption + crew strip live in its lower half.
-   - Mobile crew pane (base rules): the original landscape zone-rest.jpg,
-     compressed to a short strip by the media query.
-   The crew list hugs the parchment's lower area in both. */
+   - PC wing (.col--wing .offduty): the purpose-built portrait art
+     zone-rest-tall.jpg (549×948, twin of the discard art) at natural size;
+     the painted caption + crew strip live in its lower half.
+   - Mobile crew pane: no art at all — a plain text strip (media query).
+   The painted banner says 歇班; the DOM badge shows only where the art
+   doesn't (nowhere on PC, and mobile hides the badge with the art). */
 .offduty {
   position: relative;
   border-radius: var(--radius);
@@ -1487,14 +1483,34 @@ button:disabled { cursor: not-allowed; }
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
 }
 .col--wing .offduty {
-  aspect-ratio: auto; /* the wing's flex sizing owns the box shape */
+  /* Natural portrait size at the wing's width — NO flex stretching toward
+     50% of the column. Whatever height the 549:948 box needs is what it
+     takes; the discard sea below absorbs the rest. */
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 549 / 948;
+  margin: 0;
   background: url('/img/zone-rest-tall.jpg') center / 100% 100% no-repeat;
 }
-.col--wing .offduty__empty { top: 32%; }
-.col--wing .offduty__crew {
-  top: 36%;
-  bottom: 16px;
+/* The art's painted banner already says 歇班 — the DOM badge is redundant. */
+.col--wing .zones__banner--rest { display: none; }
+/* The overlay text sits on a canvas ~1.7× the landscape art's linear size,
+   so scale it up to match. Anchored just under the painted caption. */
+.col--wing .offduty__empty {
+  top: 33%;
+  font-size: 18px;
+  letter-spacing: 0.18em;
 }
+.col--wing .offduty__crew {
+  top: 37%;
+  bottom: 18px;
+  gap: 6px 16px;
+  padding: 0 20px;
+}
+.col--wing .offduty__crew-item { max-width: none; }
+.col--wing .offduty__crew-name { font-size: 18px; }
+.col--wing .offduty__crew-ava { width: 36px; height: 36px; }
+.col--wing .discard-sea { flex: 1 1 0; min-height: 0; }
 .offduty__empty {
   margin: 0;
   position: absolute;
@@ -2340,19 +2356,30 @@ button:disabled { cursor: not-allowed; }
   .discard-sea__stack { top: 44%; }
   .discard-sea__card { width: 58cqw; border-width: 1px; }
   .discard-sea__label { bottom: 2px; font-size: 11px; }
-  /* The 船员 tab's off-duty duplicate: a SHORT landscape strip — the tall
-     PC portrait would eat half the pane. The painted caption hides under
-     the crop; the crew strip stays usable just above the box floor. */
+  /* The 船员 tab's off-duty: NO art on mobile (the image would dominate
+     the small pane) — a quiet text line listing who rests. */
   .side-pane__offduty { display: block; }
   .side-pane__offduty .offduty {
     aspect-ratio: auto;
-    height: 64px;
+    height: auto;
     margin: 0 0 8px;
-    background-position: bottom center;
+    padding: 8px 10px;
+    border: 1px dashed var(--line-strong);
+    background: var(--bg-panel-2);
+    box-shadow: none;
   }
+  .side-pane__offduty .zones__banner { display: none; }
   .side-pane__offduty .offduty__empty,
-  .side-pane__offduty .offduty__crew { top: 30%; bottom: 2px; }
-  .side-pane__offduty .zones__banner { top: 50%; transform: translate(-50%, -50%); }
+  .side-pane__offduty .offduty__crew {
+    position: static;
+    overflow: visible;
+  }
+  .side-pane__offduty .offduty__empty { font-size: 12px; }
+  .side-pane__offduty .offduty__crew {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
 
   /* Side column = tab strip + one visible pane; the pane scrolls so the
      tabs stay pinned at its top. */
