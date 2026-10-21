@@ -1336,12 +1336,12 @@ button:disabled { cursor: not-allowed; }
 
 .main { flex: 1; display: grid; grid-template-columns: 190px minmax(0, 1fr) 300px 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
-/* Left wing (对翼): 歇班 parchment above the 深海 discard sea — twin boxes
-   at the SAME portrait ratio (549:948, the sea art's own shape), so they
-   render as two identical vertical rectangles splitting the column ~50/50.
-   aspect-ratio + width binding scale both axes together (never one-axis
-   stretched); flex-shrink only ever shortens the boxes, and the cover/fit
-   backgrounds crop gracefully instead of distorting. */
+/* Left wing (对翼): 歇班 parchment pinned to the TOP of the column, 深海
+   discard sea pinned to the BOTTOM; the middle gap stays modest because
+   both boxes keep the same 549:948 portrait shape (the off-duty art is a
+   purpose-built portrait twin, zone-rest-tall.jpg) and stretch just enough
+   to fill (flex-grow). aspect-ratio + width binding = uniform scaling;
+   growth is proportional, never one-axis. */
 .col--wing {
   display: flex;
   flex-direction: column;
@@ -1351,13 +1351,13 @@ button:disabled { cursor: not-allowed; }
   gap: 10px;
 }
 .col--wing .offduty {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   width: 100%;
-  aspect-ratio: 549 / 948;
-  max-height: 100%;
+  aspect-ratio: auto;
+  min-height: 0;
   margin: 0;
 }
-.col--wing .discard-sea { flex: 0 1 auto; min-height: 0; }
+.col--wing .discard-sea { flex: 1 1 0; min-height: 0; }
 /* PC hides the crew pane's off-duty duplicate; mobile hides the wing's. */
 .side-pane__offduty { display: none; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
@@ -1391,35 +1391,33 @@ button:disabled { cursor: not-allowed; }
    badge size in cqw off the art width. The off-duty bench is a strip above
    the crew circle. */
 .discard-sea {
-  /* Lower half of the left wing (below 歇班): fills the remaining height,
-     the art box top-aligned, sized by container queries off the art width.
-     aspect-ratio + max-height keep the art WHOLE and proportional — the
-     box scales both axes together, never one-axis stretched. */
+  /* Bottom half of the left wing (below 歇班): the flex box owns the shape,
+     the art img fills it edge to edge (object-fit: cover — same 549×948
+     resource, so cover = exact fit with zero crop at the designed ratio).
+     Stretches WITH the off-duty box above to keep the middle gap small. */
   align-self: stretch;
   position: relative;
   margin: 0;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
-/* The artbox hugs the art's intrinsic card shape (aspect 549:948) instead of
-   stretching the full column — the count label and the card pile key
-   off the ART's own box, never drifting away from it. */
+/* The artbox fills the flex-given area; the img inside covers it. At the
+   wing's natural proportions this is the art's own shape (no visible
+   crop); the count label and the card pile key off this box. */
 .discard-sea__artbox {
   position: relative;
   width: 100%;
-  aspect-ratio: 549 / 948;
-  max-height: 100%;
-  /* Uniform shrink when the wing runs out of height: aspect-ratio + auto
-     width scale both axes together (capped by the box's height budget). */
-  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
 }
 .discard-sea__art {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover; /* the artbox is the art's own shape; edge-to-edge */
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
 }
@@ -1471,10 +1469,13 @@ button:disabled { cursor: not-allowed; }
   pointer-events: none;
 }
 
-/* 歇班 box. PC wing renders it as a tall portrait rectangle twin to the
-   discard sea (same 549:948 shape); elsewhere it keeps the resource's own
-   landscape ratio. The cover background anchors BOTTOM: the painted caption
-   + crew strip live in the art's lower half, so any crop trims sky only. */
+/* 歇班 box. Two renders:
+   - PC wing (.col--wing .offduty): TALL portrait twin of the discard art —
+     the purpose-built zone-rest-tall.jpg (549×948) fills the box edge to
+     edge; the painted caption + crew strip live in its lower half.
+   - Mobile crew pane (base rules): the original landscape zone-rest.jpg,
+     compressed to a short strip by the media query.
+   The crew list hugs the parchment's lower area in both. */
 .offduty {
   position: relative;
   border-radius: var(--radius);
@@ -1482,8 +1483,17 @@ button:disabled { cursor: not-allowed; }
   overflow: hidden;
   aspect-ratio: 782 / 581;
   margin: 12px 12px 8px;
-  background: url('/img/zone-rest.jpg') bottom center / cover no-repeat;
+  background: url('/img/zone-rest.jpg') center / cover no-repeat;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
+}
+.col--wing .offduty {
+  aspect-ratio: auto; /* the wing's flex sizing owns the box shape */
+  background: url('/img/zone-rest-tall.jpg') center / 100% 100% no-repeat;
+}
+.col--wing .offduty__empty { top: 32%; }
+.col--wing .offduty__crew {
+  top: 36%;
+  bottom: 16px;
 }
 .offduty__empty {
   margin: 0;
@@ -2325,25 +2335,7 @@ button:disabled { cursor: not-allowed; }
     width: 76px;
     margin: 0;
   }
-  .discard-sea__artbox { aspect-ratio: 1 / 1; max-height: none; }
-  .discard-sea__art { display: none; }
-  .discard-sea__stack { top: 44%; }
-  .discard-sea__card { width: 58cqw; border-width: 1px; }
-  /* The left wing dissolves on mobile (display:contents): its 歇班 strip is
-     already hidden and the discard sea becomes the map-corner buoy,
-     positioned against .main itself. */
-  .col--wing { display: contents; }
-  /* The discard sea becomes the map-corner buoy: square plinth, painted
-     art hidden, card-back pile + count badge only. */
-  .discard-sea {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 5;
-    width: 76px;
-    margin: 0;
-  }
-  .discard-sea__artbox { aspect-ratio: 1 / 1; max-height: none; }
+  .discard-sea__artbox { flex: none; height: 76px; } /* square plinth */
   .discard-sea__art { display: none; }
   .discard-sea__stack { top: 44%; }
   .discard-sea__card { width: 58cqw; border-width: 1px; }
