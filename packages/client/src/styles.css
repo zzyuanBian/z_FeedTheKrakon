@@ -6,7 +6,8 @@
  *             monospace for the room code.
  *
  * Layout: the lobby is a centered, single-column card; the game view is a
- *         two-column desktop grid that collapses to stacked tabs on phones.
+ *         four-column desktop grid that collapses to map-first + tabs on
+ *         phones.
  */
 
 :root {
@@ -1333,9 +1334,8 @@ button:disabled { cursor: not-allowed; }
 
 /* ============================== game layout =========================== */
 
-.main { flex: 1; display: grid; grid-template-columns: 200px 148px minmax(0, 1fr) 260px 380px; min-height: 0; }
+.main { flex: 1; display: grid; grid-template-columns: 148px minmax(0, 1fr) 260px 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
-.col--summary { border-right: 1px solid var(--line); background: var(--bg-panel); padding: 12px 10px; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
 
@@ -1522,9 +1522,10 @@ button:disabled { cursor: not-allowed; }
 .zones__banner--rest { background: rgba(150, 42, 48, 0.94); }
 
 /* Right column body: on PC the log has its own column (col--log) and the
-   side column is actions only; the mobile media query turns the side-log
-   block into the 记录 tab's content (col--log hides there). */
-.side-action { display: flex; flex-direction: column; gap: 8px; }
+   side column shows 歇班 + roster + actions stacked (the mobile media query
+   reorganises the same panes into tabs). */
+.side-pane { display: flex; flex-direction: column; gap: 8px; }
+.side-pane--log { display: none; } /* PC: the log lives in col--log */
 /* The log column right of the map: full height, its own scroll. */
 .col--log {
   border-left: 1px solid var(--line);
@@ -1534,66 +1535,26 @@ button:disabled { cursor: not-allowed; }
   min-height: 0;
 }
 .col--log .sec__title { margin-top: 0; }
-.side-log {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  max-height: 260px;
-  overflow: auto;
-  flex: 0 0 auto;
-}
-.side-log .sec__title { margin-top: 0; }
-/* PC: the mobile-only log duplicate inside the side column is hidden; on
-   mobile the reverse (col--log hides, side-log shows per tab). */
-.side-log--mobile-only { display: none; }
 
-/* ------------------------------- summary ------------------------------- */
-/* Narrow live progress column left of the map: voyage distances (BFS to
- * each win region), current officers, supplies, and transient alerts.
- * Key numbers are colour-coded by faction; the nearest win row is full
- * brightness while the others sit dimmed. */
-
-.summary { display: flex; flex-direction: column; gap: 12px; }
-.summary__sec {
-  display: flex; flex-direction: column; gap: 2px;
-  padding-bottom: 10px; border-bottom: 1px dashed var(--line);
-}
-.summary__sec:last-child { border-bottom: none; padding-bottom: 0; }
-.summary__title {
-  margin: 0 0 4px; font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-ghost);
-}
-.summary__row {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-  font-size: 13px; color: var(--ink-dim); opacity: 0.78;
-}
-.summary__row--near { opacity: 1; }
-.summary__row--near .summary__label { color: var(--ink); font-weight: 600; }
-.summary__label { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
-.summary__glyph { flex: 0 0 auto; }
-.summary__val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.summary__val small { font-size: 11px; font-weight: 400; color: var(--ink-ghost); }
-.summary__val--sailor { color: var(--teal-bright); }
-.summary__val--pirate { color: #f5b0b8; }
-.summary__val--kraken { color: #d7a4e4; }
-.summary__val--name { font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
-
-.summary__sec--alerts { gap: 6px; }
-.summary__alert {
+/* ------------------------------- alerts -------------------------------- */
+/* Transient state strip at the top of the log (mutiny window, emergency,
+   who the game waits on). Tone classes pick the border/ink colour. */
+.log__alerts { gap: 6px; }
+.log__alert {
   font-size: 13px; font-weight: 700; padding: 6px 8px;
   border-radius: var(--radius); border: 1px solid var(--line);
   background: var(--bg-panel-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.summary__alert--mutiny {
+.log__alert--mutiny {
   color: #f5b0b8; border-color: var(--blood-dim); background: rgba(178, 58, 72, 0.12);
 }
-.summary__alert--wait {
+.log__alert--wait {
   color: var(--teal-bright); border-color: var(--teal); background: rgba(42, 122, 138, 0.1);
 }
-.summary__alert--you {
+.log__alert--you {
   color: var(--gold-bright); border-color: var(--gold-dim); background: rgba(212, 167, 74, 0.12);
 }
-.summary__alert--ritual {
+.log__alert--ritual {
   color: #d7a4e4; border-color: var(--cult); background: rgba(122, 58, 138, 0.12);
 }
 
@@ -1977,6 +1938,21 @@ button:disabled { cursor: not-allowed; }
 
 /* --------------------------------- log --------------------------------- */
 
+/* Storm-deck backdrop (暴风雨甲板图): full art, NEVER cropped. Layers,
+   top of the stack first: a readability veil over the art, the art itself
+   (contain + bottom-anchored = always whole, always proportional), and a
+   night-sky gradient that extends the painted storm upward/downward where
+   the column is taller or narrower than the image (扩图). */
+.log {
+  position: relative;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
+    url('/img/log-bg.png') bottom center / contain no-repeat,
+    linear-gradient(180deg, #101c30, #0a1322);
+}
 .log__list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
 .log__list li { padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--ink-dim); }
 /* Key-fact highlights inside a log line (LogPanel's <b class=log__hl>): the
@@ -1996,9 +1972,9 @@ button:disabled { cursor: not-allowed; }
 }
 .log__mutiny-pledge { white-space: nowrap; }
 .knowledge { background: var(--bg-panel-2); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 8px; margin-bottom: 10px; }
-/* Alerts pinned to the top of the log column (moved out of the summary
-   strip): mutiny window, emergency, waiting-on — always the first thing
-   the eye lands on when scanning the record. */
+/* Alerts pinned to the top of the log column: mutiny window, emergency,
+   waiting-on — always the first thing the eye lands on when scanning the
+   record. */
 .log__alerts {
   display: flex;
   flex-direction: column;
@@ -2275,38 +2251,53 @@ button:disabled { cursor: not-allowed; }
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; grid-template-rows: auto minmax(180px, 40vh) minmax(0, 1fr); }
-  /* Mobile: the discard sea folds into a full-art card under the summary
-     (its own painted banner carries the label), off-duty stays above the
-     roster in the side column. */
+  /* Mobile IA (方案A): map-first. The board is a fixed-height band pinned
+     under the topbar; the side column takes the rest as a tabbed panel
+     (tabs form its sticky header, the active pane scrolls inside). A flex
+     column replaces the old 3-row grid that dropped the side column into
+     an implicit 4th row below the viewport. */
+  .main { display: flex; flex-direction: column; }
+  .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px; }
+  /* The discard sea shrinks to a corner buoy floating on the map: the
+     painted sea art hides and the artbox itself becomes a square plinth
+     holding the card-back pile + count badge. */
+  .main { position: relative; }
   .main > .discard-sea {
-    margin: 0 auto 8px;
-    width: min(200px, 60vw);
-    min-height: 220px;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    width: 76px;
+    margin: 0;
   }
-  .discard-sea__card { width: 52%; }
-  .offduty { margin: 10px 12px 0; }
-  .col--summary { border-right: none; border-bottom: 1px solid var(--line); overflow: visible; }
-  /* The summary folds into a slim wrapped strip: no section titles, rows
-     flow inline. */
-  .summary { flex-direction: row; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
-  .summary__sec { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; border-bottom: none; padding-bottom: 0; }
-  .summary__sec--alerts { gap: 4px; }
-  .summary__title { display: none; }
-  .summary__row { gap: 4px; }
-  .summary__row--near .summary__label { color: var(--ink-dim); font-weight: 400; }
-  .col--side { border-left: none; border-top: 1px solid var(--line); }
+  .discard-sea__artbox { aspect-ratio: 1 / 1; max-height: none; }
+  .discard-sea__art { display: none; }
+  .discard-sea__stack { top: 44%; }
+  .discard-sea__card { width: 58cqw; border-width: 1px; }
+  .discard-sea__label { bottom: 2px; font-size: 11px; }
+  .offduty { margin: 0 0 8px; }
+
+  /* Side column = tab strip + one visible pane; the pane scrolls so the
+     tabs stay pinned at its top. */
+  .col--side {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .tabs { display: flex; }
+  .side-pane { flex: 1; min-height: 0; overflow: auto; }
+  .side-pane--off { display: none; }
+  /* The log pane is PC-hidden (base display:none); on mobile the active
+     记录 tab flips it back on. */
+  .side-pane--log:not(.side-pane--off) { display: flex; }
   /* The dedicated log column folds away on mobile — the log rides the
      记录 tab inside the side column instead. */
   .col--log { display: none; }
-  .tabs { display: flex; }
-  /* Mobile tab switch: exactly one of the two halves renders. */
-  .side-action--mobile-hidden { display: none; }
-  .side-log--mobile-hidden { display: none; }
-  /* …and the side column's own log duplicate becomes visible when the
-     记录 tab is active (the base --mobile-only hide flips here). */
-  .side-log--mobile-only { display: block; }
-  .side-log { border-top: none; margin-top: 0; max-height: none; }
+
   /* The round/phase status jumps to the very top of the page on mobile,
      above title and pills — it is the one thing everyone needs to see.
      Still absolutely centered on the bar (identical on every seat). */

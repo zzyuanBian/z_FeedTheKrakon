@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#050914" />
-    <meta name="mobile-web-app-capable" yes />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>险恶疑航 · Feed the Kraken</title>
     <!-- Menu + lobby backdrops: kicked off at HTML parse so the first paint
@@ -37,6 +37,9 @@
          renders. -->
     <link rel="preload" as="image" href="/img/zone-drop.jpg" />
     <link rel="preload" as="image" href="/img/zone-rest.jpg" />
+    <!-- Log column's storm-deck backdrop: big PNG, wanted the moment the
+         board renders, so fetch it alongside the zone panels. -->
+    <link rel="preload" as="image" href="/img/log-bg.png" />
     <link rel="preload" as="image" href="/cards/nav-back.jpg" />
     <!-- Crew avatars: ~9KB each (128px JPEG); preloaded so the lobby picker
          and the roster never flash or pop in mid-session. -->

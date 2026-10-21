@@ -30,16 +30,16 @@ export function LogPanel({ view }: { view: PlayerView }) {
   return (
     <section className="log">
       {hasAlerts && (
-        <div className="summary__sec summary__sec--alerts log__alerts">
+        <div className="log__alerts">
           {view.mutiny.active && (
-            <div className="summary__alert summary__alert--mutiny">
+            <div className="log__alert log__alert--mutiny">
               ⚡ 哗变 · 需 {view.mutiny.threshold} 枪
             </div>
           )}
           {view.ship.emergency && (
-            <div className="summary__alert summary__alert--mutiny">⚠ 紧急航行</div>
+            <div className="log__alert log__alert--mutiny">⚠ 紧急航行</div>
           )}
-          {wait && <div className={`summary__alert summary__alert--${wait.cls}`}>{wait.text}</div>}
+          {wait && <div className={`log__alert log__alert--${wait.cls}`}>{wait.text}</div>}
         </div>
       )}
       {view.knowledge.length > 0 && (

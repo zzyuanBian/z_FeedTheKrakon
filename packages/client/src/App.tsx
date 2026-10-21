@@ -1,7 +1,7 @@
 /**
- * App shell. Flow: lobby -> (session) -> game. The layout is a two-column
- * desktop view that collapses to stacked panels on mobile, so the same build
- * serves PC and phones.
+ * App shell. Flow: lobby -> (session) -> game. The layout is a four-column
+ * desktop view that collapses to map-first + tabbed panels on mobile, so the
+ * same build serves PC and phones.
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
@@ -11,7 +11,6 @@ import {
 } from './Lobby.js';
 import { Board } from './Board.js';
 import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
-import { SummaryPanel } from './SummaryPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
@@ -472,7 +471,7 @@ export function App() {
   // sessionStorage-backed, rendered by the roster AND the chat avatars.
   const playerMarks = usePlayerMarks(session?.matchID ?? '', session?.playerID ?? '');
 
-  const [tab, setTab] = useState<'action' | 'log'>('action');
+  const [tab, setTab] = useState<'action' | 'crew' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
 
   // Launch countdown (role-reveal → board): when the all-confirmed broadcast
@@ -569,7 +568,7 @@ export function App() {
     if (ritualDismissed && freshConversion && convertedBy) setSeenConversion(convertedBy);
   }, [ritualDismissed, freshConversion, convertedBy]);
 
-  // On mobile the three panels are tabs; auto-focus the action tab when the
+  // On mobile the side column is tabs; auto-focus the action tab when the
   // player has something to do.
   const needsMe = !!game.view?.pending?.isYou;
 
@@ -787,12 +786,6 @@ export function App() {
       </header>
 
       <main className="main">
-        {/* Live game summary, left of the map (a compact strip above the
-            board on narrow screens). */}
-        <aside className="col col--summary">
-          <SummaryPanel view={view} />
-        </aside>
-
         {/* 深海 discard zone: its own slim column LEFT of the map so the
             card-back pile can show at true card proportions instead of being
             crushed into a short wide strip. Sits under the summary strip. */}
@@ -803,48 +796,56 @@ export function App() {
         </section>
 
         {/* 游戏记录: its own column directly RIGHT of the map (PC). Mobile
-            keeps it as the 记录 tab inside the side column. */}
+            folds it into the side column's 记录 tab. */}
         <aside className="col col--log">
           <LogPanel view={view} />
         </aside>
 
         <aside className="col col--side">
+          {/* Mobile IA (方案A): the map stays pinned above; this column's tab
+              strip is its header and the active pane scrolls beneath it. On
+              PC the strip is hidden and all panes show in column order
+              (歇班 → roster → actions); the log pane stays PC-hidden since
+              the log has its own column there. */}
           <div className="tabs">
             <button className={'tab' + (tab === 'action' ? ' tab--on' : '')} onClick={() => setTab('action')}>
               行动{needsMe ? ' ●' : ''}
             </button>
-            <button className={'tab tab--mobile-only' + (tab === 'log' ? ' tab--on' : '')} onClick={() => setTab('log')}>
+            <button className={'tab' + (tab === 'crew' ? ' tab--on' : '')} onClick={() => setTab('crew')}>
+              船员
+            </button>
+            <button className={'tab' + (tab === 'log' ? ' tab--on' : '')} onClick={() => setTab('log')}>
               记录
             </button>
           </div>
 
-          <OffDutyZone view={view} />
-
-          {/* PC: the tab strip is hidden — the log lives in its own column,
-              so the side column is actions only. Mobile: the tabs switch
-              between 行动 and the 记录 duplicate. */}
-          <div className={'side-action' + (tab !== 'action' ? ' side-action--mobile-hidden' : '')}>
-            {tab === 'log' ? null : (
-              <>
-                <Roster
-                  view={view}
-                  marks={playerMarks.marks}
-                  onToggleMark={playerMarks.toggle}
-                  onClearMarks={playerMarks.clearAll}
-                />
-                {over ? (
-                  <div className="panel panel--over">
-                    <h3>游戏结束</h3>
-                    <p>{view.winner && FACTION_LABEL[view.winner]} 获胜</p>
-                    <p className="hint">{view.winReason}</p>
-                  </div>
-                ) : (
-                  <ActionPanel view={view} moves={game.moves} />
-                )}
-              </>
+          <div
+            className={'side-pane side-pane--crew' + (tab === 'crew' ? '' : ' side-pane--off')}
+          >
+            <OffDutyZone view={view} />
+            <Roster
+              view={view}
+              marks={playerMarks.marks}
+              onToggleMark={playerMarks.toggle}
+              onClearMarks={playerMarks.clearAll}
+            />
+          </div>
+          <div
+            className={'side-pane side-pane--action' + (tab === 'action' ? '' : ' side-pane--off')}
+          >
+            {over ? (
+              <div className="panel panel--over">
+                <h3>游戏结束</h3>
+                <p>{view.winner && FACTION_LABEL[view.winner]} 获胜</p>
+                <p className="hint">{view.winReason}</p>
+              </div>
+            ) : (
+              <ActionPanel view={view} moves={game.moves} />
             )}
           </div>
-          <div className={'side-log side-log--mobile-only' + (tab === 'log' ? '' : ' side-log--mobile-hidden')}>
+          <div
+            className={'side-pane side-pane--log' + (tab === 'log' ? '' : ' side-pane--off')}
+          >
             <LogPanel view={view} />
           </div>
         </aside>
