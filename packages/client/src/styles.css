@@ -2337,10 +2337,11 @@ button:disabled { cursor: not-allowed; }
      painted sea art hides and the artbox itself becomes a square plinth
      holding the card-back pile + count badge. */
   .main { position: relative; }
-  /* The left wing dissolves on mobile (display:contents): its 歇班 strip is
-     already hidden and the discard sea becomes the map-corner buoy,
-     positioned against .main itself. */
+  /* The left wing dissolves on mobile (display:contents): its 歇班 art box
+     hides outright (the 船员 tab has the text-only version) and the discard
+     sea becomes the map-corner buoy, positioned against .main itself. */
   .col--wing { display: contents; }
+  .col--wing .offduty { display: none; }
   /* The discard sea becomes the map-corner buoy: square plinth, painted
      art hidden, card-back pile + count badge only. */
   .discard-sea {
