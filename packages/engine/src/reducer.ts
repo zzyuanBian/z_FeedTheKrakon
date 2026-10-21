@@ -642,6 +642,8 @@ function ritualGunsStash(s: GameState, a: Extract<Action, { type: 'ritualGunsSta
   const total = a.grants.reduce((n, g) => n + g.guns, 0);
   assert(total === 3, 'must distribute exactly 3 guns');
   for (const g of a.grants) grantGuns(s, g.to, g.guns);
+  // Public record: after the stash, everyone sees who received how many guns.
+  s.log.push({ t: 'ritualGuns', grants: a.grants.map((g) => ({ to: g.to, guns: g.guns })) });
   finishRitual(s);
 }
 

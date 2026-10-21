@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL, NAV_CARD_LABEL, RITUAL_LABEL } from './labels.js';
+import { waitStatus } from './status.js';
 
 const nameOf = (view: PlayerView, id: string): string =>
   (id === view.you.id ? view.you : view.others.find((p) => p.id === id))?.name ?? id;
@@ -22,8 +23,25 @@ const B = ({ tone, children }: { tone: 'gold' | 'red' | 'teal'; children: ReactN
 
 export function LogPanel({ view }: { view: PlayerView }) {
   const reversed = [...view.log].reverse().slice(0, 50);
+  // Transient alerts ride the TOP of the log column (moved out of the
+  // summary strip) — mutiny window, emergency, and who the game waits on.
+  const wait = waitStatus(view);
+  const hasAlerts = view.mutiny.active || view.ship.emergency || !!wait;
   return (
     <section className="log">
+      {hasAlerts && (
+        <div className="summary__sec summary__sec--alerts log__alerts">
+          {view.mutiny.active && (
+            <div className="summary__alert summary__alert--mutiny">
+              ⚡ 哗变 · 需 {view.mutiny.threshold} 枪
+            </div>
+          )}
+          {view.ship.emergency && (
+            <div className="summary__alert summary__alert--mutiny">⚠ 紧急航行</div>
+          )}
+          {wait && <div className={`summary__alert summary__alert--${wait.cls}`}>{wait.text}</div>}
+        </div>
+      )}
       {view.knowledge.length > 0 && (
         <div className="knowledge">
           <h3 className="sec__title">你的情报</h3>
@@ -87,6 +105,21 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number]): ReactNode 
     case 'ritual':
       return (
         <>仪式：<B tone="red">{RITUAL_LABEL[e.card]}</B></>
+      );
+    case 'ritualGuns':
+      return (
+        <>
+          囤枪去向：
+          <span className="log__mutiny-pledges">
+            {[...e.grants]
+              .sort((a, b) => b.guns - a.guns)
+              .map((g, i) => (
+                <span key={i} className="log__mutiny-pledge">
+                  {nameOf(view, g.to)} <B tone="gold">+{g.guns}枪</B>
+                </span>
+              ))}
+          </span>
+        </>
       );
     case 'mapAction':
       return e.kind === 'cabinSearch'

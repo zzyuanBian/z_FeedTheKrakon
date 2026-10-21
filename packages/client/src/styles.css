@@ -1350,7 +1350,10 @@ button:disabled { cursor: not-allowed; }
 .discard-sea__stack {
   position: absolute;
   left: 50%;
-  top: 28%; /* the dark sea band under the 丢弃 banner — the discard area */
+  /* Middle of the art, just above the vortex medallion — where the red-box
+     annotation sits: optically centred in the open sea area, clear of the
+     丢弃 banner above and the count label below. */
+  top: 56%;
   width: 0;
   height: 0;
   z-index: 2;
@@ -1408,7 +1411,12 @@ button:disabled { cursor: not-allowed; }
 }
 .offduty__empty {
   margin: 0;
-  padding: 40px 12px 10px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Under the painted caption (这名领航员或中尉懒得航海。), the parchment's
+     lower area — where resting crew belongs. */
+  top: 76%;
   text-align: center;
   font-style: italic;
   font-size: 12px;
@@ -1416,15 +1424,19 @@ button:disabled { cursor: not-allowed; }
   color: rgba(60, 44, 26, 0.55);
 }
 .offduty__crew {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  top: 72%; /* the parchment strip under the painted caption */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-content: flex-start;
-  gap: 4px 14px;
+  align-content: center;
+  gap: 2px 14px;
   margin: 0;
-  padding: 34px 10px 8px;
+  padding: 0 10px;
   list-style: none;
-  max-height: 100%;
   overflow-y: auto;
 }
 .offduty__crew-item {
@@ -1937,6 +1949,17 @@ button:disabled { cursor: not-allowed; }
 }
 .log__mutiny-pledge { white-space: nowrap; }
 .knowledge { background: var(--bg-panel-2); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 8px; margin-bottom: 10px; }
+/* Alerts pinned to the top of the log column (moved out of the summary
+   strip): mutiny window, emergency, waiting-on — always the first thing
+   the eye lands on when scanning the record. */
+.log__alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px dashed var(--line);
+}
 .knowledge ul { margin: 0; padding-left: 18px; }
 .peek { padding-left: 18px; }
 .peek li { padding: 2px 0; }

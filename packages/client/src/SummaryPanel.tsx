@@ -9,7 +9,6 @@
 
 import type { PlayerId, PlayerView } from '@ftk/engine';
 import { SHORT_MAP } from '@ftk/engine';
-import { waitStatus } from './status.js';
 
 /* Movement table + space kinds, built once from the bundled map. */
 const MOVEMENT: Record<number, Partial<Record<string, number>>> = {};
@@ -57,9 +56,6 @@ export function SummaryPanel({ view }: { view: PlayerView }) {
   const reached = [steps.sailor, steps.pirate, steps.kraken]
     .filter((n): n is number => n !== null);
   const nearest = reached.length ? Math.min(...reached) : null;
-
-  // Who the game is waiting on (shared with the roster header pill).
-  const wait = waitStatus(view);
 
   const officers: [string, PlayerId | null][] = [
     ['🧭 船长', view.officers.captain],
@@ -119,20 +115,6 @@ export function SummaryPanel({ view }: { view: PlayerView }) {
           <span className="summary__val">{view.gunSupply}</span>
         </div>
       </section>
-
-      {(view.mutiny.active || view.ship.emergency || wait) && (
-        <section className="summary__sec summary__sec--alerts">
-          {view.mutiny.active && (
-            <div className="summary__alert summary__alert--mutiny">
-              ⚡ 哗变 · 需 {view.mutiny.threshold} 枪
-            </div>
-          )}
-          {view.ship.emergency && (
-            <div className="summary__alert summary__alert--mutiny">⚠ 紧急航行</div>
-          )}
-          {wait && <div className={`summary__alert summary__alert--${wait.cls}`}>{wait.text}</div>}
-        </section>
-      )}
     </div>
   );
 }

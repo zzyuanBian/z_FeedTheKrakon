@@ -299,6 +299,7 @@ export type LogEntry =
   | { t: 'moved'; from: number; to: number; color: ArrowColor }
   | { t: 'card'; card: NavCardId; captain: PlayerId }
   | { t: 'ritual'; card: RitualCardId }
+  | { t: 'ritualGuns'; grants: { to: PlayerId; guns: number }[] }
   | { t: 'mapAction'; kind: 'cabinSearch' | 'feedKraken'; actor: PlayerId; target: PlayerId }
   | { t: 'jump'; player: PlayerId }
   | { t: 'converted' }            // deliberately anonymous

@@ -539,22 +539,30 @@ export function App() {
   // beat for the player who was just converted — their view gains
   // `convertedBy` at the conversion broadcast, and we latch it until
   // dismissed so the veil holds even after the leader resolves the ritual.
+  // BOTH branches honour `ritualDismissed`: the conversion broadcast is the
+  // SAME one that clears the ritual pending, so the old ternary sent the
+  // freshly-converted player down a branch that never read the flag — their
+  // 沉入黑暗 click did nothing.
   const ritualPending = game.view?.pending?.kind === 'ritual';
   const convertedBy = game.view?.you.convertedBy ?? null;
   const [ritualDismissed, setRitualDismissed] = useState(false);
   const [seenConversion, setSeenConversion] = useState<string | null>(null);
+  const freshConversion = !!convertedBy && seenConversion !== convertedBy;
   const showRitualVeil =
     !!game.view && game.view.winner === null &&
-    (ritualPending ? !ritualDismissed : !!convertedBy && seenConversion !== convertedBy);
+    (ritualPending || freshConversion) && !ritualDismissed;
+  // Re-arm on each NEW ritual window.
   useEffect(() => {
     if (ritualPending) setRitualDismissed(false);
   }, [ritualPending]);
-  // Record the conversion once the (dismissable) veil has shown it — keying
-  // on the converter id means a SECOND conversion of the same player (rule
-  // illegal, but defensive) would still re-pop.
+  // Latch the conversion the moment the veil closes — keying on the
+  // converter id means a SECOND conversion of the same player (rule
+  // illegal, but defensive) would still re-pop. Latching only on dismiss
+  // (not on !showRitualVeil) keeps the click from being instantly
+  // overwritten while the veil is still open.
   useEffect(() => {
-    if (!showRitualVeil && convertedBy) setSeenConversion(convertedBy);
-  }, [showRitualVeil, convertedBy]);
+    if (ritualDismissed && freshConversion && convertedBy) setSeenConversion(convertedBy);
+  }, [ritualDismissed, freshConversion, convertedBy]);
 
   // On mobile the three panels are tabs; auto-focus the action tab when the
   // player has something to do.
