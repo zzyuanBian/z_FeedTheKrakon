@@ -1336,9 +1336,12 @@ button:disabled { cursor: not-allowed; }
 
 .main { flex: 1; display: grid; grid-template-columns: 190px minmax(0, 1fr) 300px 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
-/* Left wing (对翼): 歇班 strip above the 深海 discard sea — one column, so
-   both art boxes share the width and scale UNIFORMLY (aspect-ratio keeps
-   each at its intrinsic proportion; never one-axis stretched). */
+/* Left wing (对翼): 歇班 parchment above the 深海 discard sea — twin boxes
+   at the SAME portrait ratio (549:948, the sea art's own shape), so they
+   render as two identical vertical rectangles splitting the column ~50/50.
+   aspect-ratio + width binding scale both axes together (never one-axis
+   stretched); flex-shrink only ever shortens the boxes, and the cover/fit
+   backgrounds crop gracefully instead of distorting. */
 .col--wing {
   display: flex;
   flex-direction: column;
@@ -1347,10 +1350,15 @@ button:disabled { cursor: not-allowed; }
   padding: 12px 0 12px 8px;
   gap: 10px;
 }
-.col--wing .offduty { flex: 0 0 auto; margin: 0; }
-.col--wing .discard-sea { flex: 1; min-height: 0; justify-content: flex-start; }
+.col--wing .offduty {
+  flex: 0 1 auto;
+  width: 100%;
+  aspect-ratio: 549 / 948;
+  max-height: 100%;
+  margin: 0;
+}
+.col--wing .discard-sea { flex: 0 1 auto; min-height: 0; }
 /* PC hides the crew pane's off-duty duplicate; mobile hides the wing's. */
-.col--wing .offduty { display: block; }
 .side-pane__offduty { display: none; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
 .col--side { border-left: 1px solid var(--line); background: var(--bg-panel); padding: 12px; }
@@ -1463,10 +1471,10 @@ button:disabled { cursor: not-allowed; }
   pointer-events: none;
 }
 
-/* 歇班 strip above the roster circle. The zone art (782×581) keeps its
-   full height — aspect-ratio pins the box to the resource's shape so the
-   painted banner is never cropped and resting crew never hides behind the
-   box edge; width stretches to the column, height follows. */
+/* 歇班 box. PC wing renders it as a tall portrait rectangle twin to the
+   discard sea (same 549:948 shape); elsewhere it keeps the resource's own
+   landscape ratio. The cover background anchors BOTTOM: the painted caption
+   + crew strip live in the art's lower half, so any crop trims sky only. */
 .offduty {
   position: relative;
   border-radius: var(--radius);
@@ -1474,7 +1482,7 @@ button:disabled { cursor: not-allowed; }
   overflow: hidden;
   aspect-ratio: 782 / 581;
   margin: 12px 12px 8px;
-  background: url('/img/zone-rest.jpg') center / cover no-repeat;
+  background: url('/img/zone-rest.jpg') bottom center / cover no-repeat;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
 }
 .offduty__empty {
@@ -2321,12 +2329,38 @@ button:disabled { cursor: not-allowed; }
   .discard-sea__art { display: none; }
   .discard-sea__stack { top: 44%; }
   .discard-sea__card { width: 58cqw; border-width: 1px; }
+  /* The left wing dissolves on mobile (display:contents): its 歇班 strip is
+     already hidden and the discard sea becomes the map-corner buoy,
+     positioned against .main itself. */
+  .col--wing { display: contents; }
+  /* The discard sea becomes the map-corner buoy: square plinth, painted
+     art hidden, card-back pile + count badge only. */
+  .discard-sea {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    width: 76px;
+    margin: 0;
+  }
+  .discard-sea__artbox { aspect-ratio: 1 / 1; max-height: none; }
+  .discard-sea__art { display: none; }
+  .discard-sea__stack { top: 44%; }
+  .discard-sea__card { width: 58cqw; border-width: 1px; }
   .discard-sea__label { bottom: 2px; font-size: 11px; }
-  /* The left wing keeps only the discard sea (the buoy above); its 歇班
-     strip hides — the 船员 tab shows the off-duty duplicate instead. */
-  .col--wing .offduty { display: none; }
+  /* The 船员 tab's off-duty duplicate: a SHORT landscape strip — the tall
+     PC portrait would eat half the pane. The painted caption hides under
+     the crop; the crew strip stays usable just above the box floor. */
   .side-pane__offduty { display: block; }
-  .offduty { margin: 0 0 8px; }
+  .side-pane__offduty .offduty {
+    aspect-ratio: auto;
+    height: 64px;
+    margin: 0 0 8px;
+    background-position: bottom center;
+  }
+  .side-pane__offduty .offduty__empty,
+  .side-pane__offduty .offduty__crew { top: 30%; bottom: 2px; }
+  .side-pane__offduty .zones__banner { top: 50%; transform: translate(-50%, -50%); }
 
   /* Side column = tab strip + one visible pane; the pane scrolls so the
      tabs stay pinned at its top. */
