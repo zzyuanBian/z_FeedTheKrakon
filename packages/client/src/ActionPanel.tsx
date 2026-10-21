@@ -17,6 +17,7 @@ import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
   iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
 } from './actions.js';
+import { navPickLine } from './status.js';
 
 export interface ActionPanelProps {
   view: PlayerView;
@@ -186,8 +187,10 @@ export function ActionPanel({ view, moves }: ActionPanelProps) {
             ? `等待 ${name(view, p.by)} 操作…`
             : '仪式进行中，请稍候…'
           : view.phase === 'appointTeam'
-            ? '当前阶段，船长任命船员'
-            : `当前阶段：${PHASE_LABEL[view.phase]}`}
+            ? `当前阶段，船长（${name(view, view.officers.captain ?? view.you.id)}）任命船员`
+            : view.phase === 'navigation'
+              ? `当前阶段：${PHASE_LABEL[view.phase]} · ${navPickLine(view) ?? ''}`
+              : `当前阶段：${PHASE_LABEL[view.phase]}`}
       </p>
     </div>
   );
@@ -232,7 +235,7 @@ function MutinyForm({ view, moves }: { view: PlayerView; moves: ActionPanelProps
       <h3 className="panel__title">忠诚提问 · 哗变</h3>
       <p className="hint">
         船长已任命 {name(view, view.officers.lieutenant ?? '')} 与 {name(view, view.officers.navigator ?? '')}。
-        不满意可以亮枪哗变（阈值 {view.mutiny.threshold}）。
+        不满意可以亮枪哗变（总共需要：{view.mutiny.threshold}）。
       </p>
       <label className="slider">
         <span>亮出 {guns} 把枪（你有 {max} 把）</span>

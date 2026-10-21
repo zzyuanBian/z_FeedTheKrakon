@@ -34,13 +34,13 @@ export function iOweMutinyPledge(view: PlayerView): boolean {
   );
 }
 
-/** True when the navigation is waiting on the viewer to split two cards. */
+/** True when the navigation is waiting on the viewer to split two cards.
+ *  Captain and lieutenant pick SIMULTANEOUSLY — both see the splitter until
+ *  each has acted; `awaiting` (first pending picker) is display-only now. */
 export function iMustContribute(view: PlayerView): boolean {
-  // `awaiting` is also the navigator during the logbook step, so the stage must
-  // be checked too — otherwise the navigator is handed the contribute split and
-  // every click is rejected (navContribute is not their move).
   return view.phase === 'navigation' && view.navigation.stage === 'contribute' &&
-    view.navigation.awaiting === view.you.id;
+    !view.navigation.hasActed &&
+    (view.you.id === view.officers.captain || view.you.id === view.officers.lieutenant);
 }
 
 /** True when the navigation is waiting on the viewer, as navigator, to resolve. */

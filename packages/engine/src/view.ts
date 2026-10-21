@@ -74,6 +74,9 @@ export interface NavigationView {
   mine: NavCardId[] | null;
   /** Whether the viewer has already contributed this navigation. */
   hasActed: boolean;
+  /** Everyone who has contributed so far (captain + lieutenant pick
+   *  simultaneously, so the whole table can see 选牌中/已决定 per seat). */
+  acted: PlayerId[];
   /** True once both captain and lieutenant have contributed (logbook is 2). */
   logbookReady: boolean;
   /** The player the navigation is currently waiting on, or null if none. */
@@ -257,6 +260,8 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       const n = state.navigation;
       const team = [state.officers.captain, state.officers.lieutenant]
         .filter((x): x is PlayerId => x !== null);
+      // Simultaneous picking: the stage only moves to 'logbook' once BOTH
+      // officers have contributed — there is no ordered waiting between them.
       const contributor = team.find((id) => !n.acted.includes(id)) ?? null;
       let stage: NavigationView['stage'] = 'done';
       let awaiting: PlayerId | null = null;
@@ -272,6 +277,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
         discardTop: n.discard.at(-1) ?? null,
         mine: heldCards(state, viewer),
         hasActed: n.acted.includes(viewer),
+        acted: [...n.acted],
         logbookReady: n.logbook.length === 2,
         awaiting,
         stage,

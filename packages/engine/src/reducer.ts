@@ -416,14 +416,21 @@ function orderedTeam(s: GameState): PlayerId[] {
   return [captain, lieutenant].filter((x): x is PlayerId => x !== null);
 }
 
-/** The first player who still has to act (contribute) in this navigation. */
+/** Officers still owing a contribution (captain + lieutenant pick at the
+ *  same time — the logbook step opens only after both are in). */
 function nextContributor(s: GameState): PlayerId | null {
   return orderedTeam(s).find((id) => !s.navigation.acted.includes(id)) ?? null;
 }
 
 function navContribute(s: GameState, a: Extract<Action, { type: 'navContribute' }>): void {
   assert(s.phase === 'navigation', 'not navigating');
-  assert(nextContributor(s) === a.actor, 'not your turn to contribute');
+  // Captain and lieutenant pick simultaneously — either may go first, and
+  // neither waits on the other. Only the logbook step is strictly after both.
+  assert(
+    (a.actor === s.officers.captain || a.actor === s.officers.lieutenant) &&
+      !s.navigation.acted.includes(a.actor),
+    'not your turn to contribute',
+  );
   const hand = a.actor === s.officers.captain ? s.navigation.captainCards : s.navigation.lieutenantCards;
   // Cards are identified by value, and the deck holds real duplicates (two
   // copies of the same navigation card). Keeping and discarding the same *type*

@@ -1226,16 +1226,25 @@ button:disabled { cursor: not-allowed; }
   position: relative;
   margin: 12px 0 12px 8px;
   container-type: inline-size;
+  /* Center the art box vertically in the tall column. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-/* The art keeps its intrinsic card shape: width fills the column, height
-   floats (aspect 549:948), centered vertically in the column. */
+/* The artbox hugs the art's intrinsic card shape (aspect 549:948) instead of
+   stretching the full column — the count label and the card pile then key
+   off the ART's own box, never drifting away from it. */
+.discard-sea__artbox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 549 / 948;
+  max-height: 100%;
+}
 .discard-sea__art {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
   width: 100%;
-  max-height: 100%;
+  height: 100%;
   object-fit: contain;
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
@@ -1260,21 +1269,21 @@ button:disabled { cursor: not-allowed; }
   border: 2px solid #f2ead6;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
 }
-/* Pile count as a plain line of text UNDER the art (the column is a flex
-   column: art area on top, caption below). */
-.discard-sea {
-  display: flex;
-  flex-direction: column;
-}
-.discard-sea__artbox { position: relative; flex: 1; min-height: 0; }
+/* Pile count hugging the art's bottom edge (the artbox IS the art's box, so
+   bottom: 2px sits right on the painted art). */
 .discard-sea__label {
-  flex: 0 0 auto;
-  margin-top: 6px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  z-index: 3;
   text-align: center;
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.06em;
   color: var(--teal-bright);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
 }
 
 /* 歇班 strip above the roster circle. */
@@ -1639,6 +1648,62 @@ button:disabled { cursor: not-allowed; }
 /* Same badge inline in the roster list rows. */
 .roster__row-mate { color: #f5b0b8; font-style: normal; }
 .roster__row-mate--cult { color: var(--teal-bright); }
+
+/* Player name beside the seat token: a small plate riding BELOW the 40px
+   circle (absolute, so it never disturbs the ring layout). Offset clears
+   the guess-mark dots (bottom: -3px); width exceeds the token so 3-4 char
+   names don't wrap; overflow ellipses. */
+.roster__token-name {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 76px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ink-dim);
+  background: rgba(8, 13, 24, 0.82);
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 4;
+}
+.roster__token-name--self { color: var(--gold-bright); }
+
+/* Live pick state during the navigation (选牌中 / 已决定): a pill pinned to
+   the token's TOP edge so it can't collide with the name plate below. */
+.roster__token-pick {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid var(--teal);
+  color: var(--teal-bright);
+  background: rgba(42, 122, 138, 0.2);
+  animation: pick-pulse 1.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+.roster__token-pick--decided {
+  border-color: #58c98a;
+  color: #58c98a;
+  background: rgba(88, 201, 138, 0.14);
+  animation: none;
+}
+@keyframes pick-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
 
 /* The detail list under the table: one always-visible row per player, so
    guns / resumes / status never clip or overlap regardless of crew size. */

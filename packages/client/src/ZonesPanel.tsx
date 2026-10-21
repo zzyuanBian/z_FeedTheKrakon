@@ -3,8 +3,8 @@
  *
  * - DiscardSea (深海): a slim column LEFT of the map. The drop art keeps its
  *   true tall card proportions and the nav-back pile stacks at real card
- *   size — a text line under the art carries the count (the engine only
- *   exposes the count, the pile is decorative).
+ *   size — a text line pinned to the art's bottom edge carries the count
+ *   (the engine only exposes the count, the pile is decorative).
  * - OffDutyZone (歇班): a strip ABOVE the crew circle in the right column,
  *   listing resting players' avatars + names; a whisper when nobody rests.
  *   The viewer themselves may be resting — their avatar shows here too.
@@ -44,8 +44,8 @@ export function DiscardSea({ view }: { view: PlayerView }) {
             ))}
           </div>
         )}
+        <span className="discard-sea__label">弃牌 {discardCount} 张</span>
       </div>
-      <span className="discard-sea__label">弃牌 {discardCount} 张</span>
     </div>
   );
 }

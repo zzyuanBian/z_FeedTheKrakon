@@ -21,6 +21,7 @@ import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL } from './labels.js';
 import { AvatarImage } from './Avatars.js';
 import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks.js';
+import { navPickStatus } from './status.js';
 
 /** Set of the viewer's starting teammates (pirate gathering / leader's
  *  flock) — rendered as a persistent badge on those seats. Private by
@@ -51,6 +52,8 @@ export function Roster({
   // table. Screen coords (y grows downward) put angle 90° at bottom centre.
   const angleOf = (i: number) => ((90 + (360 / n) * i) * Math.PI) / 180;
   const R = 40;
+  // Navigation pick board (选牌中/已决定) while the crew is choosing cards.
+  const picking = navPickStatus(view);
 
   return (
     <section className="roster">
@@ -64,6 +67,7 @@ export function Roster({
           const self = p.id === view.you.id;
           const a = angleOf(i);
           const myMarks = marks[p.id] ?? [];
+          const pick = picking[p.id];
           return (
             <div
               key={p.id}
@@ -100,6 +104,18 @@ export function Roster({
                 <span className="roster__token-dot roster__token-dot--cult" title="已被公开为邪教徒">🐙</span>
               )}
               <AvatarImage avatarId={p.avatar} size={40} title={p.name} className="roster__token-face" />
+              {/* Name label beside the seat token. */}
+              <span className={'roster__token-name' + (self ? ' roster__token-name--self' : '')}>
+                {p.name}
+              </span>
+              {/* Live pick state while the navigation cards are being chosen. */}
+              {pick && (
+                <span
+                  className={'roster__token-pick' + (pick === 'decided' ? ' roster__token-pick--decided' : '')}
+                >
+                  {pick === 'decided' ? '已决定' : '选牌中'}
+                </span>
+              )}
               {/* Private guess notes, pinned to the token's lower edge. */}
               <MarkDots playerMarks={myMarks} playerId={p.id} />
             </div>

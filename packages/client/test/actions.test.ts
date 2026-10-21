@@ -71,20 +71,25 @@ describe('client action gating', () => {
     expect(iOweMutinyPledge(viewFor(pledged, crew))).toBe(false);
   });
 
-  it('routes contribute -> logbook to the right seats', () => {
+  it('lets captain and lieutenant pick simultaneously, then routes to the logbook', () => {
     let s = navigate(game());
     const c = cap(s);
     const l = s.officers.lieutenant!;
     const n = s.officers.navigator!;
     expect(s.phase).toBe('navigation');
+    // Simultaneous picking: BOTH officers are offered the splitter at once,
+    // in any order; the navigator and everyone else are not.
+    expect(iMustContribute(viewFor(s, c))).toBe(true);
+    expect(iMustContribute(viewFor(s, l))).toBe(true);
+    expect(iMustContribute(viewFor(s, n))).toBe(false);
+
+    // The lieutenant may act first (no ordering)…
+    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
     expect(iMustContribute(viewFor(s, c))).toBe(true);
     expect(iMustContribute(viewFor(s, l))).toBe(false);
 
+    // …and only when BOTH have contributed does the logbook open for the navigator.
     s = reduce(s, { type: 'navContribute', actor: c, keep: s.navigation.captainCards[0]!, discard: s.navigation.captainCards[1]! });
-    expect(iMustContribute(viewFor(s, l))).toBe(true);
-    expect(iMustContribute(viewFor(s, c))).toBe(false);
-
-    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
     expect(iMustResolveLogbook(viewFor(s, n))).toBe(true);
     expect(iMustResolveLogbook(viewFor(s, c))).toBe(false);
     // Regression: at the logbook step `navigation.awaiting` IS the navigator, so
