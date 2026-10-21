@@ -1336,7 +1336,7 @@ button:disabled { cursor: not-allowed; }
 
 .main { flex: 1; display: grid; grid-template-columns: 260px minmax(0, 1fr) 380px; min-height: 0; }
 .col { min-height: 0; overflow: auto; }
-/* Left rail: 深海 discard zone stacked over the 游戏记录 column. */
+/* Left rail: 游戏记录 column with the 深海 discard zone below it. */
 .col--rail {
   display: flex;
   flex-direction: column;
@@ -1377,7 +1377,7 @@ button:disabled { cursor: not-allowed; }
    badge size in cqw off the art width. The off-duty bench is a strip above
    the crew circle. */
 .discard-sea {
-  /* Stacked above the log in the left rail: the art box fills the rail
+  /* Stacked below the log in the left rail: the art box fills the rail
      width, its tall card shape sizing the zone. */
   flex: 0 0 auto;
   position: relative;
@@ -1971,9 +1971,9 @@ button:disabled { cursor: not-allowed; }
 
 /* Storm-deck backdrop (暴风雨甲板图): fills the whole log column. Layers,
    top of the stack first: a readability veil over the art, the art itself
-   (cover + bottom-anchored = no letterbox bars on any column height; only
-   the painted storm sky trims off the top), and a night-sky gradient
-   underlay visible behind transparent PNG edges (扩图). */
+   (cover, weighted to the UPPER part — the crew at the rail lives in the
+   top half, so 40% keeps the figures on screen and only sky/deck trim),
+   and a night-sky gradient underlay behind any uncovered edge (扩图). */
 .log {
   position: relative;
   min-height: 100%;
@@ -1981,7 +1981,7 @@ button:disabled { cursor: not-allowed; }
   flex-direction: column;
   background:
     linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
-    url('/img/log-bg.png') bottom center / cover no-repeat,
+    url('/img/log-bg.png') center 40% / cover no-repeat,
     linear-gradient(180deg, #101c30, #0a1322);
 }
 .log__list { list-style: none; margin: 0; padding: 0; font-size: 13px; }

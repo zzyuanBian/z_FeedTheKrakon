@@ -786,14 +786,14 @@ export function App() {
       </header>
 
       <main className="main">
-        {/* PC left rail: 深海 discard zone stacked ABOVE the 游戏记录 column.
-            (Mobile keeps discard as the map-corner buoy and folds the log
-            into the side column's 记录 tab.) */}
+        {/* PC left rail: 游戏记录 column with the 深海 discard zone stacked
+            below it. (Mobile keeps discard as the map-corner buoy and folds
+            the log into the side column's 记录 tab.) */}
         <div className="col col--rail">
-          <DiscardSea view={view} />
           <aside className="col col--log">
             <LogPanel view={view} />
           </aside>
+          <DiscardSea view={view} />
         </div>
 
         <section className="col col--board">
