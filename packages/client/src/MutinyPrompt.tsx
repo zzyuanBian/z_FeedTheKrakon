@@ -97,7 +97,8 @@ function PledgeForm({
   const nameOf = (id: PlayerId | null) =>
     (id === view.you.id ? view.you : view.others.find((p) => p.id === id))?.name ?? '—';
   const guns = view.you.guns;
-  const [picked, setPicked] = useState<number | null>(null);
+  // 忠诚 is the peaceful default — one click on 确认 pledges zero guns.
+  const [picked, setPicked] = useState<number>(0);
 
   return (
     <>
@@ -125,10 +126,9 @@ function PledgeForm({
       <button
         type="button"
         className="btn btn--primary mutiny-prompt__confirm"
-        disabled={picked === null}
-        onClick={() => picked !== null && onPledge(picked)}
+        onClick={() => onPledge(picked)}
       >
-        {picked === 0 ? '宣誓忠诚' : picked === null ? '选择枪数' : `亮出 ${picked} 把枪`}
+        {picked === 0 ? '宣誓忠诚' : `亮出 ${picked} 把枪`}
       </button>
     </>
   );
