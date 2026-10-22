@@ -8,3 +8,6 @@
 const BASE = import.meta.env.BASE_URL ?? '/';
 
 export const MAP_IMAGE_URL = `${BASE}maps/short.jpg`;
+
+/** Top-down ship marker (outsourced art, head-up), drawn on the board. */
+export const SHIP_URL = `${BASE}img/ship.png`;

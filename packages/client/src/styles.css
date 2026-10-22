@@ -1377,7 +1377,7 @@ button:disabled { cursor: not-allowed; }
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
 }
-.board__ship { font-size: 320px; paint-order: stroke; stroke: #06263f; stroke-width: 30px; filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.5)); }
+.board__ship { filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.5)); }
 .board__banner { font-size: 300px; fill: var(--blood); font-weight: 800; paint-order: stroke; stroke: #000; stroke-width: 16px; }
 
 /* -------------------------------- zones -------------------------------- */

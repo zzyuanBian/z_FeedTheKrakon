@@ -22,7 +22,11 @@
 import { useEffect, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { SHORT_MAP } from '@ftk/engine';
-import { MAP_IMAGE_URL } from './assets.js';
+import { MAP_IMAGE_URL, SHIP_URL } from './assets.js';
+
+/* The marker is centred on the space and sized in map-space units (the map
+ * paints at ~1/3 scale, so 660 units ≈ 220 jpg px on screen). */
+const SHIP_SIZE = 660;
 
 export interface BoardProps {
   view: PlayerView;
@@ -76,14 +80,14 @@ export function Board({ view }: BoardProps) {
               height={SHORT_MAP.imageHeight}
             />
             {ship && (
-              <text
+              <image
                 className="board__ship"
-                x={ship.x}
-                y={ship.y + 60}
-                textAnchor="middle"
-              >
-                ⛵
-              </text>
+                href={SHIP_URL}
+                x={ship.x - SHIP_SIZE / 2}
+                y={ship.y - SHIP_SIZE / 2}
+                width={SHIP_SIZE}
+                height={SHIP_SIZE}
+              />
             )}
             {view.ship.emergency && (
               <text
