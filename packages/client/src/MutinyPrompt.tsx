@@ -9,10 +9,12 @@
  *  - the captain, an off-duty/dead seat, or someone who already pledged:
  *    the same modal in its waiting form — roster + progress, no input.
  *
- * Dismissal is a MINIMIZE, not a cancel: 「稍后决定」 collapses the modal and
- * the 行动 tab keeps a reopen button until the phase resolves. Nothing is
- * stored locally except that collapsed flag — every refresh re-derives the
- * open state from the game state, so an unfinished pledge always re-prompts.
+ * Dismissal is a MINIMIZE, not a cancel: 稍后决定/收起 unmount the modal and
+ * the 行动 tab keeps a reopen button until the phase resolves. The open flag
+ * lives in App (`mutinyPromptOpen`) — one source for both the auto-pop and
+ * the reopen, so the two can never disagree. Nothing is stored locally;
+ * every refresh re-derives the open state from the game state, so an
+ * unfinished pledge always re-prompts.
  *
  * (The 成功揭晓 fullscreen veil is MutinyReveal, a separate beat.)
  */
@@ -25,20 +27,15 @@ import { AvatarImage } from './Avatars.js';
 export function MutinyPrompt({
   view,
   onPledge,
-  onReopen,
+  onClose,
 }: {
   view: PlayerView;
   onPledge: (guns: number) => void;
-  /** Collapsed → expanded (the action tab's reopen button calls this). */
-  onReopen: () => void;
+  /** 稍后决定/收起 — App unmounts the modal; its reopen button remounts it
+   *  fresh, so one state source (`mutinyPromptOpen`) drives both paths. */
+  onClose: () => void;
 }) {
   const owePledge = iOweMutinyPledge(view);
-  const [collapsed, setCollapsed] = useState(false);
-
-  // While collapsed the modal renders nothing; the action panel offers the
-  // reopen. The flag lives here so a phase change (fresh mutiny next round)
-  // naturally un-collapses — a new mount, a new decision.
-  if (collapsed) return null;
 
   const roster = [view.you, ...view.others].filter(
     (p) => p.alive && !p.benched && p.id !== view.officers.captain,
@@ -77,15 +74,9 @@ export function MutinyPrompt({
           已表态 {done} / {roster.length} · 共需 {view.mutiny.threshold} 枪哗变
         </p>
 
-        {owePledge ? (
-          <button type="button" className="btn mutiny-prompt__min" onClick={() => setCollapsed(true)}>
-            稍后决定
-          </button>
-        ) : (
-          <button type="button" className="btn mutiny-prompt__min" onClick={() => setCollapsed(true)}>
-            收起
-          </button>
-        )}
+        <button type="button" className="btn mutiny-prompt__min" onClick={onClose}>
+          {owePledge ? '稍后决定' : '收起'}
+        </button>
       </div>
     </div>
   );

@@ -886,7 +886,7 @@ export function App() {
         <MutinyPrompt
           view={view}
           onPledge={(guns) => game.moves.mutinyPledge!(guns)}
-          onReopen={() => setMutinyPromptOpen(true)}
+          onClose={() => setMutinyPromptOpen(false)}
         />
       )}
 
