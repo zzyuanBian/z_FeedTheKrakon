@@ -15,6 +15,7 @@ import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
+import { EndScreen } from './EndScreen.js';
 import { RitualReveal } from './RitualReveal.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
@@ -474,6 +475,9 @@ export function App() {
 
   const [tab, setTab] = useState<'action' | 'crew' | 'log'>('action');
   const [showGameOver, setShowGameOver] = useState(true);
+  // 查看终局 swaps the winner modal for the full EndScreen (identities,
+  // recap, fun vote); 回到牌桌 returns to the read-only board.
+  const [showEndScreen, setShowEndScreen] = useState(false);
 
   // Launch countdown (role-reveal → board): when the all-confirmed broadcast
   // lands, hold every client on the reveal screen for a shared 5-second
@@ -896,14 +900,22 @@ export function App() {
         />
       )}
 
-      {over && showGameOver && (
+      {over && showGameOver && !showEndScreen && (
         <div className="modal" onClick={() => setShowGameOver(false)}>
           <div className="modal__box" onClick={(e) => e.stopPropagation()}>
             <h2>{view.winner && FACTION_LABEL[view.winner]} 获胜！</h2>
             <p>{view.winReason}</p>
-            <button className="btn btn--primary" onClick={() => setShowGameOver(false)}>查看终局</button>
+            <button className="btn btn--primary" onClick={() => setShowEndScreen(true)}>查看终局</button>
           </div>
         </div>
+      )}
+
+      {over && showEndScreen && (
+        <EndScreen
+          view={view}
+          onBack={() => setShowEndScreen(false)}
+          onFunVote={(target) => game.moves.funVote!(target)}
+        />
       )}
     </div>
   );

@@ -156,6 +156,9 @@ export interface PlayerView {
   /** Game over only: the 最愚玩家 tally once every active seat has voted,
    *  highest first (ties keep the earlier-finishing vote). */
   funVoteResult: { playerId: PlayerId; count: number }[] | null;
+  /** Game over only: who has voted (voter ids — targets stay hidden until
+   *  the full tally is out, so late voters cannot be steered). */
+  funVotes: PlayerId[] | null;
 }
 
 /** An end-game identity card. `convertedBy` names the Cult Leader — that
@@ -362,6 +365,10 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
           .length
         ? null
         : tallyFunVotes(state.funVotes),
+    funVotes:
+      state.winner === null
+        ? null
+        : Object.keys(state.funVotes),
   };
 }
 

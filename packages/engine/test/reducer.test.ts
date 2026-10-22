@@ -337,3 +337,47 @@ describe('full game runs to a win', () => {
     expect(['sailor', 'pirate', 'cult']).toContain(s.winner);
   });
 });
+
+describe('post-game fun vote', () => {
+  it('is gated to game over, hides targets until the full tally, then reveals', () => {
+    // Play an honest game to its winner.
+    let s = appointAndNoMutiny(game(7, 2024));
+    let rounds = 0;
+    while (s.phase !== 'gameOver' && rounds++ < 40) {
+      s = runNavigation(s);
+      s = autoResolve(s);
+      if (s.phase === 'appointTeam') s = appointAndNoMutiny(s);
+    }
+    expect(s.phase).toBe('gameOver');
+
+    // Illegal before game over would be rejected — here it IS over, so the
+    // vote lands. Self-vote and double-vote are refused.
+    expect(() => reduce(s, { type: 'funVote', actor: 'p1', target: 'p1' })).toThrow();
+    s = reduce(s, { type: 'funVote', actor: 'p1', target: 'p2' });
+    expect(() => reduce(s, { type: 'funVote', actor: 'p1', target: 'p3' })).toThrow();
+
+    // Partial tally: voters public, result withheld.
+    let v = viewFor(s, 'p2');
+    expect(v.funVotes).toEqual(['p1']);
+    expect(v.funVoteResult).toBeNull();
+    expect(v.allRevealed!.map((r) => r.id)).toEqual(s.seatOrder.filter((id) => s.players[id]!.seat < 7));
+    // Teams outed, converter named for mid-game converts only.
+    for (const r of v.allRevealed!) {
+      expect(r.team).toBe(s.players[r.id]!.team);
+      expect(r.convertedBy).toBe(s.players[r.id]!.convertedBy);
+    }
+
+    // Everyone votes → tally published, highest first. (p2 can't self-vote,
+    // so theirs goes to p1 — p2 still tops the tally at 6: p1's early vote
+    // plus the five voters here.)
+    const ids = s.seatOrder.filter((id) => s.players[id]!.seat < 7 && id !== 'p1');
+    for (const id of ids) s = reduce(s, { type: 'funVote', actor: id, target: id === 'p2' ? 'p1' : 'p2' });
+    v = viewFor(s, 'p3');
+    expect(v.funVoteResult![0]).toEqual({ playerId: 'p2', count: 6 });
+
+    // Nobody may sneak a rule move in after the win — reduce is a silent
+    // no-op (the transport drops it the same way).
+    const after = reduce(s, { type: 'appointTeam', actor: 'p1', lieutenant: 'p2', navigator: 'p3' });
+    expect(after).toBe(s);
+  });
+});
