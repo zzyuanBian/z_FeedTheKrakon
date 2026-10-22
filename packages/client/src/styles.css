@@ -1495,14 +1495,14 @@ button:disabled { cursor: not-allowed; }
 /* The art's painted banner already says 歇班 — the DOM badge is redundant. */
 .col--wing .zones__banner--rest { display: none; }
 /* The overlay text sits on a canvas ~1.7× the landscape art's linear size,
-   so scale it up to match. Anchored just under the painted caption. */
+   so scale it up to match. Anchored under the painted two-line caption. */
 .col--wing .offduty__empty {
-  top: 33%;
+  top: 36%;
   font-size: 18px;
   letter-spacing: 0.18em;
 }
 .col--wing .offduty__crew {
-  top: 37%;
+  top: 39%;
   bottom: 18px;
   gap: 6px 16px;
   padding: 0 20px;
