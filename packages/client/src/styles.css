@@ -2323,6 +2323,23 @@ button:disabled { cursor: not-allowed; }
 .modal__box { background: var(--bg-panel-2); border: 1px solid var(--gold); border-radius: var(--radius-lg); padding: 20px; max-width: 420px; text-align: center; }
 .modal__box h2 { font-family: var(--font-serif); color: var(--gold); }
 
+/* 哗变表决弹框 (MutinyPrompt): appointment result + per-gun pledge buttons
+   + the public pledged/not-pledged roster. */
+.mutiny-prompt__box { max-width: 460px; text-align: left; }
+.mutiny-prompt__title { margin: 0 0 6px; font-family: var(--font-serif); color: var(--gold); }
+.mutiny-prompt__sub { margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: var(--ink-dim); }
+.mutiny-prompt__guns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.mutiny-prompt__gun { min-width: 52px; }
+.mutiny-prompt__confirm { width: 100%; }
+.mutiny-prompt__roster { list-style: none; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--line-strong); }
+.mutiny-prompt__row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+.mutiny-prompt__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mutiny-prompt__state { font-size: 12px; color: var(--ink-dim); }
+.mutiny-prompt__row--in .mutiny-prompt__state { color: #7dc98f; }
+.mutiny-prompt__progress { margin: 10px 0; font-size: 12px; letter-spacing: 0.08em; color: var(--ink-dim); text-align: center; }
+.mutiny-prompt__min { width: 100%; margin-top: 2px; }
+.mutiny-prompt__wait { text-align: center; }
+
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {

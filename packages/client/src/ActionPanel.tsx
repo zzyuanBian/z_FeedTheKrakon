@@ -22,6 +22,8 @@ import { navPickLine } from './status.js';
 export interface ActionPanelProps {
   view: PlayerView;
   moves: Record<string, (...args: unknown[]) => void>;
+  /** Reopen the minimized MutinyPrompt modal (the pledge input lives there). */
+  onOpenMutiny: () => void;
 }
 
 const name = (view: PlayerView, id: PlayerId): string =>
@@ -125,22 +127,28 @@ function TargetPicker({
   );
 }
 
-export function ActionPanel({ view, moves }: ActionPanelProps) {
+export function ActionPanel({ view, moves, onOpenMutiny }: ActionPanelProps) {
   // 1. Appoint the team.
   if (iAmAppointing(view)) {
     return <AppointForm view={view} moves={moves} />;
   }
 
-  // 2. Mutiny pledge.
-  if (iOweMutinyPledge(view)) {
-    return <MutinyForm view={view} moves={moves} />;
-  }
-  // Pledged and waiting for the rest of the crew's fists to open.
+  // 2. Mutiny pledge — the INPUT lives in the MutinyPrompt modal (one
+  //    button per gun). The panel only mirrors its state and offers the
+  //    reopen, so there is exactly one pledge UI to keep in sync.
   if (view.phase === 'loyalty' && view.mutiny.active && view.you.alive &&
       view.officers.captain !== view.you.id) {
+    const pledgedSet = new Set(view.mutiny.pledged);
+    const roster = [view.you, ...view.others].filter(
+      (p) => p.alive && !p.benched && p.id !== view.officers.captain,
+    );
+    const done = roster.filter((p) => pledgedSet.has(p.id)).length;
     return (
       <div className="panel panel--quiet">
-        <p className="hint">你已亮牌，等待其他船员…</p>
+        <p className="hint">忠诚提问进行中 · 已表态 {done} / {roster.length}</p>
+        {iOweMutinyPledge(view) && (
+          <button className="btn btn--primary" onClick={onOpenMutiny}>打开哗变表决</button>
+        )}
       </div>
     );
   }
@@ -225,30 +233,6 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
       </div>
       <button className="btn btn--primary" disabled={!ok} onClick={() => ok && moves.appointTeam!(lt, nav)}>
         提交团队
-      </button>
-    </div>
-  );
-}
-
-function MutinyForm({ view, moves }: { view: PlayerView; moves: ActionPanelProps['moves'] }) {
-  const max = view.you.guns;
-  const [guns, setGuns] = useState(0);
-  return (
-    <div className="panel">
-      <h3 className="panel__title">忠诚提问 · 哗变</h3>
-      <p className="hint">
-        船长已任命 {name(view, view.officers.lieutenant ?? '')} 与 {name(view, view.officers.navigator ?? '')}。
-        不满意可以亮枪哗变（总共需要：{view.mutiny.threshold}）。
-      </p>
-      <label className="slider">
-        <span>亮出 {guns} 把枪（你有 {max} 把）</span>
-        <input
-          type="range" min={0} max={max} value={guns}
-          onChange={(e) => setGuns(Number(e.target.value))}
-        />
-      </label>
-      <button className="btn btn--primary" onClick={() => moves.mutinyPledge!(guns)}>
-        {guns === 0 ? '宣誓忠诚（不哗变）' : `亮出 ${guns} 把枪`}
       </button>
     </div>
   );

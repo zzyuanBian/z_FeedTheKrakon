@@ -58,6 +58,10 @@ export interface MutinyView {
   success: boolean;
   threshold: 3 | 4 | 5;
   newCaptain: PlayerId | null;
+  /** Who has pledged, WITHOUT the gun counts (those stay secret until
+   *  `revealed`) — who has and has not spoken up is public at a real table:
+   *  you can see whose fists are still closed. */
+  pledged: PlayerId[];
   /** Only populated once revealed. */
   pledges: Record<PlayerId, number> | null;
   /** Whether THIS viewer has already pledged. A viewer's own pledge is never
@@ -303,6 +307,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       success: state.mutiny.success,
       threshold: state.mutiny.threshold,
       newCaptain: state.mutiny.newCaptain,
+      pledged: Object.keys(state.mutiny.pledges),
       pledges: state.mutiny.revealed
         ? { ...state.mutiny.pledges }
         : null,

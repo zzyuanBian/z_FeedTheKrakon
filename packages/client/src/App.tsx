@@ -14,6 +14,7 @@ import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
+import { MutinyPrompt } from './MutinyPrompt.js';
 import { RitualReveal } from './RitualReveal.js';
 import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
@@ -533,6 +534,21 @@ export function App() {
     if (!mutinyRevealed) setMutinyDismissed(false);
   }, [mutinyRevealed]);
 
+  // 哗变表决弹框 (MutinyPrompt): pops for every seat the moment the game
+  // enters the loyalty phase, input included — nobody has to notice a tab
+  // changed. `open` re-arms on each NEW loyalty window (the next round's
+  // appointment); minimizing just closes it for now — the action tab keeps
+  // a reopen button while the pledge is still owed, and a page refresh
+  // re-opens (the window is still live, the pledge still unfinished).
+  const loyaltyLive = !!game.view && game.view.phase === 'loyalty' && game.view.mutiny.active;
+  const [mutinyPromptOpen, setMutinyPromptOpen] = useState(false);
+  const mutinyRef = useRef<{ phase: boolean }>({ phase: false });
+  if (loyaltyLive && !mutinyRef.current.phase) setMutinyPromptOpen(true);
+  mutinyRef.current.phase = loyaltyLive;
+  useEffect(() => {
+    if (!loyaltyLive) setMutinyPromptOpen(false);
+  }, [loyaltyLive]);
+
   // Ritual veil (闭眼仪式): eyelids slide shut for every seat while a
   // ritual's pending is open, plus a one-shot secret beat for the player
   // just converted — their view gains `convertedBy` at the conversion
@@ -847,7 +863,7 @@ export function App() {
                 <p className="hint">{view.winReason}</p>
               </div>
             ) : (
-              <ActionPanel view={view} moves={game.moves} />
+              <ActionPanel view={view} moves={game.moves} onOpenMutiny={() => setMutinyPromptOpen(true)} />
             )}
           </div>
           <div
@@ -860,6 +876,14 @@ export function App() {
 
       {mutinyRevealed && !mutinyDismissed && (
         <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
+      )}
+
+      {loyaltyLive && mutinyPromptOpen && game.view.winner === null && (
+        <MutinyPrompt
+          view={view}
+          onPledge={(guns) => game.moves.mutinyPledge!(guns)}
+          onReopen={() => setMutinyPromptOpen(true)}
+        />
       )}
 
       {veilMounted && (
