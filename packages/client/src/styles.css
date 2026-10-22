@@ -2381,6 +2381,14 @@ button:disabled { cursor: not-allowed; }
     flex-wrap: wrap;
     gap: 4px 12px;
   }
+  /* Prefix the mobile crew list with its meaning (the PC art says it already). */
+  .side-pane__offduty .offduty__crew::before {
+    content: '本回合歇班：';
+    flex-basis: 100%;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3c2c1a;
+  }
 
   /* Side column = tab strip + one visible pane; the pane scrolls so the
      tabs stay pinned at its top. */
