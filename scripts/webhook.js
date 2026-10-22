@@ -38,7 +38,7 @@ let lastHead = ''; // "x-GitHub-Delivery" of the in-flight deploy, for logs
 function verify(req, raw) {
   const sig = req.headers['x-hub-signature-256'];
   if (typeof sig !== 'string') return false;
-  const mac = crypto.createHmac('sha256', SECRET).update(raw).digest();
+  const mac = crypto.createHmac('sha256', SECRET).update(raw).digest('hex');
   const expect = 'sha256=' + mac;
   const a = Buffer.from(expect);
   const b = Buffer.from(sig);
