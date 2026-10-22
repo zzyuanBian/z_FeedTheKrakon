@@ -2340,6 +2340,18 @@ button:disabled { cursor: not-allowed; }
 .mutiny-prompt__min { width: 100%; margin-top: 2px; }
 .mutiny-prompt__wait { text-align: center; }
 
+/* 任命确认弹框 (AppointForm's confirm step): the proposal restated with the
+   two names carrying the weight — gold + bold. */
+.appoint-confirm__title { margin: 0 0 10px; }
+.appoint-confirm__line { margin: 0 0 8px; font-size: 15px; line-height: 1.8; color: var(--ink); }
+.appoint-confirm__who {
+  color: var(--gold-bright);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+.appoint-confirm__actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+.appoint-confirm__actions .btn { flex: 1; }
+
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {

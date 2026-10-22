@@ -225,6 +225,7 @@ export function createGame(opts: NewGameOptions): GameState {
     secrets: [],
     winner: null,
     winReason: null,
+    funVotes: {},
   };
   state.rngState = rng.state();
   return state;

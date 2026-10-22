@@ -138,7 +138,7 @@ export function ActionPanel({ view, moves, onOpenMutiny }: ActionPanelProps) {
   //    reopen, so there is exactly one pledge UI to keep in sync.
   if (view.phase === 'loyalty' && view.mutiny.active && view.you.alive &&
       view.officers.captain !== view.you.id) {
-    const pledgedSet = new Set(view.mutiny.pledged);
+    const pledgedSet = new Set(view.mutiny.pledged ?? []);
     const roster = [view.you, ...view.others].filter(
       (p) => p.alive && !p.benched && p.id !== view.officers.captain,
     );
@@ -211,6 +211,7 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   const eligible = eligibleTeam(view);
   const [lt, setLt] = useState<PlayerId | null>(null);
   const [nav, setNav] = useState<PlayerId | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const ok = lt && nav && lt !== nav;
   return (
     <div className="panel">
@@ -231,9 +232,37 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
           </button>
         ))}
       </div>
-      <button className="btn btn--primary" disabled={!ok} onClick={() => ok && moves.appointTeam!(lt, nav)}>
+      <button className="btn btn--primary" disabled={!ok} onClick={() => ok && setConfirming(true)}>
         提交团队
       </button>
+
+      {/* Confirm before committing — the appointment is final for the round
+          and instantly opens the whole table's mutiny window. */}
+      {confirming && ok && (
+        <div className="modal" onClick={() => setConfirming(false)}>
+          <div className="modal__box appoint-confirm" onClick={(e) => e.stopPropagation()}>
+            <h2 className="appoint-confirm__title">任命确认</h2>
+            <p className="appoint-confirm__line">
+              船长提议：大副 —{' '}
+              <strong className="appoint-confirm__who">{name(view, lt)}</strong>
+              {'　·　'}水手 — <strong className="appoint-confirm__who">{name(view, nav)}</strong>
+            </p>
+            <p className="hint">提交后全体船员将立即收到哗变表决提醒，任命不可撤回。</p>
+            <div className="appoint-confirm__actions">
+              <button className="btn" onClick={() => setConfirming(false)}>再想想</button>
+              <button
+                className="btn btn--primary"
+                onClick={() => {
+                  setConfirming(false);
+                  moves.appointTeam!(lt, nav);
+                }}
+              >
+                确认任命
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

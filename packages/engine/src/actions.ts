@@ -57,7 +57,9 @@ export type Action =
   | { type: 'ritualGunsStash'; actor: PlayerId; grants: { to: PlayerId; guns: number }[] }
   | { type: 'ritualAck'; actor: PlayerId }
   /* host escape hatch for a stuck/AFK player */
-  | { type: 'forceAdvance'; actor: PlayerId };
+  | { type: 'forceAdvance'; actor: PlayerId }
+  /* after game over — the 最愚玩家 fun vote (no rule effect, bragging only) */
+  | { type: 'funVote'; actor: PlayerId; target: PlayerId };
 
 export type ActionType = Action['type'];
 

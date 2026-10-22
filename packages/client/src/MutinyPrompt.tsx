@@ -43,7 +43,9 @@ export function MutinyPrompt({
   const roster = [view.you, ...view.others].filter(
     (p) => p.alive && !p.benched && p.id !== view.officers.captain,
   );
-  const pledgedSet = new Set(view.mutiny.pledged);
+  // `pledged` is a newer engine field; a stale client talking to a fresh
+  // server (or vice versa) may not have it — treat as nobody-spoken-yet.
+  const pledgedSet = new Set(view.mutiny.pledged ?? []);
   const done = roster.filter((p) => pledgedSet.has(p.id)).length;
   const lieutenant = view.officers.lieutenant;
   const navigator = view.officers.navigator;

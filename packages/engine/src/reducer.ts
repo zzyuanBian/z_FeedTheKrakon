@@ -66,7 +66,11 @@ function discardCard(s: GameState, card: NavCardId): void {
 /* ------------------------------- entry ---------------------------------- */
 
 export function reduce(prev: GameState, action: Action): GameState {
-  if (prev.phase === 'gameOver' && action.type !== 'forceAdvance') return prev;
+  // After game over the only legal moves are the fun vote and the host's
+  // escape hatch — everything else would mutate a finished game.
+  if (prev.phase === 'gameOver' && action.type !== 'forceAdvance' && action.type !== 'funVote') {
+    return prev;
+  }
   const s = clone(prev);
   handle(s, action);
   return s;
@@ -97,6 +101,7 @@ function handle(s: GameState, a: Action): void {
     case 'ritualGunsStash': return ritualGunsStash(s, a);
     case 'ritualAck':       return ritualAck(s, a);
     case 'forceAdvance':    return forceAdvance(s, a);
+    case 'funVote':         return funVote(s, a);
   }
 }
 
@@ -805,4 +810,18 @@ function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>
     default:
       throw new Error(`forceAdvance: nothing to advance in phase '${s.phase}'`);
   }
+}
+
+/* ========================= post-game: fun vote ========================== */
+
+/** 最愚玩家 (most-foolish player) vote. Strictly post-game: one vote per
+ *  active seat, target anyone but yourself, no re-voting. No rule effect —
+ *  the tally lands in the view once every seat has spoken. */
+function funVote(s: GameState, a: Extract<Action, { type: 'funVote' }>): void {
+  assert(s.phase === 'gameOver', 'the fun vote opens only after game over');
+  assert(s.players[a.actor]!.seat < s.settings.playerCount, 'bench seats do not vote');
+  assert(a.actor !== a.target, 'you cannot vote for yourself');
+  assert(s.players[a.target] !== undefined, 'unknown target');
+  assert(!(a.actor in s.funVotes), 'your vote is final');
+  s.funVotes[a.actor] = a.target;
 }

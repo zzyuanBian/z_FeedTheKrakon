@@ -358,4 +358,7 @@ export interface GameState {
   secrets: PrivateKnowledge[];
   winner: Faction | null;
   winReason: string | null;
+  /** 最愚玩家 votes after game over: voter -> target. One vote each, final
+   *  (no re-voting); tallied publicly once every active seat has voted. */
+  funVotes: Record<PlayerId, PlayerId>;
 }

@@ -149,6 +149,26 @@ export interface PlayerView {
   winner: Faction | null;
   winReason: string | null;
   log: LogEntry[];
+  /** Game over only: every seat's full identity — teams, the Cult Leader,
+   *  and who was converted at which round (by whom). Before the game ends
+   *  this is null; the secrecy firewall lives in this projection. */
+  allRevealed: RevealedPlayer[] | null;
+  /** Game over only: the 最愚玩家 tally once every active seat has voted,
+   *  highest first (ties keep the earlier-finishing vote). */
+  funVoteResult: { playerId: PlayerId; count: number }[] | null;
+}
+
+/** An end-game identity card. `convertedBy` names the Cult Leader — that
+ *  secret dies with the game. */
+export interface RevealedPlayer {
+  id: PlayerId;
+  name: string;
+  avatar: number;
+  team: Faction;
+  cultLeader: boolean;
+  convertedAt: number | null;
+  convertedBy: PlayerId | null;
+  alive: boolean;
 }
 
 /* ------------------------------- helpers -------------------------------- */
@@ -317,7 +337,43 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     winner: state.winner,
     winReason: state.winReason,
     log: state.log.map((e) => ({ ...e })) as LogEntry[],
+    allRevealed:
+      state.winner === null
+        ? null
+        : state.seatOrder
+            .filter((id) => state.players[id]!.seat < state.settings.playerCount)
+            .map((id) => {
+              const p = state.players[id]!;
+              return {
+                id,
+                name: p.name,
+                avatar: p.avatar,
+                team: p.team,
+                cultLeader: p.cultLeader,
+                convertedAt: p.convertedAt,
+                convertedBy: p.convertedBy,
+                alive: p.alive,
+              };
+            }),
+    funVoteResult:
+      state.winner === null ||
+      Object.keys(state.funVotes).length <
+        state.seatOrder.filter((id) => state.players[id]!.seat < state.settings.playerCount)
+          .length
+        ? null
+        : tallyFunVotes(state.funVotes),
   };
+}
+
+/** Most-foolish tally: count votes per target, highest count first; ties
+ *  break to the id that appears first in vote-insertion order (the earlier
+ *  vote wins — same policy the Avalon reference used). */
+function tallyFunVotes(votes: Record<PlayerId, PlayerId>): { playerId: PlayerId; count: number }[] {
+  const counts = new Map<PlayerId, number>();
+  for (const target of Object.values(votes)) counts.set(target, (counts.get(target) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([playerId, count]) => ({ playerId, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 /** Convenience for spectators / debug: a fully-public projection (no `you`). */

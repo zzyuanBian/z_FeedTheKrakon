@@ -232,6 +232,9 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     ritualConversion: move((actor, target) => as('ritualConversion', actor, { target }), { redact: true }),
     ritualGunsStash: move((actor, grants) => as('ritualGunsStash', actor, { grants }), { redact: true }),
     ritualAck: move((actor) => as('ritualAck', actor), { redact: true }),
+
+    // Post-game 最愚玩家 vote — legal only once the game is over.
+    funVote: move((actor, target) => as('funVote', actor, { target })),
   },
 
   /** The engine's whitelist projection is the only thing a client ever sees. */
