@@ -135,9 +135,9 @@ export function ActionPanel({ view, moves, onOpenMutiny }: ActionPanelProps) {
 
   // 2. Mutiny pledge — the INPUT lives in the MutinyPrompt modal (one
   //    button per gun). The panel only mirrors its state and offers the
-  //    reopen, so there is exactly one pledge UI to keep in sync.
-  if (view.phase === 'loyalty' && view.mutiny.active && view.you.alive &&
-      view.officers.captain !== view.you.id) {
+  //    reopen to EVERYONE in-seat (the captain's modal is the waiting view;
+  //    without this a captain who collapses it could never bring it back).
+  if (view.phase === 'loyalty' && view.mutiny.active && view.you.alive) {
     const pledgedSet = new Set(view.mutiny.pledged ?? []);
     const roster = [view.you, ...view.others].filter(
       (p) => p.alive && !p.benched && p.id !== view.officers.captain,
@@ -146,9 +146,7 @@ export function ActionPanel({ view, moves, onOpenMutiny }: ActionPanelProps) {
     return (
       <div className="panel panel--quiet">
         <p className="hint">忠诚提问进行中 · 已表态 {done} / {roster.length}</p>
-        {iOweMutinyPledge(view) && (
-          <button className="btn btn--primary" onClick={onOpenMutiny}>打开哗变表决</button>
-        )}
+        <button className="btn btn--primary" onClick={onOpenMutiny}>打开哗变表决</button>
       </div>
     );
   }
