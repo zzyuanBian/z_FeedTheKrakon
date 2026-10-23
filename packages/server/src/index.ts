@@ -16,6 +16,7 @@
 import Koa from 'koa';
 import Router from '@koa/router';
 import koaBody from 'koa-body';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -70,9 +71,29 @@ function isReserved(pathname: string): boolean {
 }
 
 /**
- * Minimal static-file middleware with SPA fallback. Only files inside `root`
- * are ever served; `..` traversal is rejected by resolving and re-checking.
+ * Static-file middleware with SPA fallback. Only files inside `root` are ever
+ * served; `..` traversal is rejected by resolving and re-checking.
+ *
+ * Tuned for the 3M-bit (~375KB/s) box:
+ *  - gzip for text assets (the 344KB JS bundle ships ~110KB on the wire);
+ *  - etag + `Cache-Control: max-age` — with them, returning players replay
+ *    mostly from cache and 304 instead of re-downloading megabytes. Hashed
+ *    Vite assets get a year; everything else revalidates per session.
+ *  - files are cached in memory after first read (the box also runs a DST
+ *    server; avoid disk hits on every asset request).
  */
+const COMPRESSIBLE = new Set(['.html', '.js', '.mjs', '.css', '.json', '.svg', '.map']);
+const YEAR_SECONDS = 365 * 24 * 3600;
+
+interface StaticEntry {
+  raw: Buffer;
+  gz: Buffer | null; // gzip companion, lazily built
+  etag: string;
+  type: string;
+  cacheControl: string;
+}
+const staticCache = new Map<string, StaticEntry>();
+
 function serveStatic(root: string) {
   const rootAbs = resolve(root);
   return async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
@@ -85,8 +106,45 @@ function serveStatic(root: string) {
     const file = resolveFile(target, rootAbs);
     if (file === null) return next();
 
-    ctx.type = MIME[extname(file).toLowerCase()] ?? 'application/octet-stream';
-    ctx.body = readFileSync(file);
+    let entry = staticCache.get(file);
+    if (!entry) {
+      const raw = readFileSync(file);
+      const ext = extname(file).toLowerCase();
+      // Hashed build assets ("/assets/index-CAafs2QR.js") are immutable —
+      // their name changes whenever content does. Unhashed public files
+      // (images, index.html) revalidate per session instead.
+      const immutable = /-[A-Za-z0-9_-]{8}\.\w+$/.test(file.replace(rootAbs, ''));
+      entry = {
+        raw,
+        gz: null,
+        etag: `"${createHash('sha1').update(raw).digest('base64url')}"`,
+        type: MIME[ext] ?? 'application/octet-stream',
+        cacheControl: immutable ? `public, max-age=${YEAR_SECONDS}, immutable` : 'public, max-age=0, must-revalidate',
+      };
+      staticCache.set(file, entry);
+    }
+
+    ctx.type = entry.type;
+    ctx.set('ETag', entry.etag);
+    ctx.set('Cache-Control', entry.cacheControl);
+    // Koa's default status is 404 and its `fresh` getter only applies to
+    // 2xx/304 — set 200 BEFORE reading it or it is always false.
+    ctx.status = 200;
+    if (ctx.fresh) {
+      ctx.status = 304; // client's copy still matches — no body at all
+      return;
+    }
+
+    const acceptsGzip = ctx.get('accept-encoding').includes('gzip');
+    if (acceptsGzip && COMPRESSIBLE.has(extname(file).toLowerCase())) {
+      entry.gz ??= await new Promise<Buffer>((done, fail) =>
+        import('node:zlib').then(({ gzip }) => gzip(entry!.raw, (e, r) => (e ? fail(e) : done(r)))),
+      );
+      ctx.set('Content-Encoding', 'gzip');
+      ctx.body = entry.gz;
+    } else {
+      ctx.body = entry.raw;
+    }
   };
 }
 
