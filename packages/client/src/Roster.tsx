@@ -24,13 +24,24 @@ import { GUN_URL } from './assets.js';
 import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks.js';
 import { navPickStatus } from './status.js';
 
-/** Set of the viewer's starting teammates (pirate gathering / leader's
- *  flock) — rendered as a persistent badge on those seats. A player
- *  converted mid-game also sees their converter (the Cult Leader). Private
- *  by construction: the engine ships `teammates` only in the viewer's own
- *  view. */
-function teammateSet(view: PlayerView): Set<string> {
-  return new Set([...(view.you.teammates ?? []), ...(view.you.convertedBy ? [view.you.convertedBy] : [])]);
+/** Teammate badges on seats, split by WHICH KIND of mate they are — the
+ *  badge icon/tooltip must describe the team-mate, not the viewer:
+ *  - cultMaster: the converter (always the Cult Leader) → 🐙 邪教首领;
+ *  - pirateMates: fellow pirates (☠️ 海盗同伴) — pirate sight only;
+ *  - cultMates: the leader's starting flock (🐙 邪教同伴).
+ * Private by construction: the engine ships these only in the viewer's own
+ * view. */
+function mateSets(view: PlayerView): {
+  cultMaster: Set<string>;
+  pirateMates: Set<string>;
+  cultMates: Set<string>;
+} {
+  const teammates = view.you.teammates ?? [];
+  return {
+    cultMaster: new Set(view.you.convertedBy ? [view.you.convertedBy] : []),
+    pirateMates: new Set(view.you.team === 'pirate' ? teammates : []),
+    cultMates: new Set(view.you.cultLeader ? teammates : []),
+  };
 }
 
 export function Roster({
@@ -49,7 +60,10 @@ export function Roster({
   const { officers } = view;
   const n = seats.length;
   const [marking, setMarking] = useState<string | null>(null);
-  const mates = teammateSet(view);
+  const mates = mateSets(view);
+  /** Per-seat teammate badge: which kind of mate is this seat (if any)? */
+  const mateOf = (id: string): 'master' | 'pirate' | 'cult' | null =>
+    mates.cultMaster.has(id) ? 'master' : mates.pirateMates.has(id) ? 'pirate' : mates.cultMates.has(id) ? 'cult' : null;
 
   // You at the 6-o'clock position; later seats walk clockwise around the
   // table. Screen coords (y grows downward) put angle 90° at bottom centre.
@@ -94,13 +108,14 @@ export function Roster({
               {officers.navigator === p.id && (
                 <img className="roster__token-medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />
               )}
-              {mates.has(p.id) && (
-                <span
-                  className={'roster__token-mate ' + (view.you.cultLeader ? 'roster__token-mate--cult' : '')}
-                  title={view.you.cultLeader ? '你的邪教同伴' : '你的海盗同伴'}
-                >
-                  {view.you.cultLeader ? '🐙' : '☠️'}
-                </span>
+              {mateOf(p.id) === 'master' && (
+                <span className="roster__token-mate roster__token-mate--cult" title="邪教首领（转化了你）">🐙</span>
+              )}
+              {mateOf(p.id) === 'pirate' && (
+                <span className="roster__token-mate" title="你的海盗同伴">☠️</span>
+              )}
+              {mateOf(p.id) === 'cult' && (
+                <span className="roster__token-mate roster__token-mate--cult" title="你的邪教同伴">🐙</span>
               )}
               {p.offDuty && <span className="roster__token-dot" title="歇班">💤</span>}
               {p.declaredCult && (
@@ -146,14 +161,9 @@ export function Roster({
                 {officers.captain === p.id && <em title="船长">🧭</em>}
                 {officers.lieutenant === p.id && <img className="roster__row-medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />}
                 {officers.navigator === p.id && <img className="roster__row-medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />}
-                {mates.has(p.id) && (
-                  <em
-                    className={'roster__row-mate ' + (view.you.cultLeader ? 'roster__row-mate--cult' : '')}
-                    title={view.you.cultLeader ? '你的邪教同伴' : '你的海盗同伴'}
-                  >
-                    {view.you.cultLeader ? '🐙' : '☠️'}
-                  </em>
-                )}
+                {mateOf(p.id) === 'master' && <em className="roster__row-mate roster__row-mate--cult" title="邪教首领（转化了你）">🐙</em>}
+                {mateOf(p.id) === 'pirate' && <em className="roster__row-mate" title="你的海盗同伴">☠️</em>}
+                {mateOf(p.id) === 'cult' && <em className="roster__row-mate roster__row-mate--cult" title="你的邪教同伴">🐙</em>}
                 {p.name}
                 {self && ' (你)'}
               </span>
