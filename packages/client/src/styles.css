@@ -1150,6 +1150,14 @@ button:disabled { cursor: not-allowed; }
 .card-reveal__hint { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
 .card-reveal__close { width: 100%; }
 
+/* 仪式牌预览 (RitualPeek): 5s of card info before the lids close. */
+.ritual-peek__box { max-width: 340px; text-align: center; }
+.ritual-peek__kicker { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.14em; color: var(--ink-ghost); }
+.ritual-peek__glyph { display: block; font-size: 44px; margin: 4px 0 6px; animation: launch-pop 0.6s ease-out; }
+.ritual-peek__title { margin: 0 0 8px; font-family: var(--font-serif); color: var(--cult, var(--gold)); font-size: 24px; }
+.ritual-peek__hint { margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
+.ritual-peek__close { width: 100%; }
+
 /* Ritual veil (RitualReveal.tsx): 闭眼仪式 — two eyelids slide over the
    board, abyssal violet. The content (glyph/title/whispers) fades in once
    the lids are shut and fades out before they part, so nobody watches the

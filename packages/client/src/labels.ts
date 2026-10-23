@@ -57,6 +57,13 @@ export const RITUAL_LABEL: Record<RitualCardId, string> = {
   cultCabinSearch: '邪教船舱搜查',
 };
 
+/** One-line rule reminder per ritual card, shown on the 5s pre-veil peek. */
+export const RITUAL_HINT: Record<RitualCardId, string> = {
+  conversion: '邪教首领暗中指定一名玩家——其当即被同化为邪教徒',
+  gunsStash: '邪教首领暗中把 3 把枪分给任意玩家（可给自己），随后分配公开',
+  cultCabinSearch: '邪教首领暗中查明船长、大副、领航员三人的阵营',
+};
+
 export const PHASE_LABEL: Record<string, string> = {
   setup: '准备',
   appointTeam: '任命船员',

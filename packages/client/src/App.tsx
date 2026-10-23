@@ -15,6 +15,7 @@ import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
 import { CardReveal, cardRevealKey } from './CardReveal.js';
+import { RitualPeek } from './RitualPeek.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
 import { EndScreen } from './EndScreen.js';
 import { RitualReveal } from './RitualReveal.js';
@@ -578,9 +579,28 @@ export function App() {
   const [seenConversion, setSeenConversion] = useState<string | null>(null);
   const [veilMounted, setVeilMounted] = useState(false);
   const freshConversion = !!convertedBy && seenConversion !== convertedBy;
+  // 5s card peek BEFORE the lids close: the ritual card just flipped and the
+  // table should get to read WHAT it does (the tabletop group passes the
+  // physical card around; online the veil used to swallow it instantly).
+  // During the peek the ritual is NOT yet "active" — the board stays visible
+  // with the CardReveal modal on top; when the timer lands, the lids take
+  // over. A mid-peek refresh just restarts the 5s (harmless).
+  const [peeking, setPeeking] = useState(false);
+  useEffect(() => {
+    if (!ritualPending) {
+      setPeeking(false);
+      return;
+    }
+    setPeeking(true);
+    const t = window.setTimeout(() => setPeeking(false), 5000);
+    return () => window.clearTimeout(t);
+  }, [ritualPending]);
+  // The conversion beat (被转化 reveal) must NOT be delayed — it carries no
+  // card to read and the leader is waiting to act. Peek gates only the
+  // bystander/leader lid-closing driven by `ritualPending`.
   const ritualVeilActive =
     !!game.view && game.view.winner === null &&
-    (ritualPending || freshConversion) && !ritualDismissed;
+    ((ritualPending && !peeking) || freshConversion) && !ritualDismissed;
   // Mount the veil the moment a window opens; onGone (lids finished parting)
   // unmounts it. Keeps the exit animation alive across the active→idle edge.
   useEffect(() => {
@@ -894,6 +914,10 @@ export function App() {
 
       {cardRevealOpen && game.view.winner === null && (
         <CardReveal view={view} onDone={() => setSeenCardKey(cardKey)} />
+      )}
+
+      {peeking && !freshConversion && (
+        <RitualPeek view={view} onDone={() => setPeeking(false)} />
       )}
 
       {loyaltyLive && mutinyPromptOpen && game.view.winner === null && (
