@@ -1808,7 +1808,10 @@ button:disabled { cursor: not-allowed; }
 
 /* -------------------------------- cards -------------------------------- */
 
-.cardsplit__hand { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.cardsplit__hand { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; align-items: flex-start; }
+/* 牌 + 说明 cell (方案 A): the hint is a sibling BELOW the card box, so
+   the pick frame wraps the face only — 说明不在牌框里. */
+.cardsplit__cell { display: flex; flex-direction: column; gap: 2px; }
 .navcard {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   padding: 0; border-radius: var(--radius);
@@ -1855,15 +1858,16 @@ button:disabled { cursor: not-allowed; }
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   pointer-events: none;
 }
-/* Always-on rules line under the face. PC hides it — the hover `title`
-   tooltip already covers it there; phones have no hover, so the mobile
-   media query turns it on. Inert text: pointer-events none so a tap on
-   it still selects the card inside a CardSplitter button. */
+/* Always-on rules line under the face (outside the card frame). PC hides
+   it — the hover `title` tooltip already covers it there; the mobile media
+   query turns it on. Inert text (pointer-events:none) — tapping it in a
+   Cell still lands on nothing interactive, selection stays on the card. */
 .navface__hint {
   display: none;
-  margin: 6px 2px 0;
-  font-size: 12px;
-  line-height: 1.6;
+  width: 96px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
   color: var(--ink-dim);
   pointer-events: none;
 }

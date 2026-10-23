@@ -12,7 +12,7 @@ import type { PlayerView, NavCardId, PlayerId } from '@ftk/engine';
 import {
   FACTION_ICON, FACTION_LABEL, PHASE_LABEL, RITUAL_LABEL,
 } from './labels.js';
-import { NavCardFace } from './NavCardFace.js';
+import { NavCardFace, NavCardHint } from './NavCardFace.js';
 import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
   iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
@@ -55,17 +55,19 @@ function CardSplitter({
       <p className="hint">选择要保留的牌（另一张自动弃入深海）</p>
       <div className="cardsplit__hand">
         {cards.map((c, i) => (
-          <button
-            key={`${c}-${i}`}
-            className={
-              'navcard' + (keep === i ? ' navcard--keep' : '') + (discard === i ? ' navcard--drop' : '')
-            }
-            onClick={() => choose(i)}
-          >
-            <NavCardFace card={c} expand />
-            {keep === i && <span className="navcard__tag">保留</span>}
-            {discard === i && <span className="navcard__tag navcard__tag--drop">弃掉</span>}
-          </button>
+          <div key={`${c}-${i}`} className="cardsplit__cell">
+            <button
+              className={
+                'navcard' + (keep === i ? ' navcard--keep' : '') + (discard === i ? ' navcard--drop' : '')
+              }
+              onClick={() => choose(i)}
+            >
+              <NavCardFace card={c} />
+              {keep === i && <span className="navcard__tag">保留</span>}
+              {discard === i && <span className="navcard__tag navcard__tag--drop">弃掉</span>}
+            </button>
+            <NavCardHint card={c} />
+          </div>
         ))}
       </div>
       <div className="row">
@@ -88,8 +90,11 @@ function CardList({ cards }: { cards: NavCardId[] }) {
   return (
     <div className="cardsplit__hand">
       {cards.map((c, i) => (
-        <div key={`${c}-${i}`} className="navcard navcard--static">
-          <NavCardFace card={c} expand />
+        <div key={`${c}-${i}`} className="cardsplit__cell">
+          <div className="navcard navcard--static">
+            <NavCardFace card={c} />
+          </div>
+          <NavCardHint card={c} />
         </div>
       ))}
     </div>

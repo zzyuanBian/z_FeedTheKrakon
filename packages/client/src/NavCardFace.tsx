@@ -5,28 +5,26 @@
  * `sail.png` contact sheet: `sail-<cardId>.jpg`, one 500×500 square per
  * card. The Chinese card name rides on a bottom gradient band.
  *
- * `expand` renders the one-line rules text under the face — phones have
- * no hover tooltip, and pick moments are exactly when the effect matters.
- * CSS hides it on hover-capable pointers (PC keeps the `title` tooltip
- * only). The line is inert text (pointer-events:none): tapping it still
- * selects the card in a CardSplitter button.
+ * `NavCardHint` is the one-line rules text that accompanies a card: PC
+ * hides it (the hover `title` tooltip covers it there); the mobile media
+ * query shows it. Parents render it OUTSIDE the card box (方案 A) — 牌归牌，
+ * 说明归说明 — so the pick frame never wraps the text.
  */
 
 import type { NavCardId } from '@ftk/engine';
 import { NAV_CARD_HINT, NAV_CARD_LABEL } from './labels.js';
 
-export function NavCardFace({ card, expand = false }: {
-  card: NavCardId;
-  /** Show the always-on rules line under the face (mobile only via CSS). */
-  expand?: boolean;
-}) {
+export function NavCardFace({ card }: { card: NavCardId }) {
   return (
-    <>
-      <div className="navface" title={NAV_CARD_HINT[card]}>
-        <img className="navface__art" src={`cards/sail-${card}.jpg`} alt="" draggable={false} />
-        <span className="navface__label">{NAV_CARD_LABEL[card]}</span>
-      </div>
-      {expand && <p className="navface__hint">{NAV_CARD_HINT[card]}</p>}
-    </>
+    <div className="navface" title={NAV_CARD_HINT[card]}>
+      <img className="navface__art" src={`cards/sail-${card}.jpg`} alt="" draggable={false} />
+      <span className="navface__label">{NAV_CARD_LABEL[card]}</span>
+    </div>
   );
 }
+
+/** Rules line for one card — render as a sibling BELOW the card box. */
+export function NavCardHint({ card }: { card: NavCardId }) {
+  return <p className="navface__hint">{NAV_CARD_HINT[card]}</p>;
+}
+
