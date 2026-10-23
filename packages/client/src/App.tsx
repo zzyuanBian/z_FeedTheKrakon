@@ -16,6 +16,8 @@ import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
 import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { RitualPeek } from './RitualPeek.js';
+import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
+import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
 import { EndScreen } from './EndScreen.js';
 import { RitualReveal } from './RitualReveal.js';
@@ -618,6 +620,17 @@ export function App() {
     if (ritualDismissed && freshConversion && convertedBy) setSeenConversion(convertedBy);
   }, [ritualDismissed, freshConversion, convertedBy]);
 
+  // 放大镜(船舱搜查)通知: pops for EVERY seat while the mapAction pending
+  // for a magnify space is live; keyed per round, dismissed per key.
+  const csKey = game.view ? cabinSearchKey(game.view) : null;
+  const [seenCsKey, setSeenCsKey] = useState<string | null>(null);
+  const cabinNoticeOpen = csKey !== null && csKey !== seenCsKey;
+  // 邪教囤枪公示: pops when the ritualGuns log entry is the newest event;
+  // keyed on the entry's index so each stash notifies exactly once.
+  const gsKey = game.view ? gunsStashKey(game.view) : null;
+  const [seenGsKey, setSeenGsKey] = useState<string | null>(null);
+  const gunsNoticeOpen = gsKey !== null && gsKey !== seenGsKey;
+
   // On mobile the side column is tabs; auto-focus the action tab when the
   // player has something to do.
   const needsMe = !!game.view?.pending?.isYou;
@@ -919,6 +932,14 @@ export function App() {
 
       {peeking && !freshConversion && (
         <RitualPeek view={view} onDone={() => setPeeking(false)} />
+      )}
+
+      {cabinNoticeOpen && (
+        <CabinSearchNotice onDone={() => setSeenCsKey(csKey)} />
+      )}
+
+      {gunsNoticeOpen && (
+        <GunsStashNotice view={view} onDone={() => setSeenGsKey(gsKey)} />
       )}
 
       {loyaltyLive && mutinyPromptOpen && game.view.winner === null && (

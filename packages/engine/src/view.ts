@@ -15,7 +15,7 @@
 
 import type {
   ArrowColor, Faction, FactionCounts, GameState, LogEntry, NavCardId, Pending, PhaseId,
-  PlayerId, RitualCardId, Ship,
+  PlayerId, RitualCardId, Ship, SpaceIcon,
 } from './state.js';
 import { activeSeatIds } from './helpers.js';
 import { effectiveFactionCounts } from './setup.js';
@@ -135,7 +135,14 @@ export interface PlayerView {
   /** Whose input the game is currently waiting on, and for what. `by` is the
    *  actor's id — except for secret-actor pendings (a ritual would out the
    *  Cult Leader), where it is null for everyone but the actor themself. */
-  pending: { kind: Pending['kind']; by: PlayerId | null; isYou: boolean } | null;
+  pending: {
+    kind: Pending['kind'];
+    by: PlayerId | null;
+    isYou: boolean;
+    /** mapAction only: which space icon triggered it (public — the map art
+     *  is face-up). Other pendings carry undefined. */
+    icon?: SpaceIcon | undefined;
+  } | null;
   /** True if the viewer is the room host (may force-advance a stuck phase). */
   isHost: boolean;
   /** Private data attached to a pending that belongs to the viewer. */
@@ -284,6 +291,12 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
             ? null
             : state.pending.by,
           isYou: state.pending.by === viewer,
+          // mapAction's icon is public (the space art is face-up on the map);
+          // shipping it on EVERYone's pending lets non-captain clients show
+          // the matching notice without guessing from ship position.
+          icon: state.pending.kind === 'mapAction'
+            ? (state.pending.data?.['icon'] as SpaceIcon | undefined)
+            : undefined,
         }
       : null,
     isHost: state.host === viewer,

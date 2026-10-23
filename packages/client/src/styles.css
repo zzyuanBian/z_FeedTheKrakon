@@ -1158,6 +1158,38 @@ button:disabled { cursor: not-allowed; }
 .ritual-peek__hint { margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
 .ritual-peek__close { width: 100%; }
 
+/* 船舱搜查通知 (CabinSearchNotice) + 邪教囤枪公示 (GunsStashNotice):
+   same broadcast-notice shape — icon/glyph, title, body, 知道了. */
+.cabin-notice__box, .guns-notice__box { max-width: 340px; text-align: center; }
+.cabin-notice__icon { width: 150px; height: auto; border-radius: 12px; margin-bottom: 10px; }
+.cabin-notice__title, .guns-notice__title { margin: 0 0 8px; font-family: var(--font-serif); color: var(--gold); font-size: 22px; }
+.cabin-notice__text, .guns-notice__sub { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
+.cabin-notice__text b { color: var(--ink); }
+.cabin-notice__close, .guns-notice__close { width: 100%; }
+.guns-notice__glyph { display: block; font-size: 40px; margin-bottom: 6px; }
+.guns-notice__list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.guns-notice__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  font-size: 14px;
+}
+.guns-notice__row--none { justify-content: center; color: var(--ink-ghost); font-style: italic; }
+.guns-notice__name { flex: 1; text-align: left; }
+.guns-notice__guns { letter-spacing: 2px; }
+.guns-notice__total { margin: 0 0 14px; font-size: 12px; color: var(--ink-ghost); }
+
 /* Ritual veil (RitualReveal.tsx): 闭眼仪式 — two eyelids slide over the
    board, abyssal violet. The content (glyph/title/whispers) fades in once
    the lids are shut and fades out before they part, so nobody watches the
@@ -2412,14 +2444,29 @@ button:disabled { cursor: not-allowed; }
 .mutiny-prompt__min { width: 100%; margin-top: 2px; }
 .mutiny-prompt__wait { text-align: center; }
 
-/* 任命确认弹框 (AppointForm's confirm step): the proposal restated with the
-   two names carrying the weight — gold + bold. */
+/* 任命确认弹框 (AppointForm's confirm step): one row per officer — medal,
+   avatar, role, gold+bold name — instead of a run-on sentence. */
 .appoint-confirm__title { margin: 0 0 10px; }
-.appoint-confirm__line { margin: 0 0 8px; font-size: 15px; line-height: 1.8; color: var(--ink); }
+.appoint-confirm__lead { margin: 0 0 10px; font-size: 15px; color: var(--ink); }
+.appoint-confirm__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  margin: 0 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+}
+.appoint-confirm__medal { width: 26px; height: auto; flex: 0 0 auto; }
+.appoint-confirm__role { font-size: 13px; color: var(--ink-dim); letter-spacing: 0.08em; flex: 0 0 auto; }
 .appoint-confirm__who {
   color: var(--gold-bright);
   font-size: 18px;
   letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .appoint-confirm__actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
 .appoint-confirm__actions .btn { flex: 1; }

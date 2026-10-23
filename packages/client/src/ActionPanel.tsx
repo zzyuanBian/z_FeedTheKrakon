@@ -13,6 +13,7 @@ import {
   FACTION_ICON, FACTION_LABEL, PHASE_LABEL, RITUAL_LABEL,
 } from './labels.js';
 import { NavCardFace } from './NavCardFace.js';
+import { AvatarImage } from './Avatars.js';
 import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
   iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
@@ -28,6 +29,10 @@ export interface ActionPanelProps {
 
 const name = (view: PlayerView, id: PlayerId): string =>
   (id === view.you.id ? view.you : view.others.find((p) => p.id === id))?.name ?? id;
+
+/** Full player record for the appointment rows (avatar + name together). */
+const who = (view: PlayerView, id: PlayerId) =>
+  (id === view.you.id ? view.you : view.others.find((p) => p.id === id)) ?? { id, avatar: -1, name: id };
 
 /** A two-card splitter: pick the card to keep — the other one is marked for
  *  the deep automatically. Tapping the kept card again clears the choice. */
@@ -240,11 +245,19 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
         <div className="modal" onClick={() => setConfirming(false)}>
           <div className="modal__box appoint-confirm" onClick={(e) => e.stopPropagation()}>
             <h2 className="appoint-confirm__title">任命确认</h2>
-            <p className="appoint-confirm__line">
-              船长提议：大副 —{' '}
-              <strong className="appoint-confirm__who">{name(view, lt)}</strong>
-              {'　·　'}水手 — <strong className="appoint-confirm__who">{name(view, nav)}</strong>
-            </p>
+            <p className="appoint-confirm__lead">船长提议：</p>
+            <div className="appoint-confirm__row">
+              <img className="appoint-confirm__medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />
+              <AvatarImage avatarId={who(view, lt).avatar} size={30} title={who(view, lt).name} />
+              <span className="appoint-confirm__role">大副</span>
+              <strong className="appoint-confirm__who">{who(view, lt).name}</strong>
+            </div>
+            <div className="appoint-confirm__row">
+              <img className="appoint-confirm__medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />
+              <AvatarImage avatarId={who(view, nav).avatar} size={30} title={who(view, nav).name} />
+              <span className="appoint-confirm__role">领航员</span>
+              <strong className="appoint-confirm__who">{who(view, nav).name}</strong>
+            </div>
             <p className="hint">提交后全体船员将立即收到哗变表决提醒，任命不可撤回。</p>
             <div className="appoint-confirm__actions">
               <button className="btn" onClick={() => setConfirming(false)}>再想想</button>

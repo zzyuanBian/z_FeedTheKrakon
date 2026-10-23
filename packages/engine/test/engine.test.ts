@@ -138,12 +138,12 @@ describe('viewFor — the information gate', () => {
     expect(otherView.pendingData).toBeNull();
   });
 
-  it('still names the actor of non-ritual pendings', () => {
+  it('still names the actor of non-ritual pendings (icon rides public)', () => {
     const g = newGame(7);
     g.pending = { kind: 'mapAction', by: g.officers.captain!, data: { icon: 'magnify' } };
     const watcher = g.seatOrder.find((id) => id !== g.officers.captain)!;
     const v = viewFor(g, watcher);
-    expect(v.pending).toEqual({ kind: 'mapAction', by: g.officers.captain, isYou: false });
+    expect(v.pending).toEqual({ kind: 'mapAction', by: g.officers.captain, isYou: false, icon: 'magnify' });
   });
 
   it('is idempotent (pure)', () => {
