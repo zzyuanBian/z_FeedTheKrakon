@@ -20,6 +20,7 @@ import { useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { FACTION_ICON, FACTION_LABEL } from './labels.js';
 import { AvatarImage } from './Avatars.js';
+import { GUN_URL } from './assets.js';
 import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks.js';
 import { navPickStatus } from './status.js';
 
@@ -168,7 +169,7 @@ export function Roster({
                     </span>
                   ))}
                 {team && <span className="badge">{FACTION_ICON[team]}{FACTION_LABEL[team]}</span>}
-                <span className="badge" title="枪">🔫{p.guns}</span>
+                <span className="badge" title="枪"><img className="gun-ico" src={GUN_URL} alt="" />{p.guns}</span>
                 <span className="badge" title="履历">📜{p.resumes}</span>
                 {p.offDuty && <span className="badge badge--off" title="歇班">💤</span>}
                 {p.declaredCult && <span className="badge badge--cult" title="已被公开为邪教徒">🐙</span>}

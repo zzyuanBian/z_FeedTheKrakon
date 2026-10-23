@@ -2330,6 +2330,19 @@ button:disabled { cursor: not-allowed; }
 .mutiny-prompt__sub { margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: var(--ink-dim); }
 .mutiny-prompt__guns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
 .mutiny-prompt__gun { min-width: 52px; }
+/* Outsourced flintlock art replaces the 🔫 emoji everywhere it appeared.
+   One inline-block size per context: 22px in pledge buttons (26px when the
+   gold selected art shows), 14px in roster badges, 18px in the reveal list. */
+.gun-ico {
+  display: inline-block;
+  width: auto;
+  height: 22px;
+  vertical-align: -7px; /* sit on the text baseline, not the img default */
+  margin-right: 2px;
+}
+.badge .gun-ico { height: 14px; vertical-align: -3px; }
+.mutiny-reveal__guns .gun-ico { height: 18px; vertical-align: -5px; margin-right: 1px; }
+.mutiny-prompt__gun.chip--on .gun-ico { height: 26px; vertical-align: -8px; }
 .mutiny-prompt__confirm { width: 100%; }
 .mutiny-prompt__roster { list-style: none; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--line-strong); }
 .mutiny-prompt__row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }

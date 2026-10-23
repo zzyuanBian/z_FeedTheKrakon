@@ -23,6 +23,7 @@ import { useState } from 'react';
 import type { PlayerView, PlayerId } from '@ftk/engine';
 import { iOweMutinyPledge } from './actions.js';
 import { AvatarImage } from './Avatars.js';
+import { GUN_BUTTON_URL, GUN_SELECTED_URL } from './assets.js';
 
 export function MutinyPrompt({
   view,
@@ -119,7 +120,18 @@ function PledgeForm({
             className={'chip mutiny-prompt__gun' + (picked === n ? ' chip--on' : '')}
             onClick={() => setPicked(n)}
           >
-            {n === 0 ? '忠诚' : `🔫${n}`}
+            {n === 0 ? (
+              '忠诚'
+            ) : (
+              <>
+                <img
+                  className="gun-ico"
+                  src={picked === n ? GUN_SELECTED_URL : GUN_BUTTON_URL}
+                  alt=""
+                />
+                {n}
+              </>
+            )}
           </button>
         ))}
       </div>

@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
+import { GUN_URL } from './assets.js';
 
 export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () => void }) {
   const m = view.mutiny;
@@ -61,7 +62,12 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
                 id === view.you.id ? view.you.avatar : view.others.find((p) => p.id === id)?.avatar ?? -1
               } size={26} title={nameOf(id)} />
               <span className="mutiny-reveal__name">{nameOf(id)}{id === view.you.id && '（你）'}</span>
-              <span className="mutiny-reveal__guns">{'🔫'.repeat(Math.min(guns, 5))}{guns > 5 ? ` ×${guns}` : ''}</span>
+              <span className="mutiny-reveal__guns" title={`${guns} 枪`}>
+                {Array.from({ length: Math.min(guns, 5) }, (_, i) => (
+                  <img key={i} className="gun-ico" src={GUN_URL} alt="" />
+                ))}
+                {guns > 5 ? ` ×${guns}` : ''}
+              </span>
             </li>
           ))}
           {pledgeRows.length === 0 && <li className="mutiny-reveal__row mutiny-reveal__row--none">无人出枪</li>}

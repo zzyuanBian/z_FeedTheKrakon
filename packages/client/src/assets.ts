@@ -11,3 +11,9 @@ export const MAP_IMAGE_URL = `${BASE}maps/short.jpg`;
 
 /** Top-down ship marker (outsourced art, head-up), drawn on the board. */
 export const SHIP_URL = `${BASE}img/ship.png`;
+
+/** Flintlock pistol (outsourced art, muzzle-left) for the mutiny UI:
+ *  roster/log badges, pledge buttons, and the selected (gold) button state. */
+export const GUN_URL = `${BASE}img/gun.png`;
+export const GUN_BUTTON_URL = `${BASE}img/gun-button.png`;
+export const GUN_SELECTED_URL = `${BASE}img/gun-selected.png`;
