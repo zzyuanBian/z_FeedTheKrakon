@@ -15,6 +15,30 @@ import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 
 const NAV_BACK = 'cards/nav-back.jpg';
+const DECK_NAV = 'cards/deck-nav.jpg';
+const DECK_RITUAL = 'cards/deck-ritual.jpg';
+
+/**
+ * 航行/邪教仪式抽牌堆 (twin draw piles). One horizontal row between the
+ * off-duty bench and the discard sea: each pile shows its card back + a
+ * count. Pure display — drawing is engine-automatic, the piles are not
+ * clickable. 仪式堆张数是公开信息 (the rituals.remaining projection is
+ * shipped to every view, no secrets inside).
+ */
+export function DrawPiles({ view }: { view: PlayerView }) {
+  return (
+    <div className="drawpiles">
+      <div className="drawpile" title="航行抽牌堆：领航团队每回合从这里补牌">
+        <img className="drawpile__back" src={DECK_NAV} alt="" draggable={false} />
+        <span className="drawpile__count">航行 {view.navigation.deckCount}</span>
+      </div>
+      <div className="drawpile" title="邪教仪式抽牌堆：航行牌触发仪式时从这里翻开">
+        <img className="drawpile__back" src={DECK_RITUAL} alt="" draggable={false} />
+        <span className="drawpile__count">仪式 {view.rituals.remaining}</span>
+      </div>
+    </div>
+  );
+}
 
 /** 深海弃牌区（地图左侧）。整张 drop.png 原样呈现——横幅、漩涡都是画里
  *  自带的，UI 不重画；弃牌牌背叠在上部深色海面，张数以图下一行文字呈现。 */

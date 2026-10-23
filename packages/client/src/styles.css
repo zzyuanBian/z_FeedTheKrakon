@@ -1376,6 +1376,38 @@ button:disabled { cursor: not-allowed; }
   margin: 0;
 }
 .col--wing .discard-sea { flex: 1 1 0; min-height: 0; }
+/* 航行/邪教仪式抽牌堆: one horizontal row between the bench and the sea.
+   Two square backs side by side; counts ride under each back like the
+   discard sea's own label. Pure display (engine draws automatically). */
+.drawpiles {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.drawpile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.drawpile__back {
+  width: 100%;
+  max-width: 86px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+.drawpile__count {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
 /* PC hides the crew pane's off-duty duplicate; mobile hides the wing's. */
 .side-pane__offduty { display: none; }
 .col--board { display: flex; flex-direction: column; padding: 12px; }
@@ -1505,14 +1537,18 @@ button:disabled { cursor: not-allowed; }
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
 }
 .col--wing .offduty {
-  /* Natural portrait size at the wing's width — NO flex stretching toward
-     50% of the column. Whatever height the 549:948 box needs is what it
-     takes; the discard sea below absorbs the rest. */
-  flex: 0 0 auto;
+  /* Portrait art at the wing's width, CAPPED at 52% of the column: the
+     draw-piles row and the discard sea below need their share, and the
+     natural 549:948 height would squeeze the sea to a sliver. Under the
+     cap the box is wider than 549:948, so `cover` fills it and crops a
+     little off the art's top/bottom — the painted banner + caption stay
+     centred and readable. */
+  flex: 0 1 auto;
   width: 100%;
+  max-height: 52%;
   aspect-ratio: 549 / 948;
   margin: 0;
-  background: url('/img/zone-rest-tall.jpg') center / 100% 100% no-repeat;
+  background: url('/img/zone-rest-tall.jpg') center / cover no-repeat;
 }
 /* The art's painted banner already says 歇班 — the DOM badge is redundant. */
 .col--wing .zones__banner--rest { display: none; }

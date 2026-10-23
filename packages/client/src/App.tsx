@@ -10,7 +10,7 @@ import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
 } from './Lobby.js';
 import { Board } from './Board.js';
-import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
+import { DiscardSea, DrawPiles, OffDutyZone } from './ZonesPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
@@ -843,6 +843,7 @@ export function App() {
             roster live in the 船员 tab. */}
         <div className="col col--wing">
           <OffDutyZone view={view} />
+          <DrawPiles view={view} />
           <DiscardSea view={view} />
         </div>
 
