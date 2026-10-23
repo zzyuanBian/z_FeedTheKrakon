@@ -225,6 +225,8 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
 
     mapActionCabinSearch: move((actor, target) => as('mapActionCabinSearch', actor, { target })),
     mapActionFeedKraken: move((actor, target) => as('mapActionFeedKraken', actor, { target })),
+    // The captain's ack on the private result modal — no secrets in the args.
+    mapActionRevealAck: move((actor) => as('mapActionRevealAck', actor)),
 
     // Rituals are the Cult Leader's moves — their actor is a hidden role, so
     // the args (conversion target, gun distribution) must not ride the

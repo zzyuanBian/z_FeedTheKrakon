@@ -17,6 +17,7 @@ import { MutinyReveal } from './MutinyReveal.js';
 import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { RitualPeek } from './RitualPeek.js';
 import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
+import { MapReveal, mapRevealActive } from './MapReveal.js';
 import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
 import { RitualChoice, ritualPickActive } from './RitualChoice.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
@@ -984,6 +985,13 @@ export function App() {
 
       {cabinNoticeOpen && (
         <CabinSearchNotice onDone={() => setSeenCsKey(csKey)} />
+      )}
+
+      {/* The captain's PRIVATE result beat — rendered after the public
+          notices so it sits on top of them if both are up. 知道了 acks and
+          the navigation resumes. */}
+      {mapRevealActive(view) && (
+        <MapReveal view={view} onAck={() => game.moves.mapActionRevealAck!()} />
       )}
 
       {gunsNoticeOpen && (

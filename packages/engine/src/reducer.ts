@@ -97,6 +97,7 @@ function handle(s: GameState, a: Action): void {
     case 'mermaidAck':      return mermaidAck(s, a);
     case 'mapActionCabinSearch': return mapActionCabinSearch(s, a);
     case 'mapActionFeedKraken':  return mapActionFeedKraken(s, a);
+    case 'mapActionRevealAck':   return mapActionRevealAck(s, a);
     case 'ritualPick':      return ritualPick(s, a);
     case 'ritualConversion':return ritualConversion(s, a);
     case 'ritualGunsStash': return ritualGunsStash(s, a);
@@ -701,8 +702,14 @@ function mapActionCabinSearch(s: GameState, a: Extract<Action, { type: 'mapActio
   s.secrets.push({ viewer: a.actor, about: a.target, team: target.team, round: s.round });
   s.log.push({ t: 'mapAction', kind: 'cabinSearch', actor: a.actor, target: a.target });
   s.navigation.applied.mapAction = true;
-  s.pending = null;
-  startCardEffect(s, s.navigation.revealed!);
+  // Hold the rest of the navigation until the captain has READ the private
+  // result: a reveal beat (only the captain's screen pops the identity).
+  // `icon` rides along so the public CabinSearchNotice keeps its key while
+  // the beat is live.
+  s.pending = {
+    kind: 'mapAction', by: a.actor,
+    data: { step: 'reveal', kind: 'cabinSearch', target: a.target, icon: 'magnify' },
+  };
 }
 
 function mapActionFeedKraken(s: GameState, a: Extract<Action, { type: 'mapActionFeedKraken' }>): void {
@@ -714,9 +721,28 @@ function mapActionFeedKraken(s: GameState, a: Extract<Action, { type: 'mapAction
   s.players[a.target]!.unconvertible = true;
   s.log.push({ t: 'mapAction', kind: 'feedKraken', actor: a.actor, target: a.target });
   s.navigation.applied.mapAction = true;
+  // Same reveal beat as the cabin search: the captain sees whom they fed to
+  // the Kraken (and their team) before the card effect follows. The cult-win
+  // check runs on the ack — the table must not learn the outcome early.
+  s.pending = {
+    kind: 'mapAction', by: a.actor,
+    data: { step: 'reveal', kind: 'feedKraken', target: a.target, icon: 'octopus' },
+  };
+}
+
+/** The captain acknowledged the private result — resume the card effect. */
+function mapActionRevealAck(s: GameState, a: Extract<Action, { type: 'mapActionRevealAck' }>): void {
+  assert(s.pending?.kind === 'mapAction' && s.pending.data?.['step'] === 'reveal', 'no reveal to ack');
+  assert(s.pending.by === a.actor, 'not your reveal');
+  // Deferred cult-win check (feedKraken): now that the captain has read the
+  // result, the outcome resolves publicly.
+  const target = s.pending.data!['target'] as PlayerId;
+  const kind = s.pending.data!['kind'] as 'cabinSearch' | 'feedKraken';
   s.pending = null;
-  // If the Cult Leader is fed to the Kraken, the Cult wins immediately.
-  if (t.cultLeader) { endGame(s, 'cult', '邪教首领被献祭给海怪'); return; }
+  if (kind === 'feedKraken') {
+    const t = s.players[target]!;
+    if (t.cultLeader) { endGame(s, 'cult', '邪教首领被献祭给海怪'); return; }
+  }
   startCardEffect(s, s.navigation.revealed!);
 }
 
@@ -790,7 +816,11 @@ function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>
         return mutinyTieBreak(s, { type: 'mutinyTieBreak', actor: p.by,
           standDown: (p.data!.remaining as PlayerId[])[0]! });
       case 'mapAction':
-        // Default the captain's choice to a Cabin Search on the next living player.
+        // Reveal beat: just acknowledge it. Target-pick window: default the
+        // captain's choice to a search on the next living player.
+        if (p.data?.['step'] === 'reveal') {
+          return mapActionRevealAck(s, { type: 'mapActionRevealAck', actor: p.by });
+        }
         return mapActionCabinSearch(s, { type: 'mapActionCabinSearch', actor: p.by,
           target: livingPlayers(s).find((id) => id !== p.by)! });
       case 'telescope':

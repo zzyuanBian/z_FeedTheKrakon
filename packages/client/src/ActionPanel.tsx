@@ -299,6 +299,9 @@ function PendingForm({
         />
       );
     case 'mapAction':
+      // Reveal beat — MapReveal (modal) owns the interaction; the target
+      // was already picked and settling.
+      if (String(data['step'] ?? '') === 'reveal') return null;
       return (
         <MapActionForm view={view} moves={moves} icon={String(data['icon'] ?? 'none')} />
       );

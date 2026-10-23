@@ -1207,6 +1207,20 @@ button:disabled { cursor: not-allowed; }
 .cabin-notice__text b { color: var(--ink); }
 .cabin-notice__close, .guns-notice__close { width: 100%; }
 .guns-notice__glyph { display: block; font-size: 40px; margin-bottom: 6px; }
+
+/* 私密结算结果 (MapReveal): the captain-only identity beat after picking a
+   magnify/octopus target — avatar, name, faction in large type. */
+.map-reveal__box { max-width: 320px; text-align: center; }
+.map-reveal__kicker { margin: 0 0 12px; font-size: 12px; letter-spacing: 0.14em; color: var(--ink-ghost); }
+.map-reveal__who { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 10px; }
+.map-reveal__who .avatar-img { border-radius: 50%; border: 2px solid var(--gold-dim, rgba(212, 167, 74, 0.5)); }
+.map-reveal__name { font-family: var(--font-serif); font-size: 20px; color: var(--ink); }
+.map-reveal__team { margin: 0 0 6px; font-family: var(--font-serif); font-size: 22px; font-weight: 700; }
+.map-reveal__team--sailor { color: var(--teal, #3ab2a8); }
+.map-reveal__team--pirate { color: var(--blood, #c0392b); }
+.map-reveal__team--cult { color: var(--cult, #9b59b6); }
+.map-reveal__sub { margin: 0 0 14px; font-size: 13px; line-height: 1.7; color: var(--ink-dim); }
+.map-reveal__close { width: 100%; }
 .guns-notice__list {
   list-style: none;
   margin: 0 0 10px;

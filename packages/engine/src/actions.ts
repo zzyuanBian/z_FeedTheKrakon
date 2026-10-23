@@ -52,6 +52,9 @@ export type Action =
   /* phase 3.1 II — map actions */
   | { type: 'mapActionCabinSearch'; actor: PlayerId; target: PlayerId }
   | { type: 'mapActionFeedKraken'; actor: PlayerId; target: PlayerId }
+  /* the acting captain's ack on the private result modal — the reveal beat
+     between picking the target and the rest of the navigation resolving */
+  | { type: 'mapActionRevealAck'; actor: PlayerId }
   /* cult rituals (after a Cult Uprising card) */
   /* house rule: the CAPTAIN picks which ritual card to reveal from the deck */
   | { type: 'ritualPick'; actor: PlayerId; slot: number }
