@@ -641,8 +641,18 @@ export function App() {
   const gunsNoticeOpen = gsKey !== null && gsKey !== seenGsKey;
 
   // On mobile the side column is tabs; auto-focus the action tab when the
-  // player has something to do.
-  const needsMe = !!game.view?.pending?.isYou;
+  // player has something to do. The navigation contribute/logbook stages set
+  // NO engine pending — they ride navigation.stage/mine instead — so they
+  // must be spelled out here or a captain/lieutenant sitting on another tab
+  // (e.g. just after the mutiny vote) never gets pulled back to their cards.
+  const nav = game.view?.navigation;
+  const navMine =
+    (!!game.view && nav?.stage === 'contribute' && !nav.hasActed &&
+      (game.view.you.id === game.view.officers.captain ||
+        game.view.you.id === game.view.officers.lieutenant)) ||
+    (!!game.view && nav?.stage === 'logbook' &&
+      game.view.you.id === game.view.officers.navigator);
+  const needsMe = !!game.view?.pending?.isYou || navMine;
 
   useEffect(() => {
     if (needsMe) setTab('action');
