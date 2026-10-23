@@ -1495,14 +1495,15 @@ button:disabled { cursor: not-allowed; }
 /* The art's painted banner already says 歇班 — the DOM badge is redundant. */
 .col--wing .zones__banner--rest { display: none; }
 /* The overlay text sits on a canvas ~1.7× the landscape art's linear size,
-   so scale it up to match. Anchored under the painted two-line caption. */
+   so scale it up to match. Anchored below the painted two-line caption
+   (which ends ~41% down the art) with a breathing gap. */
 .col--wing .offduty__empty {
-  top: 36%;
+  top: 47%;
   font-size: 18px;
   letter-spacing: 0.18em;
 }
 .col--wing .offduty__crew {
-  top: 39%;
+  top: 47%;
   bottom: 18px;
   gap: 6px 16px;
   padding: 0 20px;
@@ -1516,7 +1517,7 @@ button:disabled { cursor: not-allowed; }
   position: absolute;
   left: 0;
   right: 0;
-  /* Under the painted caption (这名领航员或中尉懒得航海。), the parchment's
+  /* Under the painted caption (这名领航员或大副懒得航海。), the parchment's
      lower area — where resting crew belongs. */
   top: 76%;
   text-align: center;
