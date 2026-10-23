@@ -2668,7 +2668,7 @@ button:disabled { cursor: not-allowed; }
     flex-basis: 100%;
     font-size: 12px;
     font-weight: 600;
-    color: #3c2c1a;
+    color: var(--gold, #d4a74a);
   }
 
   /* Side column = tab strip + one visible pane; the pane scrolls so the
