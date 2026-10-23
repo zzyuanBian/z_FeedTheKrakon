@@ -1855,26 +1855,17 @@ button:disabled { cursor: not-allowed; }
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   pointer-events: none;
 }
-/* Tap-to-toggle effect chip (NavCardFace expand): phones have no hover
-   tooltip, so the face carries a visible affordance for the rules line. */
-.navface__more {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  padding: 1px 7px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #1a1203;
-  background: rgba(212, 167, 74, 0.92);
-  border-radius: 6px;
-  pointer-events: none;
-}
-.navface__more--on { background: rgba(58, 178, 168, 0.92); color: #032220; }
+/* Always-on rules line under the face. PC hides it — the hover `title`
+   tooltip already covers it there; phones have no hover, so the mobile
+   media query turns it on. Inert text: pointer-events none so a tap on
+   it still selects the card inside a CardSplitter button. */
 .navface__hint {
+  display: none;
   margin: 6px 2px 0;
   font-size: 12px;
   line-height: 1.6;
   color: var(--ink-dim);
+  pointer-events: none;
 }
 
 /* ------------------------------- roster -------------------------------- */
@@ -2703,6 +2694,9 @@ button:disabled { cursor: not-allowed; }
     border-top: 1px solid var(--line);
     overflow: hidden;
   }
+  /* No hover on phones: the nav-card rules line ships expanded (NavCardFace
+     expand). PC keeps it hidden behind the title tooltip. */
+  .navface__hint { display: block; }
   .tabs { display: flex; }
   .side-pane { flex: 1; min-height: 0; overflow: auto; }
   .side-pane--off { display: none; }
