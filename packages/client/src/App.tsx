@@ -14,6 +14,7 @@ import { DiscardSea, OffDutyZone } from './ZonesPanel.js';
 import { Roster } from './Roster.js';
 import { usePlayerMarks, type PlayerMarks } from './marks.js';
 import { MutinyReveal } from './MutinyReveal.js';
+import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
 import { EndScreen } from './EndScreen.js';
 import { RitualReveal } from './RitualReveal.js';
@@ -526,17 +527,26 @@ export function App() {
   }, [counting, launchAt, launchLeft, markLaunched]);
   const launchCountdown = counting ? launchLeft : null;
 
-  // Mutiny-success veil: edge-triggered on the reveal broadcast. Every
-  // client sees the same public pledges at the same moment. Dismissing sets
-  // the flag; when the mutiny window ends (`revealed` back to false — next
-  // round's appointment clears it) the flag resets so the NEXT mutiny
-  // re-pops the veil. `revealed && success` stays true through the tie-break
+  // Mutiny reveal veil (成功与失败都弹): edge-triggered on the reveal
+  // broadcast. Every client sees the same public pledges at the same moment.
+  // Dismissing sets the flag; when the mutiny window ends (`revealed` back
+  // to false — next round's appointment clears it) the flag resets so the
+  // NEXT mutiny re-pops the veil. Success stays true through the tie-break
   // chain, so the veil persists until the new captain is known + dismissed.
   const [mutinyDismissed, setMutinyDismissed] = useState(false);
-  const mutinyRevealed = !!game.view?.mutiny.revealed && game.view.mutiny.success;
+  const mutinyRevealed = !!game.view?.mutiny.revealed;
   useEffect(() => {
     if (!mutinyRevealed) setMutinyDismissed(false);
   }, [mutinyRevealed]);
+
+  // 航海牌揭示弹框: every client pops the settled card + its rules text the
+  // moment the navigator flips it. Keyed on `round:card` — a key never seen
+  // before opens the modal; 继续 records it. A failed mutiny flows straight
+  // into navigation, so this also covers the voyage's first reveal; the
+  // card stays visible in the board's own widgets after dismissal.
+  const cardKey = game.view ? cardRevealKey(game.view) : null;
+  const [seenCardKey, setSeenCardKey] = useState<string | null>(null);
+  const cardRevealOpen = cardKey !== null && cardKey !== seenCardKey;
 
   // 哗变表决弹框 (MutinyPrompt): pops for every seat the moment the game
   // enters the loyalty phase, input included — nobody has to notice a tab
@@ -880,6 +890,10 @@ export function App() {
 
       {mutinyRevealed && !mutinyDismissed && (
         <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
+      )}
+
+      {cardRevealOpen && game.view.winner === null && (
+        <CardReveal view={view} onDone={() => setSeenCardKey(cardKey)} />
       )}
 
       {loyaltyLive && mutinyPromptOpen && game.view.winner === null && (

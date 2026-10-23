@@ -1,12 +1,14 @@
 /**
- * Full-screen mutiny reveal (成功专用). When the reveal broadcast lands —
- * `mutiny.revealed && success` — every client pops the same veil: 出枪者
- * 列表 (pledges are public once revealed) and the incoming captain. For a
- * tie, the new captain line waits: `newCaptain` only appears after the
- * tie-break chain finishes, and the veil stays open until it does.
+ * Full-screen mutiny reveal (成功与失败共用). When the reveal broadcast
+ * lands — `mutiny.revealed` — every client pops the same veil: 出枪者列表
+ * (pledges are public once revealed). Success shows the incoming captain
+ * (waiting through the tie-break chain: `newCaptain` only appears after it
+ * finishes, and the veil stays open until it does); failure shows how many
+ * guns the threshold was missed by — the crew learns the uprising died and
+ * the voyage carries on.
  *
- * Dismissal: the 继续航程 button, or an 8s auto-close once the captain is
- * known (early close would cut the tie-break suspense short).
+ * Dismissal: the button, or an 8s auto-close once the outcome is settled
+ * (early close would cut the tie-break suspense short).
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -23,20 +25,24 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
   const pledgeRows = Object.entries(m.pledges ?? {})
     .filter(([, guns]) => guns > 0)
     .sort((a, b) => b[1] - a[1] || Number(a[0].slice(1)) - Number(b[0].slice(1)));
+  const total = Object.values(m.pledges ?? {}).reduce((n, g) => n + g, 0);
+  const success = m.success;
   const max = pledgeRows[0]?.[1] ?? 0;
   const tie = pledgeRows.filter(([, g]) => g === max).length > 1;
   const captainKnown = m.newCaptain !== null;
 
-  // Auto-close only once the new captain is on the board (tie-break done).
+  // Auto-close only once the outcome is final: success needs the new
+  // captain (tie-break done); failure is final immediately.
+  const settled = success ? captainKnown : true;
   const [left, setLeft] = useState(8);
   useEffect(() => {
-    if (!captainKnown) return;
+    if (!settled) return;
     const t = window.setInterval(() => setLeft((v) => v - 1), 1000);
     return () => window.clearInterval(t);
-  }, [captainKnown]);
+  }, [settled]);
   useEffect(() => {
-    if (captainKnown && left <= 0) onDone();
-  }, [captainKnown, left, onDone]);
+    if (settled && left <= 0) onDone();
+  }, [settled, left, onDone]);
 
   // First render inside the veil: pop-in animation beat (ref, not state —
   // no re-render needed, CSS animates on mount).
@@ -44,20 +50,21 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
   mounted.current = true;
 
   return (
-    <div className="mutiny-reveal" role="alertdialog" aria-label="哗变结果">
+    <div className={'mutiny-reveal' + (success ? '' : ' mutiny-reveal--failed')} role="alertdialog" aria-label="哗变结果">
       <div className="mutiny-reveal__box">
         <div className="mutiny-reveal__head">
-          <span className="mutiny-reveal__glyph" aria-hidden="true">⚡</span>
-          <h2>哗变成功！</h2>
+          <span className="mutiny-reveal__glyph" aria-hidden="true">{success ? '⚡' : '⚓'}</span>
+          <h2>{success ? '哗变成功！' : '哗变失败'}</h2>
         </div>
         <p className="mutiny-reveal__sub">
-          至少 {m.threshold} 枪 · 共 {Object.values(m.pledges ?? {}).reduce((n, g) => n + g, 0)} 枪
-          {tie && captainKnown ? ' · 平局表决后定出新船长' : tie ? ' · 平局，表决进行中…' : ''}
+          {success
+            ? `至少 ${m.threshold} 枪 · 共 ${total} 枪${tie && captainKnown ? ' · 平局表决后定出新船长' : tie ? ' · 平局，表决进行中…' : ''}`
+            : `还差 ${Math.max(m.threshold - total, 1)} 枪 · ${total} / ${m.threshold} 枪，船长留任，航程继续`}
         </p>
 
         <ul className="mutiny-reveal__pledges">
           {pledgeRows.map(([id, guns]) => (
-            <li key={id} className={'mutiny-reveal__row' + (guns === max ? ' mutiny-reveal__row--top' : '')}>
+            <li key={id} className={'mutiny-reveal__row' + (success && guns === max ? ' mutiny-reveal__row--top' : '')}>
               <AvatarImage avatarId={
                 id === view.you.id ? view.you.avatar : view.others.find((p) => p.id === id)?.avatar ?? -1
               } size={26} title={nameOf(id)} />
@@ -73,18 +80,22 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
           {pledgeRows.length === 0 && <li className="mutiny-reveal__row mutiny-reveal__row--none">无人出枪</li>}
         </ul>
 
-        {captainKnown ? (
-          <div className="mutiny-reveal__captain">
-            <span className="mutiny-reveal__captain-label">新任船长</span>
-            <span className="mutiny-reveal__captain-name">
-              🧭 {nameOf(m.newCaptain!)}{m.newCaptain === view.you.id && '（你）'}
-            </span>
-          </div>
+        {success ? (
+          captainKnown ? (
+            <div className="mutiny-reveal__captain">
+              <span className="mutiny-reveal__captain-label">新任船长</span>
+              <span className="mutiny-reveal__captain-name">
+                🧭 {nameOf(m.newCaptain!)}{m.newCaptain === view.you.id && '（你）'}
+              </span>
+            </div>
+          ) : (
+            <div className="mutiny-reveal__captain mutiny-reveal__captain--wait">等待平局表决…</div>
+          )
         ) : (
-          <div className="mutiny-reveal__captain mutiny-reveal__captain--wait">等待平局表决…</div>
+          <div className="mutiny-reveal__captain mutiny-reveal__captain--wait">忠于船长 · 继续航行</div>
         )}
 
-        {captainKnown && (
+        {settled && (
           <button type="button" className="btn btn--primary mutiny-reveal__close" onClick={onDone}>
             继续航程（{Math.max(left, 0)}s）
           </button>

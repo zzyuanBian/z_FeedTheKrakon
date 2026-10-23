@@ -1135,6 +1135,20 @@ button:disabled { cursor: not-allowed; }
 .mutiny-reveal__captain-label { font-size: 12px; letter-spacing: 0.2em; color: var(--gold); }
 .mutiny-reveal__captain-name { font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--gold-bright); }
 .mutiny-reveal__close { margin-top: 14px; width: 100%; }
+/* Failed mutiny: same veil, calmer palette — teal/steel instead of blood,
+   so the failure reads as "voyage continues", not as a second alarm. */
+.mutiny-reveal--failed { background: rgba(6, 14, 22, 0.86); }
+.mutiny-reveal--failed .mutiny-reveal__box { border-color: var(--teal); box-shadow: 0 0 60px rgba(38, 108, 122, 0.3); }
+.mutiny-reveal--failed .mutiny-reveal__head h2 { color: var(--teal-bright); text-shadow: 0 0 24px rgba(38, 108, 122, 0.5); }
+
+/* 航海牌揭示弹框 (CardReveal): the settled nav card + what it does. */
+.card-reveal__box { max-width: 340px; text-align: center; }
+.card-reveal__kicker { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.14em; color: var(--ink-ghost); }
+.card-reveal__face { display: flex; justify-content: center; }
+.card-reveal__face .navface { width: 200px; height: 200px; }
+.card-reveal__title { margin: 12px 0 6px; font-family: var(--font-serif); color: var(--gold); font-size: 22px; }
+.card-reveal__hint { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
+.card-reveal__close { width: 100%; }
 
 /* Ritual veil (RitualReveal.tsx): 闭眼仪式 — two eyelids slide over the
    board, abyssal violet. The content (glyph/title/whispers) fades in once
