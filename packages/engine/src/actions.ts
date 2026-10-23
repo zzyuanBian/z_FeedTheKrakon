@@ -54,7 +54,7 @@ export type Action =
   | { type: 'mapActionFeedKraken'; actor: PlayerId; target: PlayerId }
   /* cult rituals (after a Cult Uprising card) */
   /* house rule: the CAPTAIN picks which ritual card to reveal from the deck */
-  | { type: 'ritualPick'; actor: PlayerId; card: RitualCardId }
+  | { type: 'ritualPick'; actor: PlayerId; slot: number }
   | { type: 'ritualConversion'; actor: PlayerId; target: PlayerId }
   | { type: 'ritualGunsStash'; actor: PlayerId; grants: { to: PlayerId; guns: number }[] }
   | { type: 'ritualAck'; actor: PlayerId }

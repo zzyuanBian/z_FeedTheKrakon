@@ -29,7 +29,7 @@ import { RoleReveal } from './RoleReveal.js';
 import { lobby, clearSession, loadSession, leaveMatch, useGame } from './useGame.js';
 import type { Session } from './session.js';
 import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
-import { FACTION_LABEL, PHASE_LABEL } from './labels.js';
+import { FACTION_ICON, FACTION_LABEL, PHASE_LABEL } from './labels.js';
 import { copyText, roomShareUrl } from './clipboard.js';
 
 /** How long the connecting screen waits before auto-resetting to the lobby.
@@ -577,13 +577,14 @@ export function App() {
   // branches honour it: the old ternary sent the freshly-converted player
   // down a branch that never read the flag, so their click did nothing.
   // A ritual pending is the closed-eyes flow — EXCEPT the captain's public
-  // pick window (Cult Uprising house rule): while `rituals.pickable` is
-  // non-empty the table is still choosing, so no peek and no lids (RitualChoice
-  // owns the screen). The captain's pick drains `pickable`, which re-opens
-  // this edge — the 5s peek then shows the PICKED card: the whole table
-  // confirms its content before the lids close and the ritual executes.
+  // pick window (Cult Uprising house rule): while the pick pile is open
+  // (`rituals.picking > 0`) the table is still choosing, so no peek and no
+  // lids (RitualChoice owns the screen). The captain's pick closes the
+  // window, which re-opens this edge — the 5s peek then shows the PICKED
+  // card: the whole table confirms its content before the lids close and
+  // the ritual executes.
   const ritualPending = game.view?.pending?.kind === 'ritual'
-    && game.view.rituals.pickable.length === 0;
+    && game.view.rituals.picking === 0;
   const convertedBy = game.view?.you.convertedBy ?? null;
   const [ritualDismissed, setRitualDismissed] = useState(false);
   const [seenConversion, setSeenConversion] = useState<string | null>(null);
@@ -714,6 +715,11 @@ export function App() {
   // The target crew size the roles are dealt against; room seats beyond it
   // are bench seats (候补) that no role is dealt into.
   const playerCount = view.playerCount;
+  // 邪教起义选牌窗 must NOT race the card reveal — the table reads the
+  // uprising card first and only THEN sees the captain's pick pile. Gated
+  // on the reveal modal's own seen-key: while it is up (key unseen) the
+  // pick window stays unmounted; dismissing 继续航程 reveals it.
+  const pickGateOpen = ritualPickActive(view) && !cardRevealOpen;
 
   // bgio keeps lobby-display names and GameState names in two separate
   // stores. Every client bridges its own name into GameState via `syncName`
@@ -842,6 +848,20 @@ export function App() {
             {game.connected ? '已连接' : '连接中…'}
           </span>
           <RoomId matchID={session.matchID} />
+          {/* 本局角色配置 — public info (the waiting room shows the same
+              numbers); keeping it beside the room code settles "这局几个
+              坏人" at a glance for late-loading or refreshed seats. */}
+          <span className="pill pill--config" title="本局角色配置">
+            {FACTION_ICON.sailor}{view.factionCounts.sailor}
+            {' · '}
+            {FACTION_ICON.pirate}{view.factionCounts.pirate}
+            {view.factionCounts.cult > 0 && (
+              <>
+                {' · '}
+                {FACTION_ICON.cult}{view.factionCounts.cult}
+              </>
+            )}
+          </span>
         </div>
         <div className="topbar__mid">
           第 {view.round} 回合 · {PHASE_LABEL[view.phase] ?? view.phase}
@@ -946,8 +966,8 @@ export function App() {
         <GunsStashNotice view={view} onDone={() => setSeenGsKey(gsKey)} />
       )}
 
-      {ritualPickActive(view) && (
-        <RitualChoice view={view} onPick={(card) => game.moves.ritualPick!(card)} />
+      {pickGateOpen && (
+        <RitualChoice view={view} onPick={(slot) => game.moves.ritualPick!(slot)} />
       )}
 
       {cardRevealOpen && game.view.winner === null && (

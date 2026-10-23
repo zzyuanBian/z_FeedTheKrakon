@@ -229,9 +229,10 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     // Rituals are the Cult Leader's moves — their actor is a hidden role, so
     // the args (conversion target, gun distribution) must not ride the
     // transport log. ritualAck has no args but stays redacted for uniformity.
-    // ritualPick is the CAPTAIN's (public pick window): the chosen kind is
-    // public information (the card is revealed face-up), so no redact.
-    ritualPick: move((actor, card) => as('ritualPick', actor, { card })),
+    // ritualPick is the CAPTAIN's (public pick window): a face-down SLOT
+    // index is all that travels — which kind the slot holds never leaves the
+    // reducer, so there is no secret to redact.
+    ritualPick: move((actor, slot) => as('ritualPick', actor, { slot })),
     ritualConversion: move((actor, target) => as('ritualConversion', actor, { target }), { redact: true }),
     ritualGunsStash: move((actor, grants) => as('ritualGunsStash', actor, { grants }), { redact: true }),
     ritualAck: move((actor) => as('ritualAck', actor), { redact: true }),

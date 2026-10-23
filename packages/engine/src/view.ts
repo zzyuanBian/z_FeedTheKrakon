@@ -153,9 +153,11 @@ export interface PlayerView {
   rituals: {
     remaining: number;
     revealed: RitualCardId[];
-    /** During the captain's ritual-pick window: the distinct card kinds
-     *  still in the deck. Empty outside the window. */
-    pickable: RitualCardId[];
+    /** During the captain's ritual-pick window: the deck SIZE (the UI draws
+     *  that many uniform face-down cards). The pick itself is a slot index —
+     *  which kind sits at which slot never leaves the reducer. Empty outside
+     *  the window. */
+    picking: number;
   };
   mutiny: MutinyView;
   gunSupply: number;
@@ -342,12 +344,10 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     rituals: {
       remaining: state.rituals.deck.length,
       revealed: [...state.rituals.revealed],
-      // Captain's pick window: which ritual KINDS are still in the deck
-      // (deduped — the UI lays them out one-of-each), and whether THIS
-      // viewer is the one picking. Public window, private click.
-      pickable: state.pending?.kind === 'ritual' && state.pending.data?.['step'] === 'chooseRitual'
-        ? [...new Set(state.rituals.deck)]
-        : [],
+      // Captain's pick window: deck size only — face-down pick, kind hidden.
+      picking: state.pending?.kind === 'ritual' && state.pending.data?.['step'] === 'chooseRitual'
+        ? state.rituals.deck.length
+        : 0,
     },
     mutiny: {
       active: state.mutiny.active,

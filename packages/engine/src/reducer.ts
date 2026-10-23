@@ -614,18 +614,19 @@ function revealRitual(s: GameState): void {
   };
 }
 
-/** The captain picked a ritual card — consume one from the deck, reveal it
- *  publicly, and open the ritual itself (pending re-points to the leader). */
+/** The captain picked a ritual card — face-down SLOT choice: the view shows
+ *  uniform backs, so the only thing that ever travels is the index; WHICH
+ *  kind the slot holds lives in the reducer alone. Consume the slot, reveal
+ *  the card publicly, and open the ritual (pending re-points to the leader). */
 function ritualPick(s: GameState, a: Extract<Action, { type: 'ritualPick' }>): void {
   assert(s.pending?.kind === 'ritual' && s.pending.data?.['step'] === 'chooseRitual', 'not choosing a ritual');
   assert(a.actor === s.officers.captain, 'only the captain picks the ritual');
-  assert(s.rituals.deck.includes(a.card), 'that ritual card is not in the deck');
-
-  const idx = s.rituals.deck.indexOf(a.card);
-  s.rituals.deck.splice(idx, 1);
-  s.rituals.revealed.push(a.card);
-  s.log.push({ t: 'ritual', card: a.card });
-  openRitual(s, a.card);
+  assert(Number.isInteger(a.slot) && a.slot >= 0 && a.slot < s.rituals.deck.length,
+    'picked slot is outside the ritual deck');
+  const card = s.rituals.deck.splice(a.slot, 1)[0]!;
+  s.rituals.revealed.push(card);
+  s.log.push({ t: 'ritual', card });
+  openRitual(s, card);
 }
 
 /** Open a specific ritual's pending + one-shot effects (cabin search
@@ -804,9 +805,9 @@ function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>
         // Still in the pick window: default to the deck's TOP card type
         // (closest to the old random reveal); otherwise close the ritual.
         if (p.data?.['step'] === 'chooseRitual') {
-          const first = (['conversion', 'gunsStash', 'cultCabinSearch'] as const)
-            .find((c) => s.rituals.deck.includes(c));
-          if (first) return ritualPick(s, { type: 'ritualPick', actor: s.officers.captain!, card: first });
+          if (s.rituals.deck.length > 0) {
+            return ritualPick(s, { type: 'ritualPick', actor: s.officers.captain!, slot: 0 });
+          }
           finishNavigation(s);
           return;
         }
