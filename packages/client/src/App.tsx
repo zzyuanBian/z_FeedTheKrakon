@@ -621,6 +621,20 @@ export function App() {
   useEffect(() => {
     if (ritualPending) setRitualDismissed(false);
   }, [ritualPending]);
+  // 闭眼即清场: the lids own the screen while a ritual runs, and a public
+  // modal left open underneath (card reveal, cabin/guns notices, mutiny
+  // reveal) would resurface the moment they part. Latch every veil's
+  // seen-key the instant the lids close. The pick window cannot be open
+  // here (the veil edge excludes it) and MutinyPrompt only renders in the
+  // loyalty phase — nothing else lingers.
+  useEffect(() => {
+    if (!ritualVeilActive) return;
+    if (cardRevealOpen) setSeenCardKey(cardKey);
+    if (cabinNoticeOpen) setSeenCsKey(csKey);
+    if (gunsNoticeOpen) setSeenGsKey(gsKey);
+    if (mutinyRevealed && !mutinyDismissed) setMutinyDismissed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ritualVeilActive]);
   // Latch the conversion the moment the veil is dismissed — keying on the
   // converter id means a SECOND conversion of the same player (rule
   // illegal, but defensive) would still re-pop. Latching only on dismiss
