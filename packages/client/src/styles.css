@@ -1855,6 +1855,27 @@ button:disabled { cursor: not-allowed; }
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   pointer-events: none;
 }
+/* Tap-to-toggle effect chip (NavCardFace expand): phones have no hover
+   tooltip, so the face carries a visible affordance for the rules line. */
+.navface__more {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #1a1203;
+  background: rgba(212, 167, 74, 0.92);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.navface__more--on { background: rgba(58, 178, 168, 0.92); color: #032220; }
+.navface__hint {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
 
 /* ------------------------------- roster -------------------------------- */
 /* The crew circle: tokens around the ship's table. .roster__table is a

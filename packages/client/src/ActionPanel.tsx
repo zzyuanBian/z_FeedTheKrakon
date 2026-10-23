@@ -62,7 +62,7 @@ function CardSplitter({
             }
             onClick={() => choose(i)}
           >
-            <NavCardFace card={c} />
+            <NavCardFace card={c} expand />
             {keep === i && <span className="navcard__tag">保留</span>}
             {discard === i && <span className="navcard__tag navcard__tag--drop">弃掉</span>}
           </button>
@@ -89,7 +89,7 @@ function CardList({ cards }: { cards: NavCardId[] }) {
     <div className="cardsplit__hand">
       {cards.map((c, i) => (
         <div key={`${c}-${i}`} className="navcard navcard--static">
-          <NavCardFace card={c} />
+          <NavCardFace card={c} expand />
         </div>
       ))}
     </div>
