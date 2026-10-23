@@ -18,6 +18,7 @@ import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { RitualPeek } from './RitualPeek.js';
 import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
 import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
+import { RitualChoice, ritualPickActive } from './RitualChoice.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
 import { EndScreen } from './EndScreen.js';
 import { RitualReveal } from './RitualReveal.js';
@@ -575,7 +576,14 @@ export function App() {
   // unmount gate. Dismissal (沉入黑暗/睁开双眼) sets ritualDismissed — BOTH
   // branches honour it: the old ternary sent the freshly-converted player
   // down a branch that never read the flag, so their click did nothing.
-  const ritualPending = game.view?.pending?.kind === 'ritual';
+  // A ritual pending is the closed-eyes flow — EXCEPT the captain's public
+  // pick window (Cult Uprising house rule): while `rituals.pickable` is
+  // non-empty the table is still choosing, so no peek and no lids (RitualChoice
+  // owns the screen). The captain's pick drains `pickable`, which re-opens
+  // this edge — the 5s peek then shows the PICKED card: the whole table
+  // confirms its content before the lids close and the ritual executes.
+  const ritualPending = game.view?.pending?.kind === 'ritual'
+    && game.view.rituals.pickable.length === 0;
   const convertedBy = game.view?.you.convertedBy ?? null;
   const [ritualDismissed, setRitualDismissed] = useState(false);
   const [seenConversion, setSeenConversion] = useState<string | null>(null);
@@ -926,10 +934,6 @@ export function App() {
         <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
       )}
 
-      {cardRevealOpen && game.view.winner === null && (
-        <CardReveal view={view} onDone={() => setSeenCardKey(cardKey)} />
-      )}
-
       {peeking && !freshConversion && (
         <RitualPeek view={view} onDone={() => setPeeking(false)} />
       )}
@@ -940,6 +944,22 @@ export function App() {
 
       {gunsNoticeOpen && (
         <GunsStashNotice view={view} onDone={() => setSeenGsKey(gsKey)} />
+      )}
+
+      {ritualPickActive(view) && (
+        <RitualChoice view={view} onPick={(card) => game.moves.ritualPick!(card)} />
+      )}
+
+      {cardRevealOpen && game.view.winner === null && (
+        <CardReveal
+          view={view}
+          onDone={() => setSeenCardKey(cardKey)}
+          // Cult Uprising opens the captain's ritual-pick window next — give
+          // the table 3s to read the card before anyone can dismiss. Rendered
+          // AFTER RitualChoice so it sits on top: read the card first (locked
+          // 3s), dismiss, and the pick window is right below.
+          lockSeconds={view.navigation.revealed === 'cultUprising' ? 3 : 0}
+        />
       )}
 
       {loyaltyLive && mutinyPromptOpen && game.view.winner === null && (

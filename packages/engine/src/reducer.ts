@@ -15,7 +15,7 @@
 import type { Action } from './actions.js';
 import {
   GUN_SUPPLY_TOTAL, navCard, STARTING_GUNS,
-  type GameState, type NavCardId, type PlayerId,
+  type GameState, type NavCardId, type PlayerId, type RitualCardId,
 } from './state.js';
 import {
   activeSeatIds, checkVictory, eligibleOfficers, endGame, grantGuns, livingPlayers, moveShip,
@@ -97,6 +97,7 @@ function handle(s: GameState, a: Action): void {
     case 'mermaidAck':      return mermaidAck(s, a);
     case 'mapActionCabinSearch': return mapActionCabinSearch(s, a);
     case 'mapActionFeedKraken':  return mapActionFeedKraken(s, a);
+    case 'ritualPick':      return ritualPick(s, a);
     case 'ritualConversion':return ritualConversion(s, a);
     case 'ritualGunsStash': return ritualGunsStash(s, a);
     case 'ritualAck':       return ritualAck(s, a);
@@ -597,17 +598,40 @@ function mermaidAck(s: GameState, a: Extract<Action, { type: 'mermaidAck' }>): v
 /* ----------------------------- rituals ---------------------------------- */
 
 function revealRitual(s: GameState): void {
-  const rng = makeRng(s.rngState);
-  const idx = rng.int(s.rituals.deck.length);
-  const [card] = s.rituals.deck.splice(idx, 1);
-  s.rngState = rng.state();
-  if (card === undefined) return;
-  s.rituals.revealed.push(card);
-  s.log.push({ t: 'ritual', card });
-
+  // House rule (differs from the manual's "reveal the top ritual card"):
+  // the Cult Uprising lets the CAPTAIN pick which ritual to carry out from
+  // the remaining deck. Two-step: this only OPENS the choice; ritualPick
+  // applies it. No leader on board → the uprising fizzles (unchanged).
   const leader = s.seatOrder.find((id) => s.players[id]!.cultLeader && s.players[id]!.alive);
   if (!leader) { finishNavigation(s); return; }
+  if (s.rituals.deck.length === 0) { finishNavigation(s); return; }
+  // The pending's actor is the CAPTAIN here (they choose); once the card is
+  // picked, openRitual re-points the pending at the LEADER (who acts in the
+  // dark). `choosing: true` marks the pick window for the views.
+  s.pending = {
+    kind: 'ritual', by: s.officers.captain!,
+    data: { step: 'chooseRitual' },
+  };
+}
 
+/** The captain picked a ritual card — consume one from the deck, reveal it
+ *  publicly, and open the ritual itself (pending re-points to the leader). */
+function ritualPick(s: GameState, a: Extract<Action, { type: 'ritualPick' }>): void {
+  assert(s.pending?.kind === 'ritual' && s.pending.data?.['step'] === 'chooseRitual', 'not choosing a ritual');
+  assert(a.actor === s.officers.captain, 'only the captain picks the ritual');
+  assert(s.rituals.deck.includes(a.card), 'that ritual card is not in the deck');
+
+  const idx = s.rituals.deck.indexOf(a.card);
+  s.rituals.deck.splice(idx, 1);
+  s.rituals.revealed.push(a.card);
+  s.log.push({ t: 'ritual', card: a.card });
+  openRitual(s, a.card);
+}
+
+/** Open a specific ritual's pending + one-shot effects (cabin search
+ *  secrets). Shared by ritualPick. */
+function openRitual(s: GameState, card: RitualCardId): void {
+  const leader = s.seatOrder.find((id) => s.players[id]!.cultLeader && s.players[id]!.alive)!;
   switch (card) {
     case 'conversion':
       s.pending = { kind: 'ritual', by: leader, data: { ritual: 'conversion' } };
@@ -777,6 +801,15 @@ function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>
           target: livingPlayers(s).find((id) => id !== p.by)! });
         return mermaidAck(s, { type: 'mermaidAck', actor: p.by });
       case 'ritual':
+        // Still in the pick window: default to the deck's TOP card type
+        // (closest to the old random reveal); otherwise close the ritual.
+        if (p.data?.['step'] === 'chooseRitual') {
+          const first = (['conversion', 'gunsStash', 'cultCabinSearch'] as const)
+            .find((c) => s.rituals.deck.includes(c));
+          if (first) return ritualPick(s, { type: 'ritualPick', actor: s.officers.captain!, card: first });
+          finishNavigation(s);
+          return;
+        }
         return ritualAck(s, { type: 'ritualAck', actor: p.by });
       case 'emergencyNav':
         return emergencyNav(s, { type: 'emergencyNav', actor: p.by,

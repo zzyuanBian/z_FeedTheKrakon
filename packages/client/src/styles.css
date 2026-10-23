@@ -1158,6 +1158,39 @@ button:disabled { cursor: not-allowed; }
 .ritual-peek__hint { margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
 .ritual-peek__close { width: 100%; }
 
+/* 仪式选牌页 (RitualChoice): the captain's public pick window after the
+   Cult Uprising card — remaining ritual kinds laid out in a row, only the
+   captain's clicks land. */
+.ritual-choice__box { max-width: 560px; text-align: center; }
+.ritual-choice__kicker { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.14em; color: var(--ink-ghost); }
+.ritual-choice__title { margin: 0 0 16px; font-family: var(--font-serif); color: var(--cult, var(--gold)); font-size: 22px; }
+.ritual-choice__row { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+.ritual-choice__card {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 10px 12px;
+  background: var(--panel-deep, rgba(16, 26, 46, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  color: var(--ink);
+  cursor: default;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ritual-choice__card:disabled { opacity: 0.72; }
+.ritual-choice__card:enabled {
+  cursor: pointer;
+  border-color: rgba(214, 178, 106, 0.55);
+}
+.ritual-choice__card:enabled:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.ritual-choice__glyph { font-size: 34px; line-height: 1; }
+.ritual-choice__name { font-family: var(--font-serif); font-size: 17px; color: var(--gold); }
+.ritual-choice__hint { font-size: 12px; line-height: 1.6; color: var(--ink-dim); }
+.ritual-choice__wait { margin: 0; font-size: 13px; color: var(--ink-ghost); }
+
 /* 船舱搜查通知 (CabinSearchNotice) + 邪教囤枪公示 (GunsStashNotice):
    same broadcast-notice shape — icon/glyph, title, body, 知道了. */
 .cabin-notice__box, .guns-notice__box { max-width: 340px; text-align: center; }

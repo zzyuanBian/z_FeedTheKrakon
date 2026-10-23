@@ -150,7 +150,13 @@ export interface PlayerView {
   /** Facts THIS viewer has privately learned (Cabin Search/Flogging results). */
   knowledge: { about: PlayerId; team: Faction; round: number }[];
   navigation: NavigationView;
-  rituals: { remaining: number; revealed: RitualCardId[] };
+  rituals: {
+    remaining: number;
+    revealed: RitualCardId[];
+    /** During the captain's ritual-pick window: the distinct card kinds
+     *  still in the deck. Empty outside the window. */
+    pickable: RitualCardId[];
+  };
   mutiny: MutinyView;
   gunSupply: number;
   winner: Faction | null;
@@ -336,6 +342,12 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     rituals: {
       remaining: state.rituals.deck.length,
       revealed: [...state.rituals.revealed],
+      // Captain's pick window: which ritual KINDS are still in the deck
+      // (deduped — the UI lays them out one-of-each), and whether THIS
+      // viewer is the one picking. Public window, private click.
+      pickable: state.pending?.kind === 'ritual' && state.pending.data?.['step'] === 'chooseRitual'
+        ? [...new Set(state.rituals.deck)]
+        : [],
     },
     mutiny: {
       active: state.mutiny.active,

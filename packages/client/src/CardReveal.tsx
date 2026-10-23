@@ -12,6 +12,7 @@
  * explanation once more, which is acceptable and even helpful).
  */
 
+import { useEffect, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { NAV_CARD_LABEL, NAV_CARD_HINT } from './labels.js';
 import { NavCardFace } from './NavCardFace.js';
@@ -22,8 +23,22 @@ export function cardRevealKey(view: PlayerView): string | null {
   return `${view.round}:${card}`;
 }
 
-export function CardReveal({ view, onDone }: { view: PlayerView; onDone: () => void }) {
+export function CardReveal({ view, onDone, lockSeconds = 0 }: {
+  view: PlayerView;
+  onDone: () => void;
+  /** While >0 the 继续航程 button counts down and only enables at 0 — used
+   *  for the Cult Uprising card, whose ritual-pick window must not be
+   *  entered before everyone had a moment to read what flipped. */
+  lockSeconds?: number;
+}) {
   const card = view.navigation.revealed!;
+  const [left, setLeft] = useState(lockSeconds);
+  useEffect(() => {
+    if (lockSeconds <= 0) return;
+    const t = window.setInterval(() => setLeft((v) => v - 1), 1000);
+    return () => window.clearInterval(t);
+  }, [lockSeconds]);
+  const locked = left > 0;
   return (
     <div className="modal card-reveal" role="alertdialog" aria-label="翻开航海牌">
       <div className="modal__box card-reveal__box">
@@ -33,8 +48,13 @@ export function CardReveal({ view, onDone }: { view: PlayerView; onDone: () => v
         </div>
         <h3 className="card-reveal__title">{NAV_CARD_LABEL[card]}</h3>
         <p className="card-reveal__hint">{NAV_CARD_HINT[card]}</p>
-        <button type="button" className="btn btn--primary card-reveal__close" onClick={onDone}>
-          继续航程
+        <button
+          type="button"
+          className="btn btn--primary card-reveal__close"
+          onClick={onDone}
+          disabled={locked}
+        >
+          {locked ? `继续航程（${left}）` : '继续航程'}
         </button>
       </div>
     </div>

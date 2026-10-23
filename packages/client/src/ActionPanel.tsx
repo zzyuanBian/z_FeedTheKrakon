@@ -13,7 +13,6 @@ import {
   FACTION_ICON, FACTION_LABEL, PHASE_LABEL, RITUAL_LABEL,
 } from './labels.js';
 import { NavCardFace } from './NavCardFace.js';
-import { AvatarImage } from './Avatars.js';
 import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
   iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
@@ -248,13 +247,11 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
             <p className="appoint-confirm__lead">船长提议：</p>
             <div className="appoint-confirm__row">
               <img className="appoint-confirm__medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />
-              <AvatarImage avatarId={who(view, lt).avatar} size={30} title={who(view, lt).name} />
               <span className="appoint-confirm__role">大副</span>
               <strong className="appoint-confirm__who">{who(view, lt).name}</strong>
             </div>
             <div className="appoint-confirm__row">
               <img className="appoint-confirm__medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />
-              <AvatarImage avatarId={who(view, nav).avatar} size={30} title={who(view, nav).name} />
               <span className="appoint-confirm__role">领航员</span>
               <strong className="appoint-confirm__who">{who(view, nav).name}</strong>
             </div>
@@ -349,6 +346,10 @@ function PendingForm({
         </div>
       );
     case 'ritual':
+      // Captain's public pick window — RitualChoice (modal) owns the
+      // interaction; rendering a form here would show a ritual whose card
+      // has not been picked yet.
+      if (String(data['step'] ?? '') === 'chooseRitual') return null;
       return <RitualForm view={view} moves={moves} ritual={String(data['ritual'] ?? '')} />;
     default:
       return null;
