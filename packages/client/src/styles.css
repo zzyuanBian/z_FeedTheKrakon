@@ -2921,3 +2921,33 @@ button:disabled { cursor: not-allowed; }
 /* The 🔔 mute pill in the topbar: quiet when off, gold-rimmed when on. */
 .pill--bell { font-size: 15px; line-height: 1; padding: 4px 8px; }
 .pill--bell-on { border-color: var(--gold-dim); }
+
+/* Chat ↔ modal deferral: while the player types, a modal (忠诚提问) waits;
+   the FAB wears a pulsing dot and the drawer tops a banner naming it. */
+.chatpop__fab--defer { border-color: var(--gold); }
+.chatpop__defer-dot {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  border: 2px solid var(--bg-void);
+  animation: defer-pulse 1.2s ease-in-out infinite;
+}
+@keyframes defer-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(245, 205, 92, 0); }
+  50% { transform: scale(1.25); box-shadow: 0 0 10px rgba(245, 205, 92, 0.7); }
+}
+.chatpop__defer {
+  padding: 8px 12px;
+  margin: 0 12px;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(212, 167, 74, 0.2), rgba(212, 167, 74, 0.07));
+  color: var(--gold-bright);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}

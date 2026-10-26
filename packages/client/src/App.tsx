@@ -483,6 +483,9 @@ export function App() {
   const playerMarks = usePlayerMarks(session?.matchID ?? '', session?.playerID ?? '');
 
   const [tab, setTab] = useState<'action' | 'crew' | 'log'>('action');
+  // Chat typing detection: while the chat input holds focus (soft keyboard
+  // up on mobile), invasive modals defer — see the MutinyPrompt mount gate.
+  const [chatFocused, setChatFocused] = useState(false);
   const [showGameOver, setShowGameOver] = useState(true);
   // 查看终局 swaps the winner modal for the full EndScreen (identities,
   // recap, fun vote); 回到牌桌 returns to the read-only board.
@@ -723,13 +726,17 @@ export function App() {
   // floating chat bubble — bgio chat rides the match socket, live from the
   // moment the session exists, so the waiting room is chat-capable too.
   // Muted only applies once the live view exists (elimination); the
-  // waiting room is pre-game and always open for talk.
-  const shell = (node: ReactNode) => (
+  // waiting room is pre-game and always open for talk. The board branch
+  // overrides `deferredModal` (忠诚提问 waits out typing) and threads the
+  // input-focus report; pre-game screens never defer.
+  const shell = (node: ReactNode, deferredModal: string | null = null) => (
     <WithChat
       session={session}
       game={game}
       muted={game.view ? !game.view.you.alive : false}
       marks={playerMarks.marks}
+      onChatFocus={setChatFocused}
+      deferredModal={deferredModal}
     >
       {node}
     </WithChat>
@@ -1082,7 +1089,13 @@ export function App() {
         />
       )}
 
-      {loyaltyLive && mutinyPromptOpen && game.view.winner === null && (
+      {/* 忠诚提问 does NOT hijack a player who is mid-typing in chat (the
+          soft keyboard would be crushed and the half-written message with
+          it). While chat holds focus the modal defers; the drawer banner +
+          FAB dot name the pending vote, and closing the chat (or tapping
+          send) mounts it. A pledge that already went visible stays put —
+          deferral only delays the FIRST appearance. */}
+      {loyaltyLive && mutinyPromptOpen && game.view.winner === null && !chatFocused && (
         <MutinyPrompt
           view={view}
           onPledge={(guns) => game.moves.mutinyPledge!(guns)}
@@ -1128,7 +1141,11 @@ export function App() {
       {/* 轮到你了 toast (layer 2's visual arm) — last so it rides over
           everything except the map viewer's own HUD. */}
       <TurnToast show={nudgeToast} />
-    </div>
+    </div>,
+    // 忠诚提问 defers while the player is typing in chat: the modal mounts
+    // the moment the drawer closes (and the soft keyboard drops with it).
+    // The FAB dot + drawer banner keep the pending vote visible meanwhile.
+    chatFocused && loyaltyLive && mutinyPromptOpen && !over ? '忠诚表决进行中' : null,
   );
 }
 
@@ -1140,6 +1157,8 @@ function WithChat({
   game,
   muted,
   marks,
+  onChatFocus,
+  deferredModal,
   children,
 }: {
   session: Session;
@@ -1148,6 +1167,10 @@ function WithChat({
   muted: boolean;
   /** Private guess notes, shown as dots on message avatars. */
   marks: PlayerMarks;
+  /** Input focus reporting (typing detection for modal deferral). */
+  onChatFocus?: (focused: boolean) => void;
+  /** A modal is waiting for the chat to close — banner + FAB dot. */
+  deferredModal?: string | null;
   children: ReactNode;
 }) {
   return (
@@ -1162,6 +1185,8 @@ function WithChat({
         myName={session.playerName}
         myAvatarId={session.avatarId ?? -1}
         marks={marks}
+        onFocusChange={onChatFocus}
+        deferredModal={deferredModal}
       />
     </>
   );

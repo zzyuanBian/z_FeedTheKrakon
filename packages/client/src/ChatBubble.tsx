@@ -33,15 +33,29 @@ export interface ChatBubbleProps {
   myAvatarId?: number;
   /** Private guess notes (marks.tsx), shown as dots on message avatars. */
   marks?: PlayerMarks;
+  /** Report the input's focus to App: while the player is TYPING, invasive
+   *  modals (忠诚提问) defer themselves so the soft keyboard — and the
+   *  half-written message — survive the interruption. */
+  onFocusChange?: ((focused: boolean) => void) | undefined;
+  /** A deferred modal is waiting: the drawer tops a banner naming it and
+   *  the FAB wears a pulsing dot, so the interruption stays visible. */
+  deferredModal?: string | null | undefined;
 }
 
-export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvatarId = -1, marks = {} }: ChatBubbleProps) {
+export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvatarId = -1, marks = {}, onFocusChange, deferredModal }: ChatBubbleProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [seenCount, setSeenCount] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
   const unread = Math.max(0, chat.length - seenCount);
+
+  // Closing the drawer unmounts the input — which can vanish without firing
+  // blur — so the typing flag must be cleared here or a deferred modal would
+  // wait behind a closed drawer forever.
+  useEffect(() => {
+    if (!open) onFocusChange?.(false);
+  }, [open, onFocusChange]);
 
   // Opening (and staying open) marks everything as read.
   useEffect(() => {
@@ -86,7 +100,7 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
       {!open && (
         <button
           type="button"
-          className="chatpop__fab"
+          className={'chatpop__fab' + (deferredModal ? ' chatpop__fab--defer' : '')}
           aria-label="打开聊天"
           onClick={() => setOpen(true)}
         >
@@ -94,6 +108,7 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
           {unread > 0 && (
             <span className="chatpop__badge">{unread > 9 ? '9+' : unread}</span>
           )}
+          {deferredModal && <span className="chatpop__defer-dot" aria-hidden="true" />}
         </button>
       )}
 
@@ -106,6 +121,14 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
                 ✕
               </button>
             </div>
+            {/* A modal deferred itself because the player was typing: keep
+                the interruption visible right above the input so it can't
+                be forgotten once the conversation winds down. */}
+            {deferredModal && (
+              <div className="chatpop__defer" role="status">
+                ⚡ {deferredModal}——发送后关闭聊天即可看到
+              </div>
+            )}
             <div ref={listRef} className="chatpop__log">
               {chat.length === 0 && <p className="chat__empty">暂无消息，起个头吧！</p>}
               {chat.map((m) => {
@@ -137,6 +160,8 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
                 maxLength={500}
                 placeholder={muted ? '你已出局，无法发言' : '输入消息…'}
                 onChange={(e) => setText(e.target.value)}
+                onFocus={() => onFocusChange?.(true)}
+                onBlur={() => onFocusChange?.(false)}
               />
               <button
                 type="submit"

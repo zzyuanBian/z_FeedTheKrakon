@@ -250,7 +250,13 @@ export const FtkGame: Game<GameState, Record<string, unknown>, FtkSetupData> = {
     return viewFor(G, idForIndex(Number(playerID)));
   },
 
-  endIf: ({ G }) => (isFtkGame(G) && G.winner ? { winner: G.winner, reason: G.winReason } : undefined),
+  // Deliberately NO `endIf`: once bgio sets ctx.gameover, its Master rejects
+  // EVERY further action for the match (master.ts: "game over" → silent
+  // drop) — including the post-game funVote the engine deliberately keeps
+  // legal past gameOver (reducer whitelist). That ate the 最愚玩家 vote:
+  // buttons did nothing, with no error anywhere. The engine owns the ended
+  // game (phase gameOver + winner + per-move gates); clients read view.winner,
+  // never ctx.gameover.
 };
 
 /** Re-exported so the server/client packages need only depend on @ftk/game. */
