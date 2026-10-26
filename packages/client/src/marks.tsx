@@ -17,15 +17,16 @@ import type { PlayerView } from '@ftk/engine';
 export interface MarkOption {
   key: string;
   label: string;
-  /** Suspicious (red) vs trustworthy (teal/green). */
-  tone: 'evil' | 'good';
+  /** Trustworthy (teal), pirate-suspicion (red) vs cult-suspicion (gold —
+   *  red is the pirates' color; cult gets its own hue to not blur them). */
+  tone: 'evil' | 'good' | 'cult';
 }
 
 const MARK_OPTIONS: MarkOption[] = [
   { key: 'sailor', label: '水手', tone: 'good' },
   { key: 'pirate', label: '海盗', tone: 'evil' },
-  { key: 'cult', label: '邪教徒', tone: 'evil' },
-  { key: 'cultLeader', label: '邪教首领', tone: 'evil' },
+  { key: 'cult', label: '邪教徒', tone: 'cult' },
+  { key: 'cultLeader', label: '邪教首领', tone: 'cult' },
 ];
 
 const MARK_MAP = new Map(MARK_OPTIONS.map((o) => [o.key, o]));
@@ -85,10 +86,19 @@ export function toggleMark(marks: PlayerMarks, playerId: string, mark: string): 
   return { ...marks, [playerId]: updated };
 }
 
+/** Wipe ONE player's marks, leaving every other player's intact. */
+export function clearPlayerMarks(marks: PlayerMarks, playerId: string): PlayerMarks {
+  if (!(playerId in marks)) return marks;
+  const next = { ...marks };
+  delete next[playerId];
+  return next;
+}
+
 /** React state hook: marks for this match+seat, persisted on every change. */
 export function usePlayerMarks(matchID: string, seat: string): {
   marks: PlayerMarks;
   toggle: (playerId: string, mark: string) => void;
+  clearPlayer: (playerId: string) => void;
   clearAll: () => void;
 } {
   const [marks, setMarks] = useState<PlayerMarks>(() => load(matchID, seat));
@@ -102,11 +112,18 @@ export function usePlayerMarks(matchID: string, seat: string): {
       return next;
     });
   };
+  const clearPlayer = (playerId: string) => {
+    setMarks((prev) => {
+      const next = clearPlayerMarks(prev, playerId);
+      save(matchID, seat, next);
+      return next;
+    });
+  };
   const clearAll = () => {
     setMarks({});
     save(matchID, seat, {});
   };
-  return { marks, toggle, clearAll };
+  return { marks, toggle, clearPlayer, clearAll };
 }
 
 /* ------------------------------ the modal -------------------------------- */
@@ -119,14 +136,14 @@ export function PlayerMarkModal({
   playerId,
   marks,
   onToggle,
-  onClearAll,
+  onClearPlayer,
   onClose,
 }: {
   view: PlayerView;
   playerId: string;
   marks: PlayerMarks;
   onToggle: (playerId: string, mark: string) => void;
-  onClearAll: () => void;
+  onClearPlayer: (playerId: string) => void;
   onClose: () => void;
 }) {
   const seats = [view.you, ...view.others];
@@ -170,8 +187,8 @@ export function PlayerMarkModal({
 
         <div className="markpop__foot">
           {current.length > 0 && (
-            <button type="button" className="markpop__clear" onClick={onClearAll}>
-              清空全部标记
+            <button type="button" className="markpop__clear" onClick={() => onClearPlayer(playerId)}>
+              清空 TA 的标记
             </button>
           )}
           <button type="button" className="btn btn--primary markpop__done" onClick={onClose}>
@@ -184,7 +201,7 @@ export function PlayerMarkModal({
 }
 
 /** Small colored dots summarizing a player's marks (chat avatar corner,
- *  roster token ring). tone→color: evil red, good teal. */
+ *  roster token ring). tone→color: evil red, good teal, cult gold. */
 export function MarkDots({ playerMarks, playerId }: { playerMarks: string[]; playerId: string }) {
   if (playerMarks.length === 0) return null;
   return (

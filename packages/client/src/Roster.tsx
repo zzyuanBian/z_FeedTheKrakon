@@ -48,12 +48,12 @@ export function Roster({
   view,
   marks,
   onToggleMark,
-  onClearMarks,
+  onClearPlayerMarks,
 }: {
   view: PlayerView;
   marks: PlayerMarks;
   onToggleMark: (playerId: string, mark: string) => void;
-  onClearMarks: () => void;
+  onClearPlayerMarks: (playerId: string) => void;
 }) {
   // Bench seats (beyond the target crew size) are not players — never render.
   const seats = [view.you, ...view.others].filter((p) => !p.benched);
@@ -196,7 +196,7 @@ export function Roster({
           playerId={marking}
           marks={marks}
           onToggle={onToggleMark}
-          onClearAll={onClearMarks}
+          onClearPlayer={onClearPlayerMarks}
           onClose={() => setMarking(null)}
         />
       )}

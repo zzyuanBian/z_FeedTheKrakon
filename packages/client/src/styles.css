@@ -2489,6 +2489,8 @@ button:disabled { cursor: not-allowed; }
 .markpop__opt--on { border-width: 2px; padding: 6px 11px; font-weight: 700; }
 .markpop__opt--on.markpop__opt--evil { border-color: var(--blood); color: #f5b0b8; background: rgba(178, 58, 72, 0.16); }
 .markpop__opt--on.markpop__opt--good { border-color: var(--teal-bright); color: var(--teal-bright); background: rgba(72, 194, 207, 0.12); }
+/* Cult guesses wear gold, not red — red is the pirates' hue. */
+.markpop__opt--on.markpop__opt--cult { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(212, 167, 74, 0.14); }
 .markpop__foot { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
 .markpop__clear {
   background: none;
@@ -2520,18 +2522,19 @@ button:disabled { cursor: not-allowed; }
 }
 .mark-dots__dot--evil { background: var(--blood); }
 .mark-dots__dot--good { background: var(--teal-bright); }
+.mark-dots__dot--cult { background: var(--gold-bright); }
 
 /* Guess badges in the roster list rows. */
 .badge--mark { border-width: 1px; font-weight: 700; }
 .badge--mark-evil { border-color: var(--blood-dim); color: #f5b0b8; }
 .badge--mark-good { border-color: var(--teal); color: var(--teal-bright); }
+.badge--mark-cult { border-color: var(--gold-dim); color: var(--gold-bright); }
 
 /* Markable crew tokens: pointer cursor + hover lift (keeping the centring
    translate), mirroring the picker. */
 .roster__token--markable { cursor: pointer; }
 .roster__token--markable:hover { transform: translate(-50%, calc(-50% - 2px)); }
 .roster__row:not(.roster__row--self) { cursor: pointer; }
-.chat__ava-wrap { position: relative; display: inline-block; line-height: 0; }
 
 /* --------------------------------- tabs -------------------------------- */
 
@@ -2835,3 +2838,64 @@ button:disabled { cursor: not-allowed; }
 }
 
 .chat__ava-wrap { position: relative; display: inline-block; line-height: 0; }
+
+/* ====================== 轮到你了 nudges (TurnNudge) ====================== */
+
+/* Layer 1 — persistent badge atop the action pane + breathing gold glow on
+   the pane border. Purely visual, fires every render while an action is
+   owed; the pane keeps its normal background (the storm deck on mobile). */
+.nudge-badge {
+  margin: 0 0 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(212, 167, 74, 0.22), rgba(212, 167, 74, 0.08));
+  color: var(--gold-bright);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: nudge-breathe 1.6s ease-in-out infinite;
+}
+@keyframes nudge-breathe {
+  0%, 100% { box-shadow: 0 0 0 rgba(245, 205, 92, 0); }
+  50% { box-shadow: 0 0 14px rgba(245, 205, 92, 0.45); }
+}
+.side-pane--nudge { animation: nudge-pane 1.6s ease-in-out infinite; }
+@keyframes nudge-pane {
+  0%, 100% { box-shadow: inset 0 0 0 rgba(245, 205, 92, 0); }
+  50% { box-shadow: inset 0 0 22px rgba(245, 205, 92, 0.18); }
+}
+/* Mobile tab dot: from a dead ● to a breathing gold one. */
+.tab--owed {
+  border-color: var(--gold);
+  color: var(--gold-bright);
+  animation: nudge-breathe 1.6s ease-in-out infinite;
+}
+
+/* Layer 2 — top toast, slides in for 4s on turn arrival. Fixed under the
+   topbar (topbar__mid owns the bar itself); pointer-events none so it never
+   eats a tap. z-index 75: above the fixed veils (70) it may outlive, below
+   the map viewer (90). */
+.nudge-toast {
+  position: fixed;
+  top: calc(64px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translate(-50%, -16px);
+  z-index: 75;
+  padding: 10px 18px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: rgba(10, 16, 30, 0.94);
+  color: var(--gold-bright);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(245, 205, 92, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.nudge-toast--on { opacity: 1; transform: translate(-50%, 0); }
+
+/* The 🔔 mute pill in the topbar: quiet when off, gold-rimmed when on. */
+.pill--bell { font-size: 15px; line-height: 1; padding: 4px 8px; }
+.pill--bell-on { border-color: var(--gold-dim); }

@@ -33,6 +33,7 @@ import type { Session } from './session.js';
 import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
 import { FACTION_ICON, FACTION_LABEL, PHASE_LABEL } from './labels.js';
 import { copyText, roomShareUrl } from './clipboard.js';
+import { TurnToast, useTurnNudge, useTurnReminderPref } from './TurnNudge.js';
 
 /** How long the connecting screen waits before auto-resetting to the lobby.
  *  Must match the stale-session timeout in useGame. */
@@ -674,6 +675,22 @@ export function App() {
     if (needsMe) setTab('action');
   }, [needsMe]);
 
+  // 轮到你了 nudges (TurnNudge): persistent badge + one-shot chime/buzz/toast
+  // + background-tab title flicker. `suppressed` = any full-screen modal or
+  // veil currently covering the board; the chime fires when it clears (the
+  // modal itself IS the loudest possible reminder while it is up). The hook
+  // must sit above the pre-game early returns (rules of hooks), so the pick
+  // gate is re-derived from game.view here — `pickGateOpen` below is the
+  // same expression once `view` exists.
+  const [reminderOn, toggleReminder] = useTurnReminderPref();
+  const pickGatePre = !!game.view && ritualPickActive(game.view) && cardRevealOpen;
+  const nudgesSuppressed =
+    cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || pickGatePre ||
+    mutinyRevealed || ritualVeilActive || loyaltyLive || peeking;
+  const { badge: nudgeBadge, toast: nudgeToast } = useTurnNudge(
+    needsMe, nudgesSuppressed, reminderOn,
+  );
+
   // Host config: player count AND faction breakdown both ride the live
   // `setFactionConfig` move — rooms are built at full seat capacity, so no
   // config change ever rebuilds the match or strands a joined player.
@@ -902,6 +919,16 @@ export function App() {
           第 {view.round} 回合 · {PHASE_LABEL[view.phase] ?? view.phase}
         </div>
         <div className="topbar__right">
+          {/* 🔔 轮到提醒 mute toggle (layer 2): sound+vibration only — the
+              badge/toast/title layers always fire. */}
+          <button
+            type="button"
+            className={'pill pill--bell' + (reminderOn ? ' pill--bell-on' : '')}
+            title={reminderOn ? '轮到提醒：响铃+震动（点击静音）' : '轮到提醒已静音（点击开启）'}
+            onClick={toggleReminder}
+          >
+            {reminderOn ? '🔔' : '🔕'}
+          </button>
           <span className="pill">你是 {youName}</span>
           <span className="pill pill--team">
             {FACTION_LABEL[view.you.team]}
@@ -939,7 +966,7 @@ export function App() {
               has its own column there. PC's 歇班 strip lives atop the left
               wing column instead. */}
           <div className="tabs">
-            <button className={'tab' + (tab === 'action' ? ' tab--on' : '')} onClick={() => setTab('action')}>
+            <button className={'tab' + (tab === 'action' ? ' tab--on' : '') + (needsMe ? ' tab--owed' : '')} onClick={() => setTab('action')}>
               行动{needsMe ? ' ●' : ''}
             </button>
             <button className={'tab' + (tab === 'crew' ? ' tab--on' : '')} onClick={() => setTab('crew')}>
@@ -961,12 +988,18 @@ export function App() {
               view={view}
               marks={playerMarks.marks}
               onToggleMark={playerMarks.toggle}
-              onClearMarks={playerMarks.clearAll}
+              onClearPlayerMarks={playerMarks.clearPlayer}
             />
           </div>
           <div
-            className={'side-pane side-pane--action' + (tab === 'action' ? '' : ' side-pane--off')}
+            className={'side-pane side-pane--action' + (tab === 'action' ? '' : ' side-pane--off') + (nudgeBadge ? ' side-pane--nudge' : '')}
           >
+            {/* Layer 1: persistent 轮到你了 badge for as long as an action is
+                owed — visible on PC (where the form can sit unnoticed while
+                the player reads the map/log) and identical on mobile. */}
+            {nudgeBadge && !over && (
+              <div className="nudge-badge" role="status">⚓ 轮到你了</div>
+            )}
             {over ? (
               <div className="panel panel--over">
                 <h3>游戏结束</h3>
@@ -1078,6 +1111,10 @@ export function App() {
       {mapExpanded && (
         <MapViewer view={view} onClose={() => setMapExpanded(false)} />
       )}
+
+      {/* 轮到你了 toast (layer 2's visual arm) — last so it rides over
+          everything except the map viewer's own HUD. */}
+      <TurnToast show={nudgeToast} />
     </div>
   );
 }
