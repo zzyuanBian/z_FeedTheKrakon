@@ -132,6 +132,30 @@ describe('mutiny', () => {
     s = reduce(s, { type: 'mutinyTieBreak', actor: c, standDown: crew[0]! });
     expect(s.mutiny.newCaptain).toBe(crew[1]);
   });
+
+  it('three-way tie: the vote chains through each stander-down before settling', () => {
+    let s = game(7);
+    const c = cap(s);
+    const team = others(s, [c]);
+    s = reduce(s, { type: 'appointTeam', actor: c, lieutenant: team[0]!, navigator: team[1]! });
+    const crew = s.seatOrder.filter((id) => id !== c);
+    for (const id of crew) {
+      s = reduce(s, { type: 'mutinyPledge', actor: id, guns: id === crew[0] || id === crew[1] || id === crew[2] ? 3 : 0 });
+    }
+    expect(s.pending?.kind).toBe('mutinyTie');
+    expect(s.pending?.by).toBe(c);
+    // Outgoing captain strikes the first name.
+    s = reduce(s, { type: 'mutinyTieBreak', actor: c, standDown: crew[0]! });
+    // The FIRST stander-down picks next — two still tied, no captain yet.
+    expect(s.pending?.kind).toBe('mutinyTie');
+    expect(s.pending?.by).toBe(crew[0]!);
+    expect(s.mutiny.newCaptain).toBeNull();
+    s = reduce(s, { type: 'mutinyTieBreak', actor: crew[0]!, standDown: crew[1]! });
+    // One candidate left — the chain resolves without another prompt.
+    expect(s.mutiny.newCaptain).toBe(crew[2]);
+    expect(s.pending).toBeNull();
+    expect(s.phase).toBe('appointTeam');
+  });
 });
 
 describe('navigation', () => {

@@ -1142,6 +1142,13 @@ button:disabled { cursor: not-allowed; }
   background: rgba(212, 167, 74, 0.1);
 }
 .mutiny-reveal__captain--wait { color: var(--ink-dim); font-style: italic; border-style: dashed; }
+
+/* 平局表决票 (TieBallot): rendered INSIDE the full-screen veil — the
+   picker votes here, since the veil sits above the action panel. */
+.mutiny-reveal__ballot { display: flex; flex-direction: column; gap: 10px; }
+.mutiny-reveal__ballot-lead { margin: 0; font-size: 14px; color: var(--ink); line-height: 1.6; }
+.mutiny-reveal__ballot-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.mutiny-reveal__ballot-go { align-self: center; min-width: 140px; }
 .mutiny-reveal__captain-label { font-size: 12px; letter-spacing: 0.2em; color: var(--gold); }
 .mutiny-reveal__captain-name { font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--gold-bright); }
 .mutiny-reveal__close { margin-top: 14px; width: 100%; }

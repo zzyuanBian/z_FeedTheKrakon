@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { type FactionCounts } from '@ftk/engine';
+import { type FactionCounts, type PlayerId } from '@ftk/engine';
 import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
 } from './Lobby.js';
@@ -976,7 +976,19 @@ export function App() {
       </main>
 
       {mutinyRevealed && !mutinyDismissed && (
-        <MutinyReveal view={view} onDone={() => setMutinyDismissed(true)} />
+        <MutinyReveal
+          view={view}
+          onDone={() => setMutinyDismissed(true)}
+          // Tie-break: the veil is full-screen, so the picker's vote must
+          // live INSIDE it — the old in-panel TargetPicker was behind the
+          // veil and its clicks never landed (game deadlock).
+          standDownCandidates={
+            view.pending?.kind === 'mutinyTie'
+              ? ((view.pendingData?.['remaining'] as PlayerId[] | undefined) ?? [])
+              : undefined
+          }
+          onStandDown={view.pending?.kind === 'mutinyTie' ? game.moves.mutinyTieBreak : undefined}
+        />
       )}
 
       {peeking && !freshConversion && (

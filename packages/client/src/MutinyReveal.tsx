@@ -7,16 +7,28 @@
  * guns the threshold was missed by — the crew learns the uprising died and
  * the voyage carries on.
  *
+ * Tie-break: the veil IS the ballot box. While a `mutinyTie` pending waits
+ * on a picker, that player's veil gains the stand-down vote (chips + confirm)
+ * — the old flow rendered the picker in the action panel BEHIND this
+ * full-screen veil, so their clicks never landed and the game deadlocked.
+ * Non-pickers keep the 等待平局表决… readout.
+ *
  * Dismissal: the button, or an 8s auto-close once the outcome is settled
  * (early close would cut the tie-break suspense short).
  */
 
-import { useEffect, useRef, useState } from 'react';
-import type { PlayerView } from '@ftk/engine';
+import { useEffect, useState } from 'react';
+import type { PlayerId, PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 import { GUN_URL } from './assets.js';
 
-export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () => void }) {
+export function MutinyReveal({ view, onDone, standDownCandidates, onStandDown }: {
+  view: PlayerView;
+  onDone: () => void;
+  /** Tie-break only: the still-standing candidates for THIS picker. */
+  standDownCandidates?: PlayerId[] | undefined;
+  onStandDown?: ((id: PlayerId) => void) | undefined;
+}) {
   const m = view.mutiny;
   const nameOf = (id: string) =>
     (id === view.you.id ? view.you : view.others.find((p) => p.id === id))?.name ?? id;
@@ -43,11 +55,6 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
   useEffect(() => {
     if (settled && left <= 0) onDone();
   }, [settled, left, onDone]);
-
-  // First render inside the veil: pop-in animation beat (ref, not state —
-  // no re-render needed, CSS animates on mount).
-  const mounted = useRef(false);
-  mounted.current = true;
 
   return (
     <div className={'mutiny-reveal' + (success ? '' : ' mutiny-reveal--failed')} role="alertdialog" aria-label="哗变结果">
@@ -81,7 +88,9 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
         </ul>
 
         {success ? (
-          captainKnown ? (
+          standDownCandidates && standDownCandidates.length > 0 && onStandDown ? (
+            <TieBallot view={view} candidates={standDownCandidates} onStandDown={onStandDown} />
+          ) : captainKnown ? (
             <div className="mutiny-reveal__captain">
               <span className="mutiny-reveal__captain-label">新任船长</span>
               <span className="mutiny-reveal__captain-name">
@@ -101,6 +110,51 @@ export function MutinyReveal({ view, onDone }: { view: PlayerView; onDone: () =>
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The tie-break ballot, rendered INSIDE the veil so the picker's clicks
+ *  actually land (the veil is full-screen and sits above the action panel).
+ *  Candidates are exactly the engine's `remaining` list — a tap off-list
+ *  would be a silent server reject, so nothing else is offered. */
+function TieBallot({ view, candidates, onStandDown }: {
+  view: PlayerView;
+  candidates: PlayerId[];
+  onStandDown: (id: PlayerId) => void;
+}) {
+  const [pick, setPick] = useState<PlayerId | null>(null);
+  const nameOf = (id: PlayerId) =>
+    (id === view.you.id ? view.you : view.others.find((p) => p.id === id))?.name ?? id;
+  return (
+    <div className="mutiny-reveal__ballot">
+      <p className="mutiny-reveal__ballot-lead">
+        {view.pending?.isYou
+          ? '平局——由你点名一名玩家弃权，余者中枪数最高者任新船长：'
+          : '平局表决…'}
+      </p>
+      <div className="mutiny-reveal__ballot-grid">
+        {candidates.map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={'chip' + (pick === id ? ' chip--on' : '')}
+            onClick={() => setPick(id)}
+          >
+            {nameOf(id)}
+          </button>
+        ))}
+      </div>
+      {view.pending?.isYou && (
+        <button
+          type="button"
+          className="btn btn--primary mutiny-reveal__ballot-go"
+          disabled={!pick}
+          onClick={() => pick && onStandDown(pick)}
+        >
+          点名弃权
+        </button>
+      )}
     </div>
   );
 }
