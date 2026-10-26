@@ -2225,10 +2225,12 @@ button:disabled { cursor: not-allowed; }
   padding: 4px 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--bg-panel);
+  /* The row is just a name strip — keep it see-through so the pane's storm
+     backdrop (mobile) reads as one continuous surface behind the list. */
+  background: transparent;
   min-width: 0;
 }
-.roster__row--self { border-color: var(--gold); background: var(--bg-panel-2); }
+.roster__row--self { border-color: var(--gold); }
 .roster__row--dead { opacity: 0.5; }
 .roster__row--dead .roster__row-name { text-decoration: line-through; }
 .roster__row-ava { flex: 0 0 auto; }
@@ -2816,7 +2818,9 @@ button:disabled { cursor: not-allowed; }
   .discard-sea__card { width: 58cqw; border-width: 1px; }
   .discard-sea__label { bottom: 2px; font-size: 11px; }
   /* The 船员 tab's off-duty: NO art on mobile (the image would dominate
-     the small pane) — a quiet text line listing who rests. */
+     the small pane) — a quiet text line listing who rests. The dark-panel
+     background needs the inverse palette: the base rules keep the
+     parchment's deep-brown ink for the PC art, which is unreadable here. */
   .side-pane__offduty { display: block; }
   .side-pane__offduty .offduty {
     aspect-ratio: auto;
@@ -2833,7 +2837,13 @@ button:disabled { cursor: not-allowed; }
     position: static;
     overflow: visible;
   }
-  .side-pane__offduty .offduty__empty { font-size: 12px; }
+  .side-pane__offduty .offduty__empty {
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--ink-ghost);
+  }
   .side-pane__offduty .offduty__crew {
     display: flex;
     flex-wrap: wrap;
@@ -2843,9 +2853,16 @@ button:disabled { cursor: not-allowed; }
   .side-pane__offduty .offduty__crew::before {
     content: '本回合歇班：';
     flex-basis: 100%;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--gold, #d4a74a);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--gold-bright);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+  .side-pane__offduty .offduty__crew-name {
+    font-size: 13px;
+    color: var(--ink);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   }
 
   /* Side column = tab strip + panes. Nothing scrolls internally: the
