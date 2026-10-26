@@ -2550,7 +2550,7 @@ button:disabled { cursor: not-allowed; }
 
 /* -------------------------------- modal -------------------------------- */
 
-.modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: grid; place-items: center; padding: 20px; }
+.modal { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, 0.6); display: grid; place-items: center; padding: 20px; }
 .modal__box { background: var(--bg-panel-2); border: 1px solid var(--gold); border-radius: var(--radius-lg); padding: 20px; max-width: 420px; text-align: center; }
 .modal__box h2 { font-family: var(--font-serif); color: var(--gold); }
 
@@ -2707,17 +2707,17 @@ button:disabled { cursor: not-allowed; }
 /* ============================= responsive ============================= */
 
 @media (max-width: 900px) {
-  /* Mobile IA (方案A): map-first. The board is a fixed-height band pinned
-     under the topbar; the side column takes the rest as a tabbed panel
-     (tabs form its sticky header, the active pane scrolls inside). A flex
-     column replaces the old 3-row grid that dropped the side column into
-     an implicit 4th row below the viewport. */
-  .main { display: flex; flex-direction: column; }
+  /* Mobile IA: one scrolling page, map-first. Nothing is pinned any more —
+     swiping up carries the topbar and the 38vh map band away with it (the
+     panes' old internal scrollports are gone; see .col--side below). The
+     tab strip sticks to the viewport top instead, so 行动/船员/记录 stay
+     one tap away wherever the scroll has taken you. */
+  .app:not(.app--lobby) { height: auto; min-height: 100%; }
+  .main { display: flex; flex-direction: column; position: relative; }
+  /* .col's overflow:auto would each trap the page scroll here (and an
+     auto/hidden scrollport on .col--side would break the tabs' sticky). */
+  .col--board, .col--side { overflow: visible; }
   .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px; }
-  /* The discard sea shrinks to a corner buoy floating on the map: the
-     painted sea art hides and the artbox itself becomes a square plinth
-     holding the card-back pile + count badge. */
-  .main { position: relative; }
   /* The left wing dissolves on mobile (display:contents): its 歇班 art box
      hides outright (the 船员 tab has the text-only version) and the discard
      sea becomes the map-corner buoy, positioned against .main itself. */
@@ -2771,26 +2771,48 @@ button:disabled { cursor: not-allowed; }
     color: var(--gold, #d4a74a);
   }
 
-  /* Side column = tab strip + one visible pane; the pane scrolls so the
-     tabs stay pinned at its top. */
+  /* Side column = tab strip + panes. Nothing scrolls internally: the
+     document is the scrollport now, the strip rides the page like any
+     other content, and the panes just stack out (only the active one is
+     shown). Sticky keeps the strip reachable from anywhere in the page. */
   .col--side {
-    flex: 1;
-    min-height: 0;
+    flex: none;
     display: flex;
     flex-direction: column;
     border-left: none;
     border-top: 1px solid var(--line);
-    overflow: hidden;
   }
   /* No hover on phones: the nav-card rules line ships expanded (NavCardFace
      expand). PC keeps it hidden behind the title tooltip. */
   .navface__hint { display: block; }
-  .tabs { display: flex; }
-  .side-pane { flex: 1; min-height: 0; overflow: auto; }
+  .tabs {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: rgba(8, 13, 24, 0.92);
+    backdrop-filter: blur(6px);
+    padding: 6px 8px;
+  }
+  .side-pane { min-height: 60vh; }
+  /* The 记录栏's storm-deck backdrop carries over to the other two tabs so
+     all three panes read as the same weathered log (记录 paints its own via
+     the .log child; this paints 船员 + 行动). min-height keeps the art
+     present even when a pane's content is short — the page, not the pane,
+     is the scrollport now. */
+  .side-pane--crew, .side-pane--action {
+    background:
+      linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
+      url('/img/log-bg.webp') center 40% / cover no-repeat,
+      linear-gradient(180deg, #101c30, #0a1322);
+  }
   .side-pane--off { display: none; }
   /* The log pane is PC-hidden (base display:none); on mobile the active
-     记录 tab flips it back on. */
+     记录 tab flips it back on, and its .log canvas stretches to fill the
+     pane (the old scrollport gave it a definite height; the page-scroll
+     model needs flex to do that job). */
   .side-pane--log:not(.side-pane--off) { display: flex; }
+  .side-pane--log > .log { flex: 1; }
   /* The dedicated log column folds away on mobile — the log rides the
      记录 tab inside the side column instead. */
   .col--log { display: none; }

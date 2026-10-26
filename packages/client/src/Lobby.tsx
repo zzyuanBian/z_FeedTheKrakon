@@ -133,19 +133,31 @@ function CodeInput({
     inputRefs.current[clamped]?.focus();
   };
 
+  /** Drop focus from the slots so a phone's soft keyboard retracts once the
+   *  code is complete (the next step is the 登船 button, not more typing).
+   *  Tapping a slot later refocuses and the keyboard comes back for edits. */
+  const collapseKeyboard = () => {
+    for (const el of inputRefs.current) {
+      if (el && el === document.activeElement) { el.blur(); return; }
+    }
+  };
+
   const handleInput = (i: number, raw: string) => {
     const cleaned = normalizeRoomCode(raw);
     if (!cleaned) return;
     // If the user pasted the full code into any slot, take the whole thing.
     if (cleaned.length >= CODE_LENGTH) {
       onChange(cleaned.slice(0, CODE_LENGTH));
-      focusSlot(CODE_LENGTH - 1);
+      collapseKeyboard();
       return;
     }
     // Otherwise, insert at slot i and advance.
     const next = (value.slice(0, i) + cleaned[0] + value.slice(i + 1)).slice(0, CODE_LENGTH);
     onChange(next);
-    focusSlot(i + cleaned.length);
+    // Code just completed: retract the keyboard instead of parking focus on
+    // the last slot.
+    if (next.length >= CODE_LENGTH) collapseKeyboard();
+    else focusSlot(i + cleaned.length);
   };
 
   const handleBackspace = (i: number) => {
@@ -183,7 +195,9 @@ function CodeInput({
             if (cleaned) {
               e.preventDefault();
               onChange(cleaned.slice(0, CODE_LENGTH));
-              focusSlot(Math.min(cleaned.length, CODE_LENGTH - 1));
+              // A full code needs no more typing: retract the keyboard.
+              if (cleaned.length >= CODE_LENGTH) collapseKeyboard();
+              else focusSlot(Math.min(cleaned.length, CODE_LENGTH - 1));
             }
           }}
         />
