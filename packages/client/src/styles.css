@@ -743,6 +743,12 @@ button:disabled { cursor: not-allowed; }
 }
 .topbar__left, .topbar__right { display: flex; gap: 8px; align-items: center; }
 .topbar__left strong { font-family: var(--font-serif); color: var(--gold); letter-spacing: 0.08em; }
+/* The bar may wrap as a whole (right group drops below on narrow screens),
+   but a GROUP never splits internally — 险恶疑航 and 已连接 wrapping
+   mid-word looks broken. Shrinking comes from hiding/packing pills
+   (mobile block), never from breaking text. */
+.topbar__left, .topbar__right { flex-wrap: nowrap; white-space: nowrap; }
+.topbar__left .pill, .topbar__right .pill { white-space: nowrap; }
 /* The mid must stay centered on the BAR, not between its neighbours —
    left/right groups differ per player (房主 pill etc.), so a flex:1 box
    would drift. Absolute centering is identical on every seat. */
@@ -2923,6 +2929,19 @@ button:disabled { cursor: not-allowed; }
      Still absolutely centered on the bar (identical on every seat). */
   .topbar { padding-top: 34px; }
   .topbar__mid { top: 24px; max-width: 92vw; font-size: 15px; }
+  /* One bar, no mid-word wraps: the left group packs down instead —
+     config pill goes (it also lives in the waiting room + tooltips),
+     the room pill drops its 房间 label, the connection pill collapses
+     to a bare colored dot (title still explains it), gaps tighten.
+     Title and room code stay complete and readable. */
+  .topbar__left { gap: 6px; }
+  .topbar__left .pill--config { display: none; }
+  .topbar__left .pill--room .pill__label { display: none; }
+  .topbar__left .pill--ok, .topbar__left .pill--bad { font-size: 0; padding: 5px; }
+  .topbar__left .pill--ok::before, .topbar__left .pill--bad::before {
+    content: '●';
+    font-size: 10px;
+  }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }
   .waiting__roster-row { grid-template-columns: 24px 1fr auto; }
 }
