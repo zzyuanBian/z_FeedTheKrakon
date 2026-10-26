@@ -1526,6 +1526,69 @@ button:disabled { cursor: not-allowed; }
 }
 .board__ship { filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.5)); }
 .board__banner { font-size: 300px; fill: var(--blood); font-weight: 800; paint-order: stroke; stroke: #000; stroke-width: 16px; }
+/* 海图放大 affordance (mobile only — the prop is undefined on PC): a small
+   chip pinned to the map's corner; the whole SVG also taps through. */
+.board--tappable { cursor: pointer; }
+.board__expand {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--gold);
+  background: rgba(10, 15, 26, 0.72);
+  border: 1px solid var(--gold-dim, rgba(212, 167, 74, 0.5));
+  border-radius: 8px;
+  pointer-events: none; /* the SVG underneath owns the tap */
+}
+
+/* 海图放大镜 (MapViewer): full-screen, gesture-driven viewBox. */
+.mapviewer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #05080f;
+  overflow: hidden;
+}
+.mapviewer__svg { width: 100%; height: 100%; display: block; }
+.mapviewer__ship { filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.65)); }
+.mapviewer__hud {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mapviewer__zoom {
+  font-size: 13px;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  min-width: 38px;
+  text-align: right;
+}
+.mapviewer__btn {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  color: var(--ink);
+  background: rgba(16, 26, 46, 0.88);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+}
+.mapviewer__btn:active { border-color: var(--gold); }
+.mapviewer__btn--close { width: auto; padding: 0 14px; font-size: 14px; }
+.mapviewer__tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-ghost);
+  pointer-events: none;
+}
 
 /* -------------------------------- zones -------------------------------- */
 /* Table zones flanking the map: the discard sea LEFT of the map shows the

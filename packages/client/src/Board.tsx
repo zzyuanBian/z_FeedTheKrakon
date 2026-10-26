@@ -30,6 +30,8 @@ const SHIP_SIZE = 660;
 
 export interface BoardProps {
   view: PlayerView;
+  /** Mobile only: tapping the board opens the full-screen MapViewer. */
+  onExpand?: (() => void) | undefined;
 }
 
 /* One decode per browser session, hot across remounts (module-level). */
@@ -50,7 +52,7 @@ function decodeMap(url: string): Promise<void> {
   return mapDecode;
 }
 
-export function Board({ view }: BoardProps) {
+export function Board({ view, onExpand }: BoardProps) {
   const ship = SHORT_MAP.spaces.find((s) => s.id === view.ship.spaceId);
   const [ready, setReady] = useState(mapReady);
 
@@ -62,13 +64,14 @@ export function Board({ view }: BoardProps) {
   }, []);
 
   return (
-    <div className="board">
+    <div className={'board' + (onExpand ? ' board--tappable' : '')}>
       <svg
         className="board__svg"
         viewBox={`0 0 ${SHORT_MAP.imageWidth} ${SHORT_MAP.imageHeight}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="海图"
+        onClick={onExpand}
       >
         {ready && (
           <>
@@ -107,6 +110,11 @@ export function Board({ view }: BoardProps) {
           <span className="board__loading-glyph" aria-hidden="true">⚓</span>
           <span className="board__loading-text">墨迹未干，海图正在展开…</span>
         </div>
+      )}
+      {onExpand && ready && (
+        <button type="button" className="board__expand" onClick={onExpand} aria-label="放大海图">
+          ⛶ 放大
+        </button>
       )}
     </div>
   );

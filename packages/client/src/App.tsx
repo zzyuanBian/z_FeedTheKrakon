@@ -4,7 +4,7 @@
  * same build serves PC and phones.
  */
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { type FactionCounts, type PlayerId } from '@ftk/engine';
 import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
@@ -18,6 +18,7 @@ import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { RitualPeek } from './RitualPeek.js';
 import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
 import { MapReveal, mapRevealActive } from './MapReveal.js';
+import { MapViewer } from './MapViewer.js';
 import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
 import { RitualChoice, ritualPickActive } from './RitualChoice.js';
 import { MutinyPrompt } from './MutinyPrompt.js';
@@ -677,6 +678,15 @@ export function App() {
   // `setFactionConfig` move — rooms are built at full seat capacity, so no
   // config change ever rebuilds the match or strands a joined player.
 
+  // 手机端海图放大镜: the board band is ~38vh on phones — too small to
+  // read route arrows. Only pointer-coarse devices (phones/tablets) get
+  // the tap-to-expand affordance; PC reads the map directly.
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const coarsePointer = useMemo(
+    () => window.matchMedia?.('(pointer: coarse)').matches ?? false,
+    [],
+  );
+
   if (!session) {
     return (
       <div className="app app--lobby">
@@ -914,7 +924,7 @@ export function App() {
         </div>
 
         <section className="col col--board">
-          <Board view={view} />
+          <Board view={view} onExpand={coarsePointer ? () => setMapExpanded(true) : undefined} />
         </section>
 
         <aside className="col col--log">
@@ -1060,6 +1070,13 @@ export function App() {
           onBack={() => setShowEndScreen(false)}
           onFunVote={(target) => game.moves.funVote!(target)}
         />
+      )}
+
+      {/* 海图放大镜 — last so it stacks over every modal; Esc-equivalent is
+          the 收起海图 button. The ship marker rides along, so the viewer
+          answers "where are we" too. */}
+      {mapExpanded && (
+        <MapViewer view={view} onClose={() => setMapExpanded(false)} />
       )}
     </div>
   );
