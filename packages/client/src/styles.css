@@ -3054,3 +3054,10 @@ button:disabled { cursor: not-allowed; }
   gap: 3px;
 }
 .resumepop__round { font-size: 11px; color: var(--ink-ghost); }
+
+/* Mobile: the chat FAB (fixed, bottom-right, z-85, above everything) hovers
+   over the scrolling roster — a row landing in that corner buries its 履历
+   badge under the bubble. Reserve the FAB's column on player rows. */
+@media (max-width: 900px) {
+  .roster__row { padding-right: 66px; }
+}
