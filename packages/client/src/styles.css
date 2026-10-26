@@ -1170,10 +1170,52 @@ button:disabled { cursor: not-allowed; }
 /* 仪式牌预览 (RitualPeek): 5s of card info before the lids close. */
 .ritual-peek__box { max-width: 340px; text-align: center; }
 .ritual-peek__kicker { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.14em; color: var(--ink-ghost); }
-.ritual-peek__glyph { display: block; font-size: 44px; margin: 4px 0 6px; animation: launch-pop 0.6s ease-out; }
+.ritual-peek__face { display: flex; justify-content: center; margin: 4px 0 10px; }
 .ritual-peek__title { margin: 0 0 8px; font-family: var(--font-serif); color: var(--cult, var(--gold)); font-size: 24px; }
 .ritual-peek__hint { margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
 .ritual-peek__close { width: 100%; }
+
+/* 仪式牌面 (RitualFace): the scanned square (cards/ritual-<id>.jpg) fills
+   the window; the Chinese name rides on a bottom gradient band — same
+   anatomy as .navface, sized per mounting site. */
+.ritualface {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: #0a0f1a;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+.ritualface__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+.ritualface__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 2px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.78) 45%);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+/* Mounting-site sizes: peek modal (biggest — this IS the moment),闭眼 veil
+   (dimmed glow fits the dark), leader's action panel, stash notice. */
+.ritualface--peek { width: 150px; }
+.ritualface--veil { width: 110px; box-shadow: 0 0 26px rgba(90, 130, 70, 0.35); }
+.ritualface--panel { width: 84px; }
+.ritualface--notice { width: 92px; }
+.ritual-peek__face .ritualface--peek { animation: launch-pop 0.6s ease-out; }
 
 /* 仪式选牌页 (RitualChoice): the captain's public pick window after the
    Cult Uprising card — remaining ritual kinds laid out in a row, only the
@@ -1213,7 +1255,7 @@ button:disabled { cursor: not-allowed; }
 .cabin-notice__text, .guns-notice__sub { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
 .cabin-notice__text b { color: var(--ink); }
 .cabin-notice__close, .guns-notice__close { width: 100%; }
-.guns-notice__glyph { display: block; font-size: 40px; margin-bottom: 6px; }
+.guns-notice__face { display: flex; justify-content: center; margin-bottom: 10px; }
 
 /* 私密结算结果 (MapReveal): the captain-only identity beat after picking a
    magnify/octopus target — avatar, name, faction in large type. */
@@ -1861,6 +1903,8 @@ button:disabled { cursor: not-allowed; }
 .panel--quiet { background: transparent; border-style: dashed; }
 .panel--over { border-color: var(--gold); }
 .panel__title { margin: 0 0 8px; font-size: 16px; font-family: var(--font-serif); color: var(--gold); }
+/* Ritual card face at the top of the leader's ritual form. */
+.panel__face { display: flex; justify-content: center; margin-bottom: 8px; }
 .hint { color: var(--ink-dim); font-size: 13px; margin: 6px 0; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -2324,7 +2368,10 @@ button:disabled { cursor: not-allowed; }
   position: fixed;
   right: 18px;
   bottom: 18px;
-  z-index: 40;
+  /* Above every game layer (veils/modals 70, nudge toast 75): chat is a
+     public channel, so no event may bury or interrupt it. Only the map
+     viewer (90) — an actively-opened full-screen tool — sits higher. */
+  z-index: 85;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -2357,7 +2404,12 @@ button:disabled { cursor: not-allowed; }
 .chatpop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  /* Same topmost band as the FAB (85): the open drawer outlives every game
+     event. The translucent backdrop dim-shows whatever modal sits behind —
+     acceptable now: chat content is public, and the MapReveal captain-only
+     modal renders its sensitive content only to the captain, whose chat is
+     equally private. */
+  z-index: 85;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;

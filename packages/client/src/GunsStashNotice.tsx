@@ -10,6 +10,7 @@
 import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 import { GUN_URL } from './assets.js';
+import { RitualFace } from './RitualFace.js';
 
 /** `index:count` of the newest ritualGuns entry, or null while unseen. */
 export function gunsStashKey(view: PlayerView): string | null {
@@ -32,7 +33,9 @@ export function GunsStashNotice({ view, onDone }: { view: PlayerView; onDone: ()
   return (
     <div className="modal guns-notice" role="alertdialog" aria-label="邪教囤枪">
       <div className="modal__box guns-notice__box">
-        <span className="guns-notice__glyph" aria-hidden="true">🐙</span>
+        <div className="guns-notice__face">
+          <RitualFace card="gunsStash" className="ritualface--notice" />
+        </div>
         <h3 className="guns-notice__title">邪教囤枪</h3>
         <p className="guns-notice__sub">仪式结束，枪的去向已公开：</p>
         <ul className="guns-notice__list">

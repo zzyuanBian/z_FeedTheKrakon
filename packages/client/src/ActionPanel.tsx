@@ -13,6 +13,7 @@ import {
   FACTION_ICON, FACTION_LABEL, PHASE_LABEL, RITUAL_LABEL,
 } from './labels.js';
 import { NavCardFace, NavCardHint } from './NavCardFace.js';
+import { RitualFace } from './RitualFace.js';
 import {
   eligibleTeam, iAmAppointing, iMayJumpOverboard, iMustContribute, iMustResolveLogbook,
   iOweMutinyPledge, myContributableCards, myLogbook, pickableTargets,
@@ -412,6 +413,9 @@ function RitualForm({
       // engine's ritualAck closes any ritual).
       return (
         <div className="panel">
+          <div className="panel__face">
+            <RitualFace card="conversion" className="ritualface--panel" />
+          </div>
           <h3 className="panel__title">邪教皈依</h3>
           <p className="hint">船上已无可转化的人。仪式无声地结束了…</p>
           <button className="btn btn--primary" onClick={() => moves.ritualAck!()}>
@@ -421,13 +425,18 @@ function RitualForm({
       );
     }
     return (
-      <TargetPicker
-        view={view}
-        targets={convertible}
-        title="邪教皈依：选择一名可转化的玩家，使其成为邪教徒（邪教徒不可再转化）"
-        confirmLabel="皈依"
-        onConfirm={(target) => moves.ritualConversion!(target)}
-      />
+      <div className="panel">
+        <div className="panel__face">
+          <RitualFace card="conversion" className="ritualface--panel" />
+        </div>
+        <TargetPicker
+          view={view}
+          targets={convertible}
+          title="选择一名可转化的玩家，使其成为邪教徒（邪教徒不可再转化）"
+          confirmLabel="皈依"
+          onConfirm={(target) => moves.ritualConversion!(target)}
+        />
+      </div>
     );
   }
   if (ritual === 'gunsStash') {
@@ -437,6 +446,9 @@ function RitualForm({
       .map((p) => p.id);
     return (
       <div className="panel">
+        <div className="panel__face">
+          <RitualFace card="gunsStash" className="ritualface--panel" />
+        </div>
         <h3 className="panel__title">{RITUAL_LABEL.gunsStash}</h3>
         <p className="hint">秘密分配 3 把枪（剩余 {3 - total}）</p>
         {everyone.map((id) => (
@@ -464,6 +476,9 @@ function RitualForm({
   // cultCabinSearch is private knowledge — just acknowledge.
   return (
     <div className="panel">
+      <div className="panel__face">
+        <RitualFace card="cultCabinSearch" className="ritualface--panel" />
+      </div>
       <h3 className="panel__title">{RITUAL_LABEL.cultCabinSearch}</h3>
       <p className="hint">你已私下看到当前航行团队的阵营。</p>
       <RitualTeamPeek view={view} />

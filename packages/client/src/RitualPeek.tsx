@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { RITUAL_LABEL, RITUAL_HINT } from './labels.js';
+import { RitualFace } from './RitualFace.js';
 
 const PEEK_SECONDS = 5;
 
@@ -33,7 +34,9 @@ export function RitualPeek({ view, onDone }: { view: PlayerView; onDone: () => v
     <div className="modal ritual-peek" role="alertdialog" aria-label="邪教仪式牌">
       <div className="modal__box ritual-peek__box">
         <p className="ritual-peek__kicker">船舱深处，有人翻开了仪式牌…</p>
-        <span className="ritual-peek__glyph" aria-hidden="true">🐙</span>
+        <div className="ritual-peek__face">
+          <RitualFace card={ritual} className="ritualface--peek" />
+        </div>
         <h3 className="ritual-peek__title">{RITUAL_LABEL[ritual]}</h3>
         <p className="ritual-peek__hint">{RITUAL_HINT[ritual]}</p>
         <button type="button" className="btn btn--primary ritual-peek__close" onClick={onDone}>

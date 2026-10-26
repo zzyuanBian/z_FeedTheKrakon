@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 import { RITUAL_LABEL } from './labels.js';
+import { RitualFace } from './RitualFace.js';
 
 export function RitualReveal({ view, active, freshConversion, onDismiss, onGone }: {
   view: PlayerView;
@@ -78,7 +79,8 @@ export function RitualReveal({ view, active, freshConversion, onDismiss, onGone 
       <div className="ritual-veil__lid ritual-veil__lid--bottom" aria-hidden="true" />
 
       <div className="ritual-veil__content">
-        <div className="ritual-reveal__glyphs" aria-hidden="true"><span>🐙</span></div>
+        {ritual && <RitualFace card={ritual} className="ritualface--veil" />}
+        {!ritual && <div className="ritual-reveal__glyphs" aria-hidden="true"><span>🐙</span></div>}
 
         {newlyConverted ? (
           <>

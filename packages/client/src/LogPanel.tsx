@@ -73,10 +73,15 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
       // line names a different captain and no mutiny entry sits between —
       // a mutiny hand-over already tells its own story one line down.
       const prevRound = view.log.slice(0, idx).reverse().find((p) => p.t === 'round');
-      const mutinyIdx = view.log.findLastIndex((p) => p.t === 'mutiny');
+      // Only a mutiny BETWEEN the two round lines explains the change (the
+      // whole-log search the old code used never fired: every historical
+      // mutiny sits at an index < idx).
+      const prevRoundIdx = prevRound ? view.log.lastIndexOf(prevRound) : -1;
+      const mutinyBetween = prevRoundIdx >= 0 &&
+        view.log.slice(prevRoundIdx + 1, idx).some((p) => p.t === 'mutiny');
       const drunkHandover =
-        prevRound && prevRound.t === 'round' && prevRound.captain !== e.captain &&
-        mutinyIdx > idx;
+        prevRound !== undefined && prevRound.t === 'round' && prevRound.captain !== e.captain &&
+        !mutinyBetween;
       return (
         <>
           — 第 <B tone="gold">{e.round}</B> 回合 · 船长 <B tone="gold">{nameOf(view, e.captain)}</B> —
