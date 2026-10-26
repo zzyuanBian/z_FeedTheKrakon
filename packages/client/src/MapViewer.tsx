@@ -10,7 +10,12 @@
  * around a map-space point (cx, cy): new w/h = w/k, h/k, and x/y shift so
  * (cx, cy) stays at the same relative position inside the window. Panning
  * converts screen px to map units via the on-screen scale (w / clientWidth).
- * Everything is clamped to the map rect; zoom spans 1× (fit) to 4×.
+ * The window always keeps the SCREEN's aspect ratio (clamping rescales h
+ * from w and the viewport), so `meet` fills the screen at every zoom —
+ * scaling the axes to independent floors once let deep zooms letterbox the
+ * map into a small centred band ("the map disappeared"). Zoom spans
+ * 1× (fit) to 4×; the fit window may overflow the map on its long axis,
+ * so x/y clamp ranges stretch past the map edge by as much on that side.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,10 +29,13 @@ const MAX_ZOOM = 4;
 
 interface Box { x: number; y: number; w: number; h: number; }
 
-/** The fit-to-window viewBox (zoom = 1) for a portrait/landscape viewport. */
+/** The fit-to-window viewBox (zoom = 1) for a portrait/landscape viewport.
+ *  Reads the same viewport source as clampBox — a mismatched pair would
+ *  letterbox the fit view by a few px of browser chrome. */
 function fitBox(): Box {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const el = document.documentElement;
+  const vw = el.clientWidth;
+  const vh = el.clientHeight;
   const mw = SHORT_MAP.imageWidth;
   const mh = SHORT_MAP.imageHeight;
   // meet: the larger scale wins so the whole map stays visible.
@@ -37,25 +45,43 @@ function fitBox(): Box {
   return { x: (mw - w) / 2, y: (mh - h) / 2, w, h };
 }
 
-const clampBox = (b: Box): Box => {
+/** Window width for a raw zoom candidate, held to [1..4]× zoom. */
+const limitedW = (w: number): number => {
+  const mw = SHORT_MAP.imageWidth;
+  return Math.min(mw, Math.max(mw / MAX_ZOOM, w));
+};
+
+/** Clamp a box's position, re-deriving its height from the viewport's
+ *  aspect. The window always keeps the SCREEN's aspect: `meet` then fills
+ *  the screen at every zoom and the screen↔map conversions stay exact.
+ *  (Scaling w and h to independent floors — the old clamp — distorted the
+ *  aspect once zoomed deep, and `meet` answered by letterboxing the map
+ *  into a small centred band: "zoom in enough and the map disappears".)
+ *  At low zoom the window may legitimately overflow the map on the long
+ *  axis (the zoom-1 fit does exactly that), so x/y ranges extend past the
+ *  map edge just as far on that side. */
+function clampBox(b: Box): Box {
   const mw = SHORT_MAP.imageWidth;
   const mh = SHORT_MAP.imageHeight;
-  const w = Math.min(mw, Math.max(mw / MAX_ZOOM, b.w));
-  const h = Math.min(mh, Math.max(mh / MAX_ZOOM, b.h));
+  const w = limitedW(b.w);
+  const h = (w * document.documentElement.clientHeight) / document.documentElement.clientWidth;
+  const xHi = mw - w;
+  const yHi = mh - h;
   return {
     w, h,
-    x: Math.min(mw - w, Math.max(0, b.x)),
-    y: Math.min(mh - h, Math.max(0, b.y)),
+    x: Math.min(Math.max(b.x, Math.min(0, xHi)), Math.max(0, xHi)),
+    y: Math.min(Math.max(b.y, Math.min(0, yHi)), Math.max(0, yHi)),
   };
-};
+}
 
 /** Zoom by k around the map-space point under screen position (sx, sy). */
 function zoomAt(b: Box, k: number, sx: number, sy: number): Box {
   const el = document.documentElement;
   const px = (sx / el.clientWidth) * b.w + b.x;
   const py = (sy / el.clientHeight) * b.h + b.y;
-  const w = b.w / k;
-  const h = b.h / k;
+  // Learn the post-clamp window FIRST, then anchor it under the finger —
+  // clamping after anchoring would let the zoom caps drift the anchor.
+  const { w, h } = clampBox({ ...b, w: b.w / k, h: b.h / k });
   return clampBox({
     w, h,
     x: px - (sx / el.clientWidth) * w,
@@ -64,12 +90,20 @@ function zoomAt(b: Box, k: number, sx: number, sy: number): Box {
 }
 
 export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => void }) {
-  const [box, setBox] = useState<Box>(fitBox);
+  const [box, setBoxState] = useState<Box>(fitBox);
+  // Gesture reads the CURRENT box synchronously — React state commits a
+  // beat later, and a pinch move arriving inside that gap would read a
+  // half-written window (the old `box: null!` round-trip).
+  const boxRef = useRef<Box>(box);
+  const applyBox = useCallback((next: Box) => {
+    boxRef.current = next;
+    setBoxState(next);
+  }, []);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // Gesture scratch (refs — no re-render per move event).
   const mode = useRef<'none' | 'pan' | 'pinch'>('none');
   const last = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const pinch = useRef<{ dist: number; cx: number; cy: number; box: Box } | null>(null);
+  const pinch = useRef<{ dist: number; cx: number; cy: number } | null>(null);
   const taps = useRef<{ t: number; x: number; y: number } | null>(null);
 
   const ship = SHORT_MAP.spaces.find((s) => s.id === view.ship.spaceId);
@@ -77,13 +111,14 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
 
   // Landscape→portrait rotations / browser chrome resizes refit the window.
   useEffect(() => {
-    const on = () => setBox(fitBox());
+    const on = () => applyBox(fitBox());
     window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
-  }, []);
+  }, [applyBox]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
+    // Gesture blocking is touch-action:none (CSS); React's touch listeners
+    // are passive, so a preventDefault() here would only log a warning.
     if (e.touches.length === 1) {
       const t = e.touches[0]!;
       mode.current = 'pan';
@@ -97,10 +132,8 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
         taps.current = null;
         const cx = t.clientX;
         const cy = t.clientY;
-        setBox((b) => {
-          const z = SHORT_MAP.imageWidth / b.w;
-          return z > 1.5 ? fitBox() : zoomAt(b, 2, cx, cy);
-        });
+        const z = SHORT_MAP.imageWidth / boxRef.current.w;
+        applyBox(z > 1.5 ? fitBox() : zoomAt(boxRef.current, 2, cx, cy));
         mode.current = 'none';
       }
     } else if (e.touches.length >= 2) {
@@ -111,32 +144,28 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
         dist: Math.hypot(a.clientX - b2.clientX, a.clientY - b2.clientY),
         cx: (a.clientX + b2.clientX) / 2,
         cy: (a.clientY + b2.clientY) / 2,
-        box: null!, // filled by the updater below
       };
-      setBox((cur) => { pinch.current!.box = cur; return cur; });
     }
-  }, []);
+  }, [applyBox]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
     if (mode.current === 'pan' && e.touches.length === 1) {
       const t = e.touches[0]!;
       const dx = t.clientX - last.current.x;
       const dy = t.clientY - last.current.y;
       last.current = { x: t.clientX, y: t.clientY };
-      setBox((b) => {
-        const el = document.documentElement;
-        return clampBox({ ...b, x: b.x - (dx / el.clientWidth) * b.w, y: b.y - (dy / el.clientHeight) * b.h });
-      });
+      const el = document.documentElement;
+      const b = boxRef.current;
+      applyBox(clampBox({ ...b, x: b.x - (dx / el.clientWidth) * b.w, y: b.y - (dy / el.clientHeight) * b.h }));
     } else if (mode.current === 'pinch' && e.touches.length >= 2 && pinch.current) {
       const a = e.touches[0]!;
       const b2 = e.touches[1]!;
       const dist = Math.hypot(a.clientX - b2.clientX, a.clientY - b2.clientY);
       const k = dist / pinch.current.dist;
       if (k > 0.9 && k < 1.1) return; // jitter guard
-      setBox(() => zoomAt(pinch.current!.box, k, pinch.current!.cx, pinch.current!.cy));
+      applyBox(zoomAt(boxRef.current, k, pinch.current.cx, pinch.current.cy));
     }
-  }, []);
+  }, [applyBox]);
 
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 0) { mode.current = 'none'; pinch.current = null; }
@@ -149,7 +178,8 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
     }
   }, []);
 
-  const btnZoom = (k: number) => setBox((b) => zoomAt(b, k, window.innerWidth / 2, window.innerHeight / 2));
+  const btnZoom = (k: number) =>
+    applyBox(zoomAt(boxRef.current, k, document.documentElement.clientWidth / 2, document.documentElement.clientHeight / 2));
 
   return (
     <div className="mapviewer" role="dialog" aria-label="海图放大">
@@ -190,7 +220,7 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
         <span className="mapviewer__zoom">{Math.round(zoom * 10) / 10}×</span>
         <button type="button" className="mapviewer__btn" onClick={() => btnZoom(1.5)} aria-label="放大">＋</button>
         <button type="button" className="mapviewer__btn" onClick={() => btnZoom(1 / 1.5)} aria-label="缩小">－</button>
-        <button type="button" className="mapviewer__btn" onClick={() => setBox(fitBox())} aria-label="复位">⤾</button>
+        <button type="button" className="mapviewer__btn" onClick={() => applyBox(fitBox())} aria-label="复位">⤾</button>
         <button type="button" className="mapviewer__btn mapviewer__btn--close" onClick={onClose} aria-label="关闭">
           ✕ 收起海图
         </button>
