@@ -23,6 +23,7 @@ import { AvatarImage } from './Avatars.js';
 import { GUN_URL } from './assets.js';
 import { MarkDots, PlayerMarkModal, markOption, type PlayerMarks } from './marks.js';
 import { navPickStatus } from './status.js';
+import { ResumeModal, resumesFromLog } from './Resumes.js';
 
 /** Teammate badges on seats, split by WHICH KIND of mate they are — the
  *  badge icon/tooltip must describe the team-mate, not the viewer:
@@ -60,6 +61,10 @@ export function Roster({
   const { officers } = view;
   const n = seats.length;
   const [marking, setMarking] = useState<string | null>(null);
+  // Résumé inspection: which nav cards each player has earned as captain
+  // (public per the rulebook). null = no sheet open.
+  const [resumeOf, setResumeOf] = useState<string | null>(null);
+  const resumes = resumesFromLog(view);
   const mates = mateSets(view);
   /** Per-seat teammate badge: which kind of mate is this seat (if any)? */
   const mateOf = (id: string): 'master' | 'pirate' | 'cult' | null =>
@@ -180,7 +185,18 @@ export function Roster({
                   ))}
                 {team && <span className="badge">{FACTION_ICON[team]}{FACTION_LABEL[team]}</span>}
                 <span className="badge" title="枪"><img className="gun-ico" src={GUN_URL} alt="" />{p.guns}</span>
-                <span className="badge" title="履历">📜{p.resumes}</span>
+                {/* Résumés are public — tap to inspect the actual cards. */}
+                <button
+                  type="button"
+                  className="badge badge--link"
+                  title="查看履历（担任船长时领出的航海卡）"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setResumeOf(p.id);
+                  }}
+                >
+                  📜{p.resumes}
+                </button>
                 {p.offDuty && <span className="badge badge--off" title="歇班">💤</span>}
                 {p.declaredCult && <span className="badge badge--cult" title="已被公开为邪教徒">🐙</span>}
                 {!p.alive && <span className="badge badge--dead">出局</span>}
@@ -198,6 +214,15 @@ export function Roster({
           onToggle={onToggleMark}
           onClearPlayer={onClearPlayerMarks}
           onClose={() => setMarking(null)}
+        />
+      )}
+
+      {resumeOf && (
+        <ResumeModal
+          view={view}
+          playerId={resumeOf}
+          resumes={resumes[resumeOf] ?? []}
+          onClose={() => setResumeOf(null)}
         />
       )}
     </section>

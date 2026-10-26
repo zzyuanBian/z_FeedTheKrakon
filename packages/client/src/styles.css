@@ -2256,6 +2256,14 @@ button:disabled { cursor: not-allowed; }
 .roster__row-meta .badge { flex: 0 0 auto; }
 
 .badge { font-size: 12px; background: var(--bg-panel-2); border-radius: 6px; padding: 1px 6px; border: 1px solid var(--line); }
+/* Clickable badge (履历 inspection): same look plus affordance. */
+.badge--link {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.badge--link:hover { border-color: var(--gold); color: var(--gold-bright); }
 .badge--off { background: #2a3548; }
 .badge--cult { background: var(--cult); }
 .badge--dead { background: var(--blood); }
@@ -2534,8 +2542,7 @@ button:disabled { cursor: not-allowed; }
   color: var(--ink-dim);
   font-size: 16px;
   cursor: pointer;
-  padding: 4px 8px;
-}
+  padding: 4px 8px;}
 .markpop__head button:hover { color: var(--ink); }
 .markpop__hint {
   margin: 4px 0 12px;
@@ -3020,3 +3027,30 @@ button:disabled { cursor: not-allowed; }
   font-weight: 700;
   text-align: center;
 }
+
+/* ------------------------- résumé inspection ---------------------------- */
+/* 履历弹窗: reuses the markpop bottom-sheet shell; the earned nav cards
+   flow left-to-right in acquisition order, each with its round tag. */
+.resumepop__sheet { max-width: 420px; }
+.resumepop__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 12px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+.resumepop__who img { flex: 0 0 auto; }
+.resumepop__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 8px;
+}
+.resumepop__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.resumepop__round { font-size: 11px; color: var(--ink-ghost); }
