@@ -17,6 +17,7 @@ import { MutinyReveal } from './MutinyReveal.js';
 import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { RitualPeek } from './RitualPeek.js';
 import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
+import { CaptainChangeNotice, captainChangeKey } from './CaptainChangeNotice.js';
 import { MapReveal, mapRevealActive } from './MapReveal.js';
 import { MapViewer } from './MapViewer.js';
 import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
@@ -635,6 +636,7 @@ export function App() {
     if (cardRevealOpen) setSeenCardKey(cardKey);
     if (cabinNoticeOpen) setSeenCsKey(csKey);
     if (gunsNoticeOpen) setSeenGsKey(gsKey);
+    if (captainChangeOpen) setSeenCcKey(ccKey);
     if (mutinyRevealed && !mutinyDismissed) setMutinyDismissed(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ritualVeilActive]);
@@ -656,6 +658,11 @@ export function App() {
   const gsKey = game.view ? gunsStashKey(game.view) : null;
   const [seenGsKey, setSeenGsKey] = useState<string | null>(null);
   const gunsNoticeOpen = gsKey !== null && gsKey !== seenGsKey;
+  // 船长更替公示 (drunk-card hand-overs — mutiny has its own veil): keyed on
+  // the log length at the moment the fresh `round` line landed.
+  const ccKey = game.view ? captainChangeKey(game.view) : null;
+  const [seenCcKey, setSeenCcKey] = useState<string | null>(null);
+  const captainChangeOpen = ccKey !== null && ccKey !== seenCcKey;
 
   // On mobile the side column is tabs; auto-focus the action tab when the
   // player has something to do. The navigation contribute/logbook stages set
@@ -685,8 +692,8 @@ export function App() {
   const [reminderOn, toggleReminder] = useTurnReminderPref();
   const pickGatePre = !!game.view && ritualPickActive(game.view) && cardRevealOpen;
   const nudgesSuppressed =
-    cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || pickGatePre ||
-    mutinyRevealed || ritualVeilActive || loyaltyLive || peeking;
+    cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || captainChangeOpen ||
+    pickGatePre || mutinyRevealed || ritualVeilActive || loyaltyLive || peeking;
   const { badge: nudgeBadge, toast: nudgeToast } = useTurnNudge(
     needsMe, nudgesSuppressed, reminderOn,
   );
@@ -1051,6 +1058,12 @@ export function App() {
 
       {gunsNoticeOpen && (
         <GunsStashNotice view={view} onDone={() => setSeenGsKey(gsKey)} />
+      )}
+
+      {/* 船长更替公示 (drunk-card hand-over) — after the notices so it stacks
+          over them if two land in the same broadcast. */}
+      {captainChangeOpen && (
+        <CaptainChangeNotice view={view} onDone={() => setSeenCcKey(ccKey)} />
       )}
 
       {pickGateOpen && (

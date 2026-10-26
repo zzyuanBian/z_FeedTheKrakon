@@ -56,7 +56,7 @@ export function LogPanel({ view }: { view: PlayerView }) {
       )}
       <h3 className="sec__title">记录</h3>
       <ul className="log__list">
-        {reversed.map((e, i) => renderEntry(view, e))
+        {reversed.map((e, i) => renderEntry(view, e, view.log.length - 1 - i))
           .filter((node): node is ReactNode => node !== null)
           .map((node, i) => (
             <li key={i}>{node}</li>
@@ -66,12 +66,26 @@ export function LogPanel({ view }: { view: PlayerView }) {
   );
 }
 
-function renderEntry(view: PlayerView, e: PlayerView['log'][number]): ReactNode {
+function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number): ReactNode {
   switch (e.t) {
-    case 'round':
+    case 'round': {
+      // Annotate a non-mutiny captain hand-over (醉汉): the previous round
+      // line names a different captain and no mutiny entry sits between —
+      // a mutiny hand-over already tells its own story one line down.
+      const prevRound = view.log.slice(0, idx).reverse().find((p) => p.t === 'round');
+      const mutinyIdx = view.log.findLastIndex((p) => p.t === 'mutiny');
+      const drunkHandover =
+        prevRound && prevRound.t === 'round' && prevRound.captain !== e.captain &&
+        mutinyIdx > idx;
       return (
-        <>— 第 <B tone="gold">{e.round}</B> 回合 · 船长 <B tone="gold">{nameOf(view, e.captain)}</B> —</>
+        <>
+          — 第 <B tone="gold">{e.round}</B> 回合 · 船长 <B tone="gold">{nameOf(view, e.captain)}</B> —
+          {drunkHandover && (
+            <span className="log__handover">🍺 醉汉上台</span>
+          )}
+        </>
       );
+    }
     case 'officers':
       return (
         <>任命：大副 <B tone="gold">{nameOf(view, e.lieutenant)}</B>，领航员 <B tone="gold">{nameOf(view, e.navigator)}</B></>
