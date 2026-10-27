@@ -2815,6 +2815,22 @@ button:disabled { cursor: not-allowed; }
      sea becomes the map-corner buoy, positioned against .main itself. */
   .col--wing { display: contents; }
   .col--wing .offduty { display: none; }
+  /* display:contents puts the wing's DOM order (drawpiles → discard →
+     board) straight into .main — the piles row used to land ABOVE the map,
+     exactly under the discard buoy (absolute, top-right): the 弃牌 count
+     printed on top of the 仪式 deck back. Reorder: map first, the piles
+     become a compact strip under it, buoy floats over the map corner. */
+  .col--board { order: -1; }
+  .drawpiles {
+    order: 0;
+    flex-direction: row;
+    justify-content: center;
+    gap: 18px;
+    padding: 0 8px 6px;
+  }
+  .drawpile { flex-direction: row; gap: 8px; align-items: center; }
+  .drawpile__back { width: 34px; max-width: none; border-radius: 6px; }
+  .drawpile__count { font-size: 12px; }
   /* The discard sea becomes the map-corner buoy: square plinth, painted
      art hidden, card-back pile + count badge only. */
   .discard-sea {
@@ -2827,9 +2843,23 @@ button:disabled { cursor: not-allowed; }
   }
   .discard-sea__artbox { flex: none; height: 76px; } /* square plinth */
   .discard-sea__art { display: none; }
-  .discard-sea__stack { top: 44%; }
-  .discard-sea__card { width: 58cqw; border-width: 1px; }
-  .discard-sea__label { bottom: 2px; font-size: 11px; }
+  /* Buoy layout: pile centred in the plinth's UPPER area, the count rides
+     the bottom edge on its own dark chip — the two never overlap (the card
+     backs used to float over the label where the plinth's ritual-back
+     print showed through). Card size keys off the 76px plinth directly:
+     cqw stopped being reliable here (the container is display:contents
+     away from the layout box it used to size against). */
+  .discard-sea__stack { top: 38%; }
+  .discard-sea__card { width: 40px; border-width: 1px; }
+  .discard-sea__label {
+    bottom: 3px;
+    font-size: 10px;
+    left: 4px;
+    right: 4px;
+    background: rgba(6, 10, 18, 0.72);
+    border-radius: 6px;
+    padding: 1px 0;
+  }
   /* The 船员 tab's off-duty: NO art on mobile (the image would dominate
      the small pane) — a quiet text line listing who rests. The dark-panel
      background needs the inverse palette: the base rules keep the
@@ -2942,6 +2972,19 @@ button:disabled { cursor: not-allowed; }
     content: '●';
     font-size: 10px;
   }
+  /* Even packed, left + right cannot share one 390px line — so make the
+     second row INTENTIONAL: the right group drops onto its own line,
+     right-aligned with tighter pills. Identities shrink instead of
+     wrapping mid-word: 你是 pill loses its text (avatar/name live in the
+     roster), 房主 becomes 👑. Deliberate two-row bar, no accidental half
+     wraps. */
+  .topbar { row-gap: 4px; padding-bottom: 8px; }
+  .topbar__right { flex-basis: 100%; justify-content: flex-end; gap: 6px; }
+  .topbar__right .pill { font-size: 12px; padding: 3px 8px; }
+  /* 你是 X: the roster + chat already carry the name — drop the pill. */
+  .topbar__right .pill:nth-child(2) { display: none; }
+  .topbar__right .pill--host { font-size: 0; padding: 3px 7px; }
+  .topbar__right .pill--host::before { content: '👑'; font-size: 12px; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }
   .waiting__roster-row { grid-template-columns: 24px 1fr auto; }
 }

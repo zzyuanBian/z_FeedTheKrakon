@@ -948,7 +948,7 @@ export function App() {
             {FACTION_LABEL[view.you.team]}
             {view.you.cultLeader && ' · 首领'}
           </span>
-          {view.isHost && <span className="pill">房主</span>}
+          {view.isHost && <span className="pill pill--host">房主</span>}
         </div>
       </header>
 
