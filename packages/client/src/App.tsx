@@ -37,6 +37,7 @@ import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
 import { FACTION_ICON, FACTION_LABEL, PHASE_LABEL } from './labels.js';
 import { copyText, roomShareUrl } from './clipboard.js';
 import { TurnToast, useTurnNudge, useTurnReminderPref } from './TurnNudge.js';
+import { iOweMutinyPledge } from './actions.js';
 
 /** How long the connecting screen waits before auto-resetting to the lobby.
  *  Must match the stale-session timeout in useGame. */
@@ -691,7 +692,11 @@ export function App() {
         game.view.you.id === game.view.officers.lieutenant)) ||
     (!!game.view && nav?.stage === 'logbook' &&
       game.view.you.id === game.view.officers.navigator);
-  const needsMe = !!game.view?.pending?.isYou || navMine;
+  const needsMe = !!game.view?.pending?.isYou || navMine ||
+    // An unpledged seat during an open loyalty vote owes the 哗变 pledge even
+    // after minimising the MutinyPrompt (稍后决定): the badge / tab dot /
+    // title flicker must keep chasing them until they pledge.
+    (!!game.view && iOweMutinyPledge(game.view));
 
   useEffect(() => {
     if (needsMe) setTab('action');
@@ -724,10 +729,15 @@ export function App() {
     });
   };
   const pickGatePre = !!game.view && ritualPickActive(game.view) && cardRevealOpen;
+  // While the MutinyPrompt is actually on screen it is its own loudest
+  // reminder — the chime waits. Tapping 稍后决定 closes it, so an unpledged
+  // seat's nudge (chime/buzz/toast + persistent badge) fires right then
+  // instead of being muted for the whole loyalty phase.
+  const mutinyPromptUp = loyaltyLive && mutinyPromptOpen;
   const nudgesSuppressed =
     cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || captainChangeOpen ||
     eliminationOpen || fateOpen ||
-    pickGatePre || mutinyRevealed || ritualVeilActive || loyaltyLive || peeking;
+    pickGatePre || mutinyRevealed || ritualVeilActive || mutinyPromptUp || peeking;
   const { badge: nudgeBadge, toast: nudgeToast } = useTurnNudge(
     needsMe, nudgesSuppressed, reminderOn,
   );
