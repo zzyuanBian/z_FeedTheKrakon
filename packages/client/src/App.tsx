@@ -18,6 +18,7 @@ import { CardReveal, cardRevealKey } from './CardReveal.js';
 import { RitualPeek } from './RitualPeek.js';
 import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
 import { CaptainChangeNotice, captainChangeKey } from './CaptainChangeNotice.js';
+import { EliminationNotice, eliminationKey } from './EliminationNotice.js';
 import { MapReveal, mapRevealActive } from './MapReveal.js';
 import { MapViewer } from './MapViewer.js';
 import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
@@ -640,6 +641,7 @@ export function App() {
     if (cabinNoticeOpen) setSeenCsKey(csKey);
     if (gunsNoticeOpen) setSeenGsKey(gsKey);
     if (captainChangeOpen) setSeenCcKey(ccKey);
+    if (elimEntry) setSeenElimIdx(elimEntry.idx);
     if (mutinyRevealed && !mutinyDismissed) setMutinyDismissed(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ritualVeilActive]);
@@ -666,6 +668,10 @@ export function App() {
   const ccKey = game.view ? captainChangeKey(game.view) : null;
   const [seenCcKey, setSeenCcKey] = useState<string | null>(null);
   const captainChangeOpen = ccKey !== null && ccKey !== seenCcKey;
+  // 出局公示 (feedKraken / jump): the tail elimination entry until seen.
+  const elimEntry = game.view ? eliminationKey(game.view) : null;
+  const [seenElimIdx, setSeenElimIdx] = useState<number | null>(null);
+  const eliminationOpen = elimEntry !== null && elimEntry.idx !== seenElimIdx;
 
   // On mobile the side column is tabs; auto-focus the action tab when the
   // player has something to do. The navigation contribute/logbook stages set
@@ -714,6 +720,7 @@ export function App() {
   const pickGatePre = !!game.view && ritualPickActive(game.view) && cardRevealOpen;
   const nudgesSuppressed =
     cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || captainChangeOpen ||
+    eliminationOpen ||
     pickGatePre || mutinyRevealed || ritualVeilActive || loyaltyLive || peeking;
   const { badge: nudgeBadge, toast: nudgeToast } = useTurnNudge(
     needsMe, nudgesSuppressed, reminderOn,
@@ -1098,6 +1105,10 @@ export function App() {
           over them if two land in the same broadcast. */}
       {captainChangeOpen && (
         <CaptainChangeNotice view={view} onDone={() => setSeenCcKey(ccKey)} />
+      )}
+
+      {eliminationOpen && elimEntry && (
+        <EliminationNotice view={view} entry={elimEntry} onDone={() => setSeenElimIdx(elimEntry.idx)} />
       )}
 
       {pickGateOpen && (

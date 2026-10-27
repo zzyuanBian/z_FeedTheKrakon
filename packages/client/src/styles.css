@@ -3138,3 +3138,17 @@ button:disabled { cursor: not-allowed; }
    so the document scrollport itself is frozen (body overflow alone is
    unreliable once html scrolls). */
 html.ftk-scroll-lock { overflow: hidden; }
+
+/* --------------------------- 出局公示 (EliminationNotice) ----------------- */
+/* Same skeleton as captain-change: glyph, serif title, sub line, the
+   departed's portrait, a full-width close. Fate line in blood red — this
+   is the one modal allowed to mourn. */
+.elim-notice__box { max-width: 340px; text-align: center; }
+.elim-notice__glyph { display: block; font-size: 40px; margin-bottom: 6px; }
+.elim-notice__title { margin: 0 0 8px; font-family: var(--font-serif); color: var(--blood); font-size: 22px; }
+.elim-notice__sub { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
+.elim-notice__who { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 14px; }
+.elim-notice__who img { border-radius: 50%; border: 2px solid rgba(150, 42, 48, 0.55); filter: grayscale(0.9); }
+.elim-notice__name { font-size: 18px; font-weight: 700; color: var(--gold-bright); }
+.elim-notice__fate { font-size: 12px; letter-spacing: 0.1em; color: #f5b0b8; }
+.elim-notice__close { width: 100%; }
