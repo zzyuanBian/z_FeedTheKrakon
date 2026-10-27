@@ -2972,17 +2972,19 @@ button:disabled { cursor: not-allowed; }
     content: '●';
     font-size: 10px;
   }
-  /* Even packed, left + right cannot share one 390px line — so make the
-     second row INTENTIONAL: the right group drops onto its own line,
-     right-aligned with tighter pills. Identities shrink instead of
-     wrapping mid-word: 你是 pill loses its text (avatar/name live in the
-     roster), 房主 becomes 👑. Deliberate two-row bar, no accidental half
-     wraps. */
+  /* Even packed, left + right could not share one 390px line — so the
+     right group shrinks to icon-only: faction pill drops its word (the
+     icon carries it; full label lives in the title tooltip and the
+     role-reveal card), 你是 X pill goes (roster + chat have the name),
+     房主 becomes 👑. One line, nothing wraps. */
   .topbar { row-gap: 4px; padding-bottom: 8px; }
-  .topbar__right { flex-basis: 100%; justify-content: flex-end; gap: 6px; }
+  .topbar__right { gap: 5px; }
   .topbar__right .pill { font-size: 12px; padding: 3px 8px; }
   /* 你是 X: the roster + chat already carry the name — drop the pill. */
   .topbar__right .pill:nth-child(2) { display: none; }
+  /* Faction: icon only on mobile (the icon carries it; full label rides
+     the title tooltip and the role-reveal card). */
+  .topbar__right .pill--team .pill__team-word { display: none; }
   .topbar__right .pill--host { font-size: 0; padding: 3px 7px; }
   .topbar__right .pill--host::before { content: '👑'; font-size: 12px; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }

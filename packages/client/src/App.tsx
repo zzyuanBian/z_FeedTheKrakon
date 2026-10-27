@@ -693,6 +693,24 @@ export function App() {
   // gate is re-derived from game.view here — `pickGateOpen` below is the
   // same expression once `view` exists.
   const [reminderOn, toggleReminder] = useTurnReminderPref();
+  // 身份掩码 (faction pill privacy): tapping the topbar's faction pill
+  // toggles a ❓ mask — for playing over someone's shoulder. Per
+  // match+seat in sessionStorage: the mask is a per-game courtesy, it
+  // should NOT survive into the next room. Must sit above the pre-game
+  // early returns (rules of hooks).
+  const factionMaskKey = session
+    ? `ftk-faction-mask:${session.matchID}:${session.playerID}`
+    : '';
+  const [factionMasked, setFactionMasked] = useState(
+    () => (factionMaskKey ? sessionStorage.getItem(factionMaskKey) === '1' : false),
+  );
+  const toggleFactionMask = () => {
+    if (!factionMaskKey) return;
+    setFactionMasked((v) => {
+      sessionStorage.setItem(factionMaskKey, v ? '0' : '1');
+      return !v;
+    });
+  };
   const pickGatePre = !!game.view && ritualPickActive(game.view) && cardRevealOpen;
   const nudgesSuppressed =
     cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || captainChangeOpen ||
@@ -944,10 +962,18 @@ export function App() {
             {reminderOn ? '🔔' : '🔕'}
           </button>
           <span className="pill">你是 {youName}</span>
-          <span className="pill pill--team">
-            {FACTION_LABEL[view.you.team]}
-            {view.you.cultLeader && ' · 首领'}
-          </span>
+          {/* Tap to mask/unmask: play over someone's shoulder without
+              showing your faction. ❓ keeps pill width stable. */}
+          <button
+            type="button"
+            className="pill pill--team"
+            title={factionMasked ? '身份已隐藏（点击显示）' : '点击隐藏身份'}
+            onClick={toggleFactionMask}
+          >
+            {factionMasked ? '❓' : FACTION_ICON[view.you.team]}
+            {!factionMasked && <span className="pill__team-word">{FACTION_LABEL[view.you.team]}</span>}
+            {!factionMasked && view.you.cultLeader && <span className="pill__team-word"> · 首领</span>}
+          </button>
           {view.isHost && <span className="pill pill--host">房主</span>}
         </div>
       </header>
