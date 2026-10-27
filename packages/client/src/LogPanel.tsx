@@ -9,7 +9,10 @@
 
 import type { ReactNode } from 'react';
 import type { PlayerView } from '@ftk/engine';
-import { FACTION_ICON, FACTION_LABEL, NAV_CARD_LABEL, RITUAL_LABEL } from './labels.js';
+import { navCard } from '@ftk/engine';
+import {
+  COLOR_GLYPH, COLOR_LABEL, FACTION_ICON, FACTION_LABEL, NAV_CARD_LABEL, RITUAL_LABEL,
+} from './labels.js';
 import { waitStatus } from './status.js';
 
 const nameOf = (view: PlayerView, id: string): string =>
@@ -20,6 +23,19 @@ const nameOf = (view: PlayerView, id: string): string =>
 const B = ({ tone, children }: { tone: 'gold' | 'red' | 'teal'; children: ReactNode }) => (
   <b className={`log__hl log__hl--${tone}`}>{children}</b>
 );
+
+/** The sailed card's course, coloured to its arrow (yellow/blue/red — same
+ *  palette the board's move lines speak). */
+const COURSE_TONE = { yellow: 'log__course--yellow', blue: 'log__course--blue', red: 'log__course--red' } as const;
+
+const Course = ({ card }: { card: Parameters<typeof navCard>[0] }) => {
+  const def = navCard(card);
+  return (
+    <span className={`log__course ${COURSE_TONE[def.color]}`}>
+      {COLOR_LABEL[def.color]} {COLOR_GLYPH[def.color]}
+    </span>
+  );
+};
 
 export function LogPanel({ view }: { view: PlayerView }) {
   const reversed = [...view.log].reverse().slice(0, 50);
@@ -123,7 +139,7 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
       return null;
     case 'card':
       return (
-        <>{nameOf(view, e.captain)} 翻开航海卡：<B tone="gold">{NAV_CARD_LABEL[e.card]}</B></>
+        <>{nameOf(view, e.captain)} 翻开航海卡：<B tone="gold">{NAV_CARD_LABEL[e.card]}</B>，航向 <Course card={e.card} /></>
       );
     case 'ritual':
       return (
@@ -160,7 +176,7 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
     case 'randomSettle':
       // p.12 fate settle (no navigator): both cards are public.
       return (
-        <><B tone="gold">命运</B> 定航向：<B tone="gold">{NAV_CARD_LABEL[e.discarded]}</B> 入海，执行 <B tone="gold">{NAV_CARD_LABEL[e.kept]}</B></>
+        <><B tone="gold">命运</B> 定航向：<B tone="gold">{NAV_CARD_LABEL[e.discarded]}</B> 入海，执行 <B tone="gold">{NAV_CARD_LABEL[e.kept]}</B>，航向 <Course card={e.kept} /></>
       );
     case 'converted':
       return '有人被转化为邪教徒…';

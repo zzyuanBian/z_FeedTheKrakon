@@ -226,12 +226,15 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   // possible before 提交. The fate chip is clickable per seat whenever
   // survivors are short; the 提交 button enforces the must-appoint rule
   // (a seat may stay empty only when no candidate remains for it).
-  const shortHanded = eligible.length < 2;
   // A seat may go to fate iff no candidate remains for it (the other seat's
-  // pick takes theirs; `every` handles the empty-eligible table too).
+  // pick takes theirs; `every` handles the empty-eligible table too). The
+  // `lt !== nav` guard only applies to REAL players — two fate seats are
+  // both null and legal (the one-survivor endgame), so a naive `lt !== nav`
+  // used to keep 提交团队 disabled forever and deadlock the game.
+  const shortHanded = eligible.length < 2;
   const ltFate = eligible.every((id) => id === nav);
   const navFate = eligible.every((id) => id === lt);
-  const ok = (lt !== null || ltFate) && (nav !== null || navFate) && lt !== nav;
+  const ok = (lt !== null || ltFate) && (nav !== null || navFate) && (lt === null || nav === null || lt !== nav);
   // Pick for a seat — clearing the same player from the other seat (swap).
   const pickLt = (id: PlayerId): void => { setLt(id); if (nav === id) setNav(null); };
   const pickNav = (id: PlayerId): void => { setNav(id); if (lt === id) setLt(null); };

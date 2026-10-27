@@ -316,12 +316,18 @@ function appointTeam(s: GameState, a: Extract<Action, { type: 'appointTeam' }>):
 
   // Phase 2: any crew member may mutiny (action 'mutinyPledge') or stand down
   // by pledging zero guns. Once every living seat has pledged, resolveMutiny
-  // advances the phase.
+  // advances the phase. VACUOUS CASE: when no living seat outside the
+  // captain exists (the one-survivor endgame), nobody can ever pledge and
+  // resolveMutiny would never fire — self-resolve the window at once, or
+  // the game deadlocks in loyalty forever.
   s.phase = 'loyalty';
   s.mutiny = {
     active: true, pledges: {}, revealed: false, success: false,
     threshold: mutinyThreshold(s.settings.playerCount), newCaptain: null, tieOrder: [],
   };
+  if (livingPlayers(s).every((id) => id === s.officers.captain)) {
+    resolveMutiny(s);
+  }
 }
 
 /* ============================ phase 2: mutiny =========================== */

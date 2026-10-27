@@ -513,6 +513,42 @@ describe('post-game fun vote', () => {
   });
 });
 
+describe('one-survivor endgame (last player is the captain)', () => {
+  /** A game reduced to ONE living player, who happens to be the captain:
+   *  the p.12 fate path is the only way a round can run. */
+  function loneCaptainGame(seed = 777): GameState {
+    const s = game(7, seed);
+    const c = cap(s);
+    for (const id of s.seatOrder) {
+      if (id !== c) { s.players[id]!.alive = false; s.players[id]!.unconvertible = true; }
+    }
+    s.officers = { captain: c, lieutenant: null, navigator: null };
+    s.log.push({ t: 'round', round: s.round, captain: c });
+    s.phase = 'appointTeam';
+    return s;
+  }
+
+  it('accepts a double-fate appointment; the loyalty window self-resolves', () => {
+    let s = loneCaptainGame();
+    s = reduce(s, { type: 'appointTeam', actor: cap(s), lieutenant: null, navigator: null });
+    // The only living seat is the captain, who never pledges — the window
+    // can never fill, so the engine self-resolves it straight into navigation.
+    expect(s.officers.lieutenant).toBeNull();
+    expect(s.officers.navigator).toBeNull();
+    expect(s.mutiny.active).toBe(false);
+    expect(s.phase).toBe('navigation');
+  });
+
+  it('the loyalty window self-resolves when nobody can pledge', () => {
+    // Nobody can pledge (the only living seat is the captain), so the engine
+    // must self-close the loyalty window — otherwise the game deadlocks here.
+    let s = loneCaptainGame();
+    s = reduce(s, { type: 'appointTeam', actor: cap(s), lieutenant: null, navigator: null });
+    expect(s.mutiny.active).toBe(false);
+    expect(s.phase).toBe('navigation');
+  });
+});
+
 describe('conversion ritual (cult uprising)', () => {
   /** Point the game's pending at the conversion ritual for its living
    *  Cult Leader (as openRitual would after the captain's pick). The tests
