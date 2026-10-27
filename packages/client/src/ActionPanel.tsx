@@ -221,29 +221,41 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   const [nav, setNav] = useState<PlayerId | null>(null);
   const [confirming, setConfirming] = useState(false);
   // p.12: an OPEN position (nobody eligible) is fate-resolved — fate is not
-  // a free pick. Each seat shows the 🎲 chip only when no candidate remains
-  // for it (after the OTHER seat's appointment takes theirs).
-  const navCandidates = eligible.filter((id) => id !== lt);
-  const ltFate = eligible.length === 0;
-  const navFate = navCandidates.length === 0;
+  // a free pick. Both rows always list every candidate; picking a player for
+  // one seat lifts them from the other, so swapping 大副/领航员 is always
+  // possible before 提交. The fate chip is clickable per seat whenever
+  // survivors are short; the 提交 button enforces the must-appoint rule
+  // (a seat may stay empty only when no candidate remains for it).
+  const shortHanded = eligible.length < 2;
+  // A seat may go to fate iff no candidate remains for it (the other seat's
+  // pick takes theirs; `every` handles the empty-eligible table too).
+  const ltFate = eligible.every((id) => id === nav);
+  const navFate = eligible.every((id) => id === lt);
   const ok = (lt !== null || ltFate) && (nav !== null || navFate) && lt !== nav;
+  // Pick for a seat — clearing the same player from the other seat (swap).
+  const pickLt = (id: PlayerId): void => { setLt(id); if (nav === id) setNav(null); };
+  const pickNav = (id: PlayerId): void => { setNav(id); if (lt === id) setLt(null); };
   return (
     <div className="panel">
       <h3 className="panel__title">任命领航团队</h3>
       <p className="hint">
         {ltFate && navFate
           ? '无船员可任命：两个职位都由命运随机决定，翻出的牌公示全场'
-          : ltFate || navFate
-            ? '幸存船员不足：有人可任必须任命，无人的空位由命运随机决定（翻出的牌公示全场）'
+          : shortHanded
+            ? '幸存船员不足：有人可任必须任命，真空位由命运随机决定（翻牌公示全场）；提交前可随时改'
             : '选择大副'}
       </p>
       <div className="picker__grid">
         {eligible.map((id) => (
-          <button key={id} className={'chip' + (lt === id ? ' chip--on' : '')} onClick={() => setLt(id)}>
+          <button
+            key={id}
+            className={'chip' + (lt === id ? ' chip--on' : '')}
+            onClick={() => (lt === id ? setLt(null) : pickLt(id))}
+          >
             {name(view, id)}
           </button>
         ))}
-        {ltFate && (
+        {shortHanded && (
           <button
             className={'chip chip--fate' + (lt === null ? ' chip--fate-on' : '')}
             onClick={() => setLt(null)}
@@ -254,12 +266,16 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
       </div>
       <p className="hint">选择领航员</p>
       <div className="picker__grid">
-        {navCandidates.map((id) => (
-          <button key={id} className={'chip' + (nav === id ? ' chip--on' : '')} onClick={() => setNav(id)}>
+        {eligible.map((id) => (
+          <button
+            key={id}
+            className={'chip' + (nav === id ? ' chip--on' : '')}
+            onClick={() => (nav === id ? setNav(null) : pickNav(id))}
+          >
             {name(view, id)}
           </button>
         ))}
-        {navFate && (
+        {shortHanded && (
           <button
             className={'chip chip--fate' + (nav === null ? ' chip--fate-on' : '')}
             onClick={() => setNav(null)}
