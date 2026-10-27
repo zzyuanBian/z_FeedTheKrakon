@@ -208,7 +208,8 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
           <text
             className="board__banner"
             x={SHORT_MAP.imageWidth / 2}
-            y={180}
+            // Same clip fix as Board: baseline clears the 300px ascent.
+            y={320}
             textAnchor="middle"
           >
             ⚠ 紧急航行

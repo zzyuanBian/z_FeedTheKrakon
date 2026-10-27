@@ -96,7 +96,10 @@ export function Board({ view, onExpand }: BoardProps) {
               <text
                 className="board__banner"
                 x={SHORT_MAP.imageWidth / 2}
-                y={180}
+                // Baseline must clear the glyph height (300px font): at the
+                // old y=180 the caps towered ~120px above the viewBox top
+                // edge and got clipped. 320 = ascent + a little air.
+                y={320}
                 textAnchor="middle"
               >
                 ⚠ 紧急航行
