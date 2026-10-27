@@ -291,6 +291,29 @@ describe('navigation', () => {
     expect(s.phase).toBe('navigation');
     void l;
   });
+
+  it('fate is not a free pick: a seat may be null only when nobody is eligible', () => {
+    // Three living (captain + two others): one seat gets a player, the open
+    // one goes to fate — but sending BOTH to fate while a candidate remains
+    // is rejected.
+    let s = appointAndNoMutiny(game(5));
+    const c = cap(s);
+    const l = lt(s);
+    // Kill everyone but captain + lieutenant.
+    for (const id of s.seatOrder) {
+      if (id !== c && id !== l) s.players[id]!.alive = false;
+    }
+    // Force the appointTeam phase with a clean officers slate.
+    s = { ...s, phase: 'appointTeam' as const, officers: { captain: c, lieutenant: null, navigator: null } };
+    // Only one candidate for two seats: lieutenant appointed, navigator to fate — legal.
+    const ok1 = reduce(s, { type: 'appointTeam', actor: c, lieutenant: l, navigator: null });
+    expect(ok1.officers.lieutenant).toBe(l);
+    expect(ok1.officers.navigator).toBeNull();
+    // Both to fate while l is appointable — illegal.
+    expect(() =>
+      reduce(s, { type: 'appointTeam', actor: c, lieutenant: null, navigator: null }),
+    ).toThrow(/an eligible player remains/);
+  });
 });
 
 describe('determinism', () => {

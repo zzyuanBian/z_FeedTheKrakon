@@ -220,16 +220,22 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   const [lt, setLt] = useState<PlayerId | null>(null);
   const [nav, setNav] = useState<PlayerId | null>(null);
   const [confirming, setConfirming] = useState(false);
-  // p.12: below three living players the captain may leave a seat to fate —
-  // the engine then draws/settles randomly and announces the cards publicly.
-  const living = [view.you, ...view.others].filter((p) => p.alive && !p.benched);
-  const fateRound = living.length < 3;
-  const ok = fateRound ? true : !!lt && !!nav && lt !== nav;
+  // p.12: an OPEN position (nobody eligible) is fate-resolved — fate is not
+  // a free pick. Each seat shows the 🎲 chip only when no candidate remains
+  // for it (after the OTHER seat's appointment takes theirs).
+  const navCandidates = eligible.filter((id) => id !== lt);
+  const ltFate = eligible.length === 0;
+  const navFate = navCandidates.length === 0;
+  const ok = (lt !== null || ltFate) && (nav !== null || navFate) && lt !== nav;
   return (
     <div className="panel">
       <h3 className="panel__title">任命领航团队</h3>
       <p className="hint">
-        {fateRound ? '幸存船员不足三人：空缺职位由命运随机决定，翻出的牌公示全场' : '选择大副'}
+        {ltFate && navFate
+          ? '无船员可任命：两个职位都由命运随机决定，翻出的牌公示全场'
+          : ltFate || navFate
+            ? '幸存船员不足：有人可任必须任命，无人的空位由命运随机决定（翻出的牌公示全场）'
+            : '选择大副'}
       </p>
       <div className="picker__grid">
         {eligible.map((id) => (
@@ -237,7 +243,7 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
             {name(view, id)}
           </button>
         ))}
-        {fateRound && (
+        {ltFate && (
           <button
             className={'chip chip--fate' + (lt === null ? ' chip--fate-on' : '')}
             onClick={() => setLt(null)}
@@ -248,12 +254,12 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
       </div>
       <p className="hint">选择领航员</p>
       <div className="picker__grid">
-        {eligible.filter((id) => id !== lt).map((id) => (
+        {navCandidates.map((id) => (
           <button key={id} className={'chip' + (nav === id ? ' chip--on' : '')} onClick={() => setNav(id)}>
             {name(view, id)}
           </button>
         ))}
-        {fateRound && (
+        {navFate && (
           <button
             className={'chip chip--fate' + (nav === null ? ' chip--fate-on' : '')}
             onClick={() => setNav(null)}

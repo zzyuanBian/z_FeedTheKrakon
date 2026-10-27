@@ -286,15 +286,26 @@ function appointTeam(s: GameState, a: Extract<Action, { type: 'appointTeam' }>):
   assert(s.phase === 'appointTeam', 'not in appointTeam');
   assert(a.actor === s.officers.captain, 'only the captain appoints the team');
   assert(a.lieutenant !== a.actor && a.navigator !== a.actor, 'the captain cannot appoint himself');
-  // p.12: below three living players the open positions are resolved randomly
-  // — the captain may send null for either (or both) seat. With candidates
-  // available the normal three-distinct-people rules apply.
+  // p.12: below three living players an OPEN position is resolved randomly —
+  // fate fills only what nobody can. A seat may be null ONLY when no
+  // eligible candidate exists for it; while a candidate remains, the captain
+  // must appoint them (fate is not a free pick).
   const eligible = new Set(eligibleOfficers(s));
-  if (a.lieutenant !== null) {
+  const candidatesLeft = (): Set<PlayerId> => {
+    const left = new Set(eligible);
+    if (a.lieutenant !== null) left.delete(a.lieutenant);
+    if (a.navigator !== null) left.delete(a.navigator);
+    return left;
+  };
+  if (a.lieutenant === null) {
+    assert(candidatesLeft().size === 0, 'an eligible player remains — the lieutenant must be appointed');
+  } else {
     assert(a.lieutenant !== a.navigator, 'lieutenant and navigator must differ');
     assert(eligible.has(a.lieutenant), 'lieutenant must be alive and on duty');
   }
-  if (a.navigator !== null) {
+  if (a.navigator === null) {
+    assert(candidatesLeft().size === 0, 'an eligible player remains — the navigator must be appointed');
+  } else {
     assert(a.navigator !== a.lieutenant, 'lieutenant and navigator must differ');
     assert(eligible.has(a.navigator), 'navigator must be alive and on duty');
   }
