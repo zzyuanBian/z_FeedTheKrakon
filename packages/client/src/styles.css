@@ -2861,11 +2861,7 @@ button:disabled { cursor: not-allowed; }
   /* .col's overflow:auto would each trap the page scroll here (and an
      auto/hidden scrollport on .col--side would break the tabs' sticky). */
   .col--board, .col--side { overflow: visible; }
-  /* 38vh band + a reserved right strip: the map is a SQUARE centred by
-     `meet`, so a fixed right pad slides the whole art left and the corner
-     floats (弃牌 buoy, ⛶ 放大 chip) live over empty letterbox — nothing
-     overlaps the map art on any phone width. */
-  .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px 96px 8px 8px; }
+  .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px; }
   /* The left wing dissolves on mobile (display:contents): its 歇班 art box
      hides outright (the 船员 tab has the text-only version) and the discard
      sea becomes the map-corner buoy, positioned against .main itself. */
@@ -2888,9 +2884,9 @@ button:disabled { cursor: not-allowed; }
   .drawpile__back { width: 34px; max-width: none; border-radius: 6px; }
   .drawpile__count { font-size: 12px; }
   /* The discard sea becomes the map-corner buoy: square plinth, painted
-     art hidden, card-back pile + count badge only (the 76px size stayed —
-     the user liked it). It sits over the reserved right strip (see
-     .col--board above), not over the art. */
+     art hidden, card-back pile + count badge only. (The square map art is
+     centred by `meet`, so corner floats do sit over the art — accepted:
+     the user prefers the full-width map over a letterboxed one.) */
   .discard-sea {
     position: absolute;
     top: 8px;
@@ -2923,17 +2919,6 @@ button:disabled { cursor: not-allowed; }
      background needs the inverse palette: the base rules keep the
      parchment's deep-brown ink for the PC art, which is unreadable here. */
   .side-pane__offduty { display: block; }
-  /* The ⛶ 放大 chip joins the reserved right strip, directly under the
-     discard buoy — the two stack in the letterbox band, clear of the art. */
-  .board__expand {
-    right: 8px;
-    left: auto;
-    top: 94px;
-    bottom: auto;
-    width: 76px;
-    text-align: center;
-    box-sizing: border-box;
-  }
   .side-pane__offduty .offduty {
     aspect-ratio: auto;
     height: auto;

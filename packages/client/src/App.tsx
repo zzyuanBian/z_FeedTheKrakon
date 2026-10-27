@@ -519,28 +519,16 @@ export function App() {
     setLaunched(true);
     try { sessionStorage.setItem(launchGateKey, '1'); } catch { /* private mode */ }
   }, [launchGateKey]);
-  const [launchAt, setLaunchAt] = useState<number | null>(null);
-  const [launchLeft, setLaunchLeft] = useState(5);
+  // The countdown window is the prologue's budget now (15s of story, skip
+  // anytime): markLaunched fires from the story's own completion instead of
+  // a bare timer, so a slow reader is never cut off mid-stanza. The number
+  // itself is gone from the reveal screen — StoryPrologue owns the beat.
   const allConfirmed =
     !!game.view
     && game.view.roleConfirmations.total > 0
     && game.view.roleConfirmations.confirmed >= game.view.roleConfirmations.total;
   const counting = allConfirmed && !launched;
-  useEffect(() => {
-    if (counting && launchAt === null) setLaunchAt(Date.now());
-    if (!counting && launchAt !== null) setLaunchAt(null);
-  }, [counting, launchAt]);
-  useEffect(() => {
-    if (launchAt === null) return;
-    const tick = () => setLaunchLeft(Math.max(0, Math.ceil((launchAt + 5000 - Date.now()) / 1000)));
-    tick();
-    const t = window.setInterval(tick, 250);
-    return () => window.clearInterval(t);
-  }, [launchAt]);
-  useEffect(() => {
-    if (counting && launchAt !== null && launchLeft <= 0) markLaunched();
-  }, [counting, launchAt, launchLeft, markLaunched]);
-  const launchCountdown = counting ? launchLeft : null;
+  const launchCountdown = counting ? 0 : null; // gates the RoleReveal countdown UI off
 
   // Mutiny reveal veil (成功与失败都弹): edge-triggered on the reveal
   // broadcast. Every client sees the same public pledges at the same moment.
@@ -945,7 +933,7 @@ export function App() {
   // board); the story never holds the launch up. Seen-flag lives inside the
   // component (sessionStorage per match+seat): a refresh inside the window
   // skips straight through.
-  if (counting && launchCountdown !== null && launchCountdown > 0) {
+  if (counting) {
     return shell(
       <div className="app app--lobby">
         <StoryPrologue
