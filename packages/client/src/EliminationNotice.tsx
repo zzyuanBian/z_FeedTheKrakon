@@ -66,7 +66,7 @@ export function EliminationNotice({
           <span className="elim-notice__fate">⚓ 已出局 · 余 {view.others.filter((o) => o.alive).length + (view.you.alive ? 1 : 0)} 人</span>
         </div>
         <button type="button" className="btn btn--primary elim-notice__close" onClick={onDone}>
-          {fed ? '默哀' : '目送入海'}
+          {id === view.you.id ? '纵身入海' : '默哀'}
         </button>
       </div>
     </div>

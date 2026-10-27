@@ -1972,6 +1972,11 @@ button:disabled { cursor: not-allowed; }
 /* -------------------------------- cards -------------------------------- */
 
 .cardsplit__hand { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; align-items: flex-start; }
+/* The navigator's logbook resolve: the 确定航向 confirm sits inside the
+   cardsplit; the 🌊 跳海抗命 danger button is a sibling panel child directly
+   after it — keep a clear gap so the two actions never look glued together
+   (jumping overboard is a deliberate, separate beat). */
+.cardsplit + .btn--danger { margin-top: 14px; align-self: flex-start; }
 /* 牌 + 说明 cell (方案 A): the hint is a sibling BELOW the card box, so
    the pick frame wraps the face only — 说明不在牌框里. */
 .cardsplit__cell { display: flex; flex-direction: column; gap: 2px; }
