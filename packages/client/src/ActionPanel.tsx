@@ -464,11 +464,19 @@ function RitualForm({
   if (ritual === 'conversion') {
     // The actor IS the Cult Leader, and a cultist can never be re-converted.
     // The leader legitimately knows their flock (starting sight + every
-    // conversion they performed — `knownCultists` is computed live), so
-    // cultists are REMOVED from the list: picking one would be rejected by
-    // the engine and leave the ritual stuck forever.
+    // conversion they performed — `knownCultists` is computed live), and the
+    // cabin search makes its subject PERMANENTLY unconvertible (public on
+    // PlayerView). BOTH are removed from the list: picking either is
+    // rejected by the engine as a silent INVALID_MOVE, which used to leave
+    // the ritual stuck with a dead 皈依 button (the 2-survivor endgame hit
+    // exactly this when the last other player had been searched).
     const flock = new Set(view.you.knownCultists ?? []);
-    const convertible = pickableTargets(view, true).filter((id) => !flock.has(id));
+    const alive = pickableTargets(view, true);
+    const searched = alive.filter(
+      (id) => !flock.has(id) && view.others.find((o) => o.id === id)?.unconvertible,
+    );
+    const convertible = alive.filter((id) => !flock.has(id) && !searched.includes(id));
+    const searchedNames = searched.map((id) => name(view, id));
     if (convertible.length === 0) {
       // Nobody left to convert: the ritual ends without a convert (the
       // engine's ritualAck closes any ritual).
@@ -478,7 +486,11 @@ function RitualForm({
             <RitualFace card="conversion" className="ritualface--panel" />
           </div>
           <h3 className="panel__title">邪教皈依</h3>
-          <p className="hint">船上已无可转化的人。仪式无声地结束了…</p>
+          <p className="hint">
+            {searchedNames.length > 0
+              ? `${searchedNames.join('、')}已被船舱搜查，永久不可转化。仪式无声地结束了…`
+              : '船上已无可转化的人。仪式无声地结束了…'}
+          </p>
           <button className="btn btn--primary" onClick={() => moves.ritualAck!()}>
             结束仪式
           </button>
@@ -490,6 +502,9 @@ function RitualForm({
         <div className="panel__face">
           <RitualFace card="conversion" className="ritualface--panel" />
         </div>
+        {searchedNames.length > 0 && (
+          <p className="hint">🔒 {searchedNames.join('、')}已被船舱搜查，不可转化。</p>
+        )}
         <TargetPicker
           view={view}
           targets={convertible}

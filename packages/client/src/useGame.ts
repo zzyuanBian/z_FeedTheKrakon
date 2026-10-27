@@ -290,10 +290,22 @@ export function useGame(
 
     let gotFirstSync = false;
     let nameSyncd = false;
+    // Diagnostic trail (filter the console with '[ftk]'): every view sync
+    // logs phase/pending so a "dead button" report can be traced to the
+    // exact broadcast where the engine state stopped matching the UI.
     const sync = (): void => {
       const state = client.getState();
       if (!state) return;
       gotFirstSync = true;
+      const g = state.G as unknown as PlayerView | null;
+      if (g) {
+        console.info(
+          '[ftk] sync',
+          `phase=${g.phase}`,
+          `pending=${g.pending ? `${g.pending.kind}${g.pending.isYou ? '(you)' : ''}` : 'null'}`,
+          `round=${g.round}`,
+        );
+      }
       setView((state.G as unknown as PlayerView) ?? null);
       setConnected(state.isConnected);
       setIsActive(state.isActive);
@@ -344,8 +356,10 @@ export function useGame(
     const proxy: Record<string, (...args: unknown[]) => void> = {};
     for (const name of Object.keys(FtkGame.moves ?? {})) {
       proxy[name] = (...args: unknown[]) => {
+        console.info(`[ftk] move ${name}`, JSON.stringify(args));
         const fn = clientRef.current?.moves[name] as ((...a: unknown[]) => void) | undefined;
-        fn?.(...args);
+        if (!fn) { console.warn(`[ftk] move ${name}: no bound client move`); return; }
+        fn(...args);
       };
     }
     return proxy;

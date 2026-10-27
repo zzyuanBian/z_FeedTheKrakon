@@ -111,8 +111,11 @@ function move(
       }
       try {
         return reduce(G, action);
-      } catch {
+      } catch (err) {
         // Illegal per the engine's own validation — do not mutate anything.
+        // The assert message names the exact rule that refused the move;
+        // log it so "dead button" reports can be traced server-side.
+        console.warn(`[ftk] INVALID_MOVE ${action.type} by ${String(playerID)}:`, err instanceof Error ? err.message : err);
         return INVALID_MOVE;
       }
     },

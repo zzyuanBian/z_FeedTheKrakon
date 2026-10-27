@@ -512,3 +512,61 @@ describe('post-game fun vote', () => {
     expect(after).toBe(s);
   });
 });
+
+describe('conversion ritual (cult uprising)', () => {
+  /** Point the game's pending at the conversion ritual for its living
+   *  Cult Leader (as openRitual would after the captain's pick). The tests
+   *  below pin ritualConversion's own legality, not the uprising trigger. */
+  function toConversionRitual(s: GameState): GameState {
+    const leader = s.seatOrder.find((id) => s.players[id]!.cultLeader && s.players[id]!.alive);
+    expect(leader).toBeTruthy();
+    s.pending = { kind: 'ritual', by: leader!, data: { ritual: 'conversion' } };
+    return s;
+  }
+
+  it('lets the leader convert a normal player and finish the ritual', () => {
+    const s = toConversionRitual(game(7));
+    const leader = s.pending!.by!;
+    const target = s.seatOrder.find(
+      (id) => id !== leader && s.players[id]!.team !== 'cult' && s.players[id]!.alive,
+    )!;
+    const roundBefore = s.round;
+    const st = reduce(s, { type: 'ritualConversion', actor: leader, target });
+    expect(st.players[target]!.team).toBe('cult');
+    expect(st.players[target]!.convertedAt).toBe(roundBefore);
+    expect(st.players[target]!.convertedBy).toBe(leader);
+    // Ritual done → navigation wraps up into the next round.
+    expect(st.pending).toBeNull();
+  });
+
+  it('rejects converting an unconvertible (cabin-searched) player', () => {
+    const s = toConversionRitual(game(7));
+    const leader = s.pending!.by!;
+    const target = s.seatOrder.find(
+      (id) => id !== leader && s.players[id]!.team !== 'cult' && s.players[id]!.alive,
+    )!;
+    s.players[target]!.unconvertible = true;
+    expect(() =>
+      reduce(s, { type: 'ritualConversion', actor: leader, target }),
+    ).toThrow(/unconvertible/);
+  });
+
+  it('in a two-survivor game the leader can still convert the last other player', () => {
+    let s = toConversionRitual(game(7));
+    const leader = s.pending!.by!;
+    // Kill everyone but the leader and one other, then hard-point the pending
+    // (the kill path in a real game goes through feedKraken/jumps — here we
+    // only assert the ritual's own legality in the 2-body endgame).
+    const target = s.seatOrder.find((id) => id !== leader && s.players[id]!.team !== 'cult')!;
+    for (const id of s.seatOrder) {
+      if (id !== leader && id !== target) {
+        s.players[id]!.alive = false;
+        s.players[id]!.unconvertible = true;
+      }
+    }
+    s.pending = { kind: 'ritual', by: leader, data: { ritual: 'conversion' } };
+    const st = reduce(s, { type: 'ritualConversion', actor: leader, target });
+    expect(st.players[target]!.team).toBe('cult');
+    expect(st.pending).toBeNull();
+  });
+});
