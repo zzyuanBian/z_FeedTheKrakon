@@ -57,6 +57,18 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
     if (!open) onFocusChange?.(false);
   }, [open, onFocusChange]);
 
+  // Lock the page scroll while the drawer is open. On mobile the document
+  // IS the scrollport, and swiping behind the fixed overlay makes the URL
+  // bar collapse/expand — the visual viewport shifts and drags the drawer
+  // up/down with it (bottom clips away, then returns). No page scroll, no
+  // drift; the drawer is modal anyway.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    root.classList.add('ftk-scroll-lock');
+    return () => root.classList.remove('ftk-scroll-lock');
+  }, [open]);
+
   // Opening (and staying open) marks everything as read.
   useEffect(() => {
     if (open) setSeenCount(chat.length);

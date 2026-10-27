@@ -3076,7 +3076,15 @@ button:disabled { cursor: not-allowed; }
 
 /* Mobile: the chat FAB (fixed, bottom-right, z-85, above everything) hovers
    over the scrolling roster — a row landing in that corner buries its 履历
-   badge under the bubble. Reserve the FAB's column on player rows. */
+   badge under the bubble. Reserve the FAB's column on player rows (52px
+   bubble + 18px inset + margin — generous, the badge must stay tappable). */
 @media (max-width: 900px) {
-  .roster__row { padding-right: 66px; }
+  .roster__row { padding-right: 80px; }
 }
+
+/* Scroll lock while the chat drawer (a modal overlay) is open: page can't
+   scroll behind it, so the mobile URL bar stops collapsing/expanding and
+   the fixed drawer no longer drifts with the visual viewport. html-level
+   so the document scrollport itself is frozen (body overflow alone is
+   unreliable once html scrolls). */
+html.ftk-scroll-lock { overflow: hidden; }
