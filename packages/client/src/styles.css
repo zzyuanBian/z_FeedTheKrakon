@@ -70,6 +70,15 @@ button:disabled { cursor: not-allowed; }
   position: relative;
   width: 100%;
   min-height: 100%;
+  /* Never shrink: .app--lobby is a 100%-height flex column and this is its
+     child — the default flex-shrink:1 would squeeze the shell back to the
+     viewport when the content (title + menu card) is taller than it, and
+     the equal-sided overflow under overflow:hidden sheared the 险恶疑航
+     title's top half off with the page unscrollable ("打开默认就被遮挡"
+     on phones, where the content simply IS taller than the viewport).
+     min-height alone keeps the shell content-sized; the page then scrolls
+     normally instead of clipping. */
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;

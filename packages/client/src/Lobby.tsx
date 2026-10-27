@@ -95,9 +95,11 @@ function GoldTitle() {
 function NameField({
   value,
   onChange,
+  autoFocus,
 }: {
   value: string;
   onChange: (v: string) => void;
+  autoFocus?: boolean;
 }) {
   return (
     <label className="themed-field">
@@ -107,6 +109,7 @@ function NameField({
         onChange={(e) => onChange(e.target.value.slice(0, 20))}
         placeholder="输入昵称"
         maxLength={20}
+        autoFocus={autoFocus}
       />
     </label>
   );
@@ -286,17 +289,11 @@ function MainMenu({
   busy: boolean;
 }) {
   const nameOk = name.trim().length > 0;
-  // The menu is a single-viewport screen, yet mobile browsers can land on it
-  // scrolled: a restored scroll position, or an early focus pull (the old
-  // autoFocus) making the browser pre-scroll for the keyboard — the 险恶疑航
-  // title then sits clipped above the viewport with no visual hint anything
-  // scrolled (the cover art looks identical). Pin to top on mount.
-  useEffect(() => { window.scrollTo(0, 0); }, []);
   return (
     <>
       <GoldTitle />
       <div className="menu-card">
-        <NameField value={name} onChange={setName} />
+        <NameField value={name} onChange={setName} autoFocus />
         <AvatarPicker value={avatarId} onChange={setAvatarId} />
         <div className="menu-actions">
           <button
