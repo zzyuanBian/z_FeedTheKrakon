@@ -768,6 +768,11 @@ function emergencyNav(s: GameState, a: Extract<Action, { type: 'emergencyNav' }>
   const nav = s.players[a.navigator];
   assert(nav && nav.alive, 'invalid emergency navigator');
   assert(a.navigator !== a.actor, 'the captain cannot navigate');
+  // The navigation crew is captain + lieutenant + navigator — three distinct
+  // people (p.12). Appointing the lieutenant would give one player both hands:
+  // the view projects the navigator's logbook over their hand, so the
+  // contribute step would show them a 0–1 card "hand" with no card to discard.
+  assert(a.navigator !== s.officers.lieutenant, 'the lieutenant cannot double as emergency navigator');
   // The lieutenant stays; the emergency navigator may be off-duty and cannot be
   // mutinied. The previous navigation's cards were discarded with the jump, so
   // this is a fresh navigation: captain + lieutenant draw again.

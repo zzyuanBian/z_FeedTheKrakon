@@ -207,6 +207,21 @@ describe('navigation', () => {
     expect(s.navigation.logbook).toHaveLength(0);
     expect(s.navigation.acted).toHaveLength(0);
   });
+
+  it('emergency navigation rejects the lieutenant as navigator (no doubled-up officers)', () => {
+    let s = appointAndNoMutiny(game(7));
+    const c = cap(s);
+    const l = lt(s);
+    const n = nav(s);
+    s = reduce(s, { type: 'navContribute', actor: c, keep: s.navigation.captainCards[0]!, discard: s.navigation.captainCards[1]! });
+    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
+    s = reduce(s, { type: 'denialOfCommand', actor: n });
+    // One player holding both hands would see the logbook projected over
+    // their contribute hand — the reported "only one card, none to discard".
+    expect(() =>
+      reduce(s, { type: 'emergencyNav', actor: c, navigator: l }),
+    ).toThrow(/lieutenant cannot double/);
+  });
 });
 
 describe('determinism', () => {

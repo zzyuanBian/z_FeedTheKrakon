@@ -291,10 +291,14 @@ function PendingForm({
   const data = view.pendingData ?? {};
   switch (kind) {
     case 'emergencyNav':
+      // Three distinct officers (p.12): the lieutenant cannot double as the
+      // emergency navigator — the engine rejects it, and a doubled-up officer
+      // would see the logbook projected over their own hand.
       return (
         <TargetPicker
           view={view}
           title="紧急航行：指派一名紧急领航员（可选歇班中的玩家）"
+          targets={pickableTargets(view).filter((id) => id !== view.officers.lieutenant)}
           confirmLabel="指派"
           onConfirm={(target) => moves.emergencyNav!(target)}
         />
