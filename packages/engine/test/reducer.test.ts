@@ -222,6 +222,75 @@ describe('navigation', () => {
       reduce(s, { type: 'emergencyNav', actor: c, navigator: l }),
     ).toThrow(/lieutenant cannot double/);
   });
+
+  it('below three players fate fills the open positions and announces the cards', () => {
+    // The reported table: 5p game, jumps chain until only the captain and
+    // lieutenant remain — the next emergency pick has NO candidate.
+    let s = appointAndNoMutiny(game(5));
+    const c = cap(s);
+    const l = lt(s);
+    const n = nav(s);
+    const jump3 = (st: GameState, who: PlayerId): GameState =>
+      reduce(st, { type: 'denialOfCommand', actor: who });
+    s = reduce(s, { type: 'navContribute', actor: c, keep: s.navigation.captainCards[0]!, discard: s.navigation.captainCards[1]! });
+    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
+    s = jump3(s, n);
+    // Emergency 1: 4 living — pick a non-officer.
+    const e1 = s.seatOrder.find((id) => id !== c && id !== l && id !== n && s.players[id]!.alive)!;
+    s = reduce(s, { type: 'emergencyNav', actor: c, navigator: e1 });
+    s = reduce(s, { type: 'navContribute', actor: c, keep: s.navigation.captainCards[0]!, discard: s.navigation.captainCards[1]! });
+    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
+    s = jump3(s, e1);
+    // Emergency 2: 3 living — the last non-officer.
+    const e2 = s.seatOrder.find((id) => id !== c && id !== l && s.players[id]!.alive)!;
+    s = reduce(s, { type: 'emergencyNav', actor: c, navigator: e2 });
+    s = reduce(s, { type: 'navContribute', actor: c, keep: s.navigation.captainCards[0]!, discard: s.navigation.captainCards[1]! });
+    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
+    s = jump3(s, e2);
+    // Emergency 3: 2 living — nobody left to appoint; fate takes the helm.
+    s = reduce(s, { type: 'emergencyNav', actor: c, navigator: e2 });
+    expect(s.phase).toBe('navigation');
+    expect(s.officers.navigator).toBeNull();
+    expect(s.officers.lieutenant).toBe(l);
+    // Both officers contribute normally (the lieutenant is alive the whole
+    // way); with the navigator seat fate-held, the logbook filling settles
+    // the course synchronously — randomSettle logs BOTH cards publicly. The
+    // synchronous chain runs through executeCard into the next round's
+    // appointTeam (no player ever waits mid-effect with a 2-man crew), so
+    // assert the OUTCOME: the fate entries are in the log and the round
+    // advanced cleanly.
+    s = reduce(s, { type: 'navContribute', actor: c, keep: s.navigation.captainCards[0]!, discard: s.navigation.captainCards[1]! });
+    s = reduce(s, { type: 'navContribute', actor: l, keep: s.navigation.lieutenantCards[0]!, discard: s.navigation.lieutenantCards[1]! });
+    const rst = s.log.findIndex((e) => e.t === 'randomSettle');
+    expect(rst).toBeGreaterThan(-1);
+    expect(s.phase).toBe('appointTeam'); // the full chain ran to the next round
+  });
+
+  it('fate replaces the lieutenant with a public draw (randomDraw path)', () => {
+    // Direct route: with the lieutenant seat fate-held (null) and a navigator
+    // alive, the captain's contribution alone completes the logbook — fate
+    // draws two, discards one face up (logged), and the navigation proceeds.
+    const s0 = appointAndNoMutiny(game(5));
+    const c = cap(s0);
+    const l = lt(s0);
+    const s1: GameState = {
+      ...s0,
+      officers: { ...s0.officers, lieutenant: null },
+      // Simulate the lieutenant's seat being empty (below-three rule).
+    };
+    let s = reduce(s1, { type: 'navContribute', actor: c, keep: s1.navigation.captainCards[0]!, discard: s1.navigation.captainCards[1]! });
+    console.log('PHASE:', s.phase);
+    console.log('LOGBOOK:', JSON.stringify(s.navigation.logbook));
+    console.log('LOGTAIL:', JSON.stringify(s.log.slice(-5)));
+    console.log('DECK:', s.navigation.deck.length, 'DISCARD:', JSON.stringify(s.navigation.discard));
+    const rnd = s.log.findIndex((e) => e.t === 'randomDraw');
+    expect(rnd).toBeGreaterThan(-1);
+    // Fate's two cards: one into the logbook, one on the discard pile —
+    // then (navigator alive) the logbook step waits for the navigator.
+    expect(s.navigation.logbook).toHaveLength(2);
+    expect(s.phase).toBe('navigation');
+    void l;
+  });
 });
 
 describe('determinism', () => {

@@ -220,17 +220,31 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   const [lt, setLt] = useState<PlayerId | null>(null);
   const [nav, setNav] = useState<PlayerId | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const ok = lt && nav && lt !== nav;
+  // p.12: below three living players the captain may leave a seat to fate —
+  // the engine then draws/settles randomly and announces the cards publicly.
+  const living = [view.you, ...view.others].filter((p) => p.alive && !p.benched);
+  const fateRound = living.length < 3;
+  const ok = fateRound ? true : !!lt && !!nav && lt !== nav;
   return (
     <div className="panel">
       <h3 className="panel__title">任命领航团队</h3>
-      <p className="hint">选择大副</p>
+      <p className="hint">
+        {fateRound ? '幸存船员不足三人：空缺职位由命运随机决定，翻出的牌公示全场' : '选择大副'}
+      </p>
       <div className="picker__grid">
         {eligible.map((id) => (
           <button key={id} className={'chip' + (lt === id ? ' chip--on' : '')} onClick={() => setLt(id)}>
             {name(view, id)}
           </button>
         ))}
+        {fateRound && (
+          <button
+            className={'chip chip--fate' + (lt === null ? ' chip--fate-on' : '')}
+            onClick={() => setLt(null)}
+          >
+            🎲 命运补位
+          </button>
+        )}
       </div>
       <p className="hint">选择领航员</p>
       <div className="picker__grid">
@@ -239,6 +253,14 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
             {name(view, id)}
           </button>
         ))}
+        {fateRound && (
+          <button
+            className={'chip chip--fate' + (nav === null ? ' chip--fate-on' : '')}
+            onClick={() => setNav(null)}
+          >
+            🎲 命运补位
+          </button>
+        )}
       </div>
       <button className="btn btn--primary" disabled={!ok} onClick={() => ok && setConfirming(true)}>
         提交团队
@@ -254,12 +276,12 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
             <div className="appoint-confirm__row">
               <img className="appoint-confirm__medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />
               <span className="appoint-confirm__role">大副</span>
-              <strong className="appoint-confirm__who">{who(view, lt).name}</strong>
+              <strong className="appoint-confirm__who">{lt ? who(view, lt).name : '🎲 命运补位'}</strong>
             </div>
             <div className="appoint-confirm__row">
               <img className="appoint-confirm__medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />
               <span className="appoint-confirm__role">领航员</span>
-              <strong className="appoint-confirm__who">{who(view, nav).name}</strong>
+              <strong className="appoint-confirm__who">{nav ? who(view, nav).name : '🎲 命运补位'}</strong>
             </div>
             <p className="hint">提交后全体船员将立即收到哗变表决提醒，任命不可撤回。</p>
             <div className="appoint-confirm__actions">
@@ -291,6 +313,19 @@ function PendingForm({
   const data = view.pendingData ?? {};
   switch (kind) {
     case 'emergencyNav':
+      // p.12: below three living players nobody is left to appoint — the
+      // captain acknowledges and fate takes the helm (the engine ignores
+      // the navigator arg in that situation).
+      if (pickableTargets(view).filter((id) => id !== view.officers.lieutenant).length === 0) {
+        return (
+          <div className="panel">
+            <p className="hint">幸存船员不足三人，无人可指派：按规则由命运领航，翻出的牌将公示全场。</p>
+            <button className="btn btn--primary" onClick={() => moves.emergencyNav!(view.you.id)}>
+              🎲 命运掌舵
+            </button>
+          </div>
+        );
+      }
       // Three distinct officers (p.12): the lieutenant cannot double as the
       // emergency navigator — the engine rejects it, and a doubled-up officer
       // would see the logbook projected over their own hand.

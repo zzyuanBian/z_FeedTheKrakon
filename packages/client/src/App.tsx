@@ -19,6 +19,7 @@ import { RitualPeek } from './RitualPeek.js';
 import { CabinSearchNotice, cabinSearchKey } from './CabinSearchNotice.js';
 import { CaptainChangeNotice, captainChangeKey } from './CaptainChangeNotice.js';
 import { EliminationNotice, eliminationKey } from './EliminationNotice.js';
+import { FateNotice, fateKey } from './FateNotice.js';
 import { MapReveal, mapRevealActive } from './MapReveal.js';
 import { MapViewer } from './MapViewer.js';
 import { GunsStashNotice, gunsStashKey } from './GunsStashNotice.js';
@@ -642,6 +643,7 @@ export function App() {
     if (gunsNoticeOpen) setSeenGsKey(gsKey);
     if (captainChangeOpen) setSeenCcKey(ccKey);
     if (elimEntry) setSeenElimIdx(elimEntry.idx);
+    if (fateEntry) setSeenFateIdx(fateEntry.idx);
     if (mutinyRevealed && !mutinyDismissed) setMutinyDismissed(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ritualVeilActive]);
@@ -672,6 +674,10 @@ export function App() {
   const elimEntry = game.view ? eliminationKey(game.view) : null;
   const [seenElimIdx, setSeenElimIdx] = useState<number | null>(null);
   const eliminationOpen = elimEntry !== null && elimEntry.idx !== seenElimIdx;
+  // 命运公示 (fate draws/settles below three players): same latch shape.
+  const fateEntry = game.view ? fateKey(game.view) : null;
+  const [seenFateIdx, setSeenFateIdx] = useState<number | null>(null);
+  const fateOpen = fateEntry !== null && fateEntry.idx !== seenFateIdx;
 
   // On mobile the side column is tabs; auto-focus the action tab when the
   // player has something to do. The navigation contribute/logbook stages set
@@ -720,7 +726,7 @@ export function App() {
   const pickGatePre = !!game.view && ritualPickActive(game.view) && cardRevealOpen;
   const nudgesSuppressed =
     cardRevealOpen || cabinNoticeOpen || gunsNoticeOpen || captainChangeOpen ||
-    eliminationOpen ||
+    eliminationOpen || fateOpen ||
     pickGatePre || mutinyRevealed || ritualVeilActive || loyaltyLive || peeking;
   const { badge: nudgeBadge, toast: nudgeToast } = useTurnNudge(
     needsMe, nudgesSuppressed, reminderOn,
@@ -1109,6 +1115,10 @@ export function App() {
 
       {eliminationOpen && elimEntry && (
         <EliminationNotice view={view} entry={elimEntry} onDone={() => setSeenElimIdx(elimEntry.idx)} />
+      )}
+
+      {fateOpen && fateEntry && (
+        <FateNotice view={view} entry={fateEntry} onDone={() => setSeenFateIdx(fateEntry.idx)} />
       )}
 
       {pickGateOpen && (

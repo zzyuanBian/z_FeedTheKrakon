@@ -324,7 +324,9 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       let awaiting: PlayerId | null = null;
       if (state.phase === 'navigation') {
         if (contributor) { stage = 'contribute'; awaiting = contributor; }
-        else if (n.logbook.length === 2) { stage = 'logbook'; awaiting = state.officers.navigator; }
+        // A fate-seated navigator (null) never reaches this branch: navContribute
+        // settles the course synchronously the moment the logbook fills.
+        else if (n.logbook.length === 2 && state.officers.navigator !== null) { stage = 'logbook'; awaiting = state.officers.navigator; }
       } else if (n.revealed !== null) {
         stage = 'done';
       }

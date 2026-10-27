@@ -285,11 +285,19 @@ function clearSeat(s: GameState, a: Extract<Action, { type: 'clearSeat' }>): voi
 function appointTeam(s: GameState, a: Extract<Action, { type: 'appointTeam' }>): void {
   assert(s.phase === 'appointTeam', 'not in appointTeam');
   assert(a.actor === s.officers.captain, 'only the captain appoints the team');
-  assert(a.lieutenant !== a.navigator, 'lieutenant and navigator must differ');
   assert(a.lieutenant !== a.actor && a.navigator !== a.actor, 'the captain cannot appoint himself');
+  // p.12: below three living players the open positions are resolved randomly
+  // — the captain may send null for either (or both) seat. With candidates
+  // available the normal three-distinct-people rules apply.
   const eligible = new Set(eligibleOfficers(s));
-  assert(eligible.has(a.lieutenant), 'lieutenant must be alive and on duty');
-  assert(eligible.has(a.navigator), 'navigator must be alive and on duty');
+  if (a.lieutenant !== null) {
+    assert(a.lieutenant !== a.navigator, 'lieutenant and navigator must differ');
+    assert(eligible.has(a.lieutenant), 'lieutenant must be alive and on duty');
+  }
+  if (a.navigator !== null) {
+    assert(a.navigator !== a.lieutenant, 'lieutenant and navigator must differ');
+    assert(eligible.has(a.navigator), 'navigator must be alive and on duty');
+  }
 
   s.officers.lieutenant = a.lieutenant;
   s.officers.navigator = a.navigator;
@@ -404,17 +412,20 @@ function resetNavigation(s: GameState): void {
   s.navigation.applied = { move: false, mapAction: false, cardEffect: false, ritual: false };
 }
 
-/** Enter the navigation phase: captain and lieutenant each draw two cards. */
+/** Enter the navigation phase: the captain and lieutenant each draw two
+ *  cards. A fate-seated round (officer is null, p.12) skips that draw —
+ *  the contribution step fills the gap with the fate draw instead. */
 function beginNavigation(s: GameState): void {
   resetNavigation(s);
   // Shuffle the draw+discard back only when fewer than 4 cards remain (p.11).
-  if (s.navigation.deck.length < 4) {
+  const need = (s.officers.lieutenant !== null ? 2 : 0) + 2;
+  if (s.navigation.deck.length < need) {
     s.navigation.deck = withRng(s, (rng) =>
       rng.shuffle([...s.navigation.deck, ...s.navigation.discard]));
     s.navigation.discard = [];
   }
   s.navigation.captainCards = draw(s, 2);
-  s.navigation.lieutenantCards = draw(s, 2);
+  s.navigation.lieutenantCards = s.officers.lieutenant !== null ? draw(s, 2) : [];
   s.phase = 'navigation';
 }
 
@@ -455,9 +466,31 @@ function navContribute(s: GameState, a: Extract<Action, { type: 'navContribute' 
   s.navigation.logbook.push(a.keep);
   s.navigation.acted.push(a.actor);
 
+  // p.12: with no lieutenant aboard, fate replaces their decision — the
+  // captain draws two face down, shuffles, one into the logbook (hidden),
+  // one discarded face up. The discard is public: it lands on the discard
+  // pile and the log announces which card hit the deep.
+  if (
+    s.navigation.logbook.length === 1 &&
+    s.officers.lieutenant === null &&
+    s.navigation.acted.includes(s.officers.captain!)
+  ) {
+    const { kept, discarded } = withRng(s, (rng) => {
+      const two = draw(s, 2);
+      const shuffled = rng.shuffle(two);
+      return { kept: shuffled[0]!, discarded: shuffled[1]! };
+    });
+    s.navigation.logbook.push(kept);
+    discardCard(s, discarded);
+    s.log.push({ t: 'randomDraw', card: discarded });
+  }
+
   if (s.navigation.logbook.length === 2) {
     // logbook is shuffled; the navigator (next in order) then discards one.
     s.navigation.logbook = makeRng(s.rngState).shuffle(s.navigation.logbook);
+    // p.12: nobody left to resolve the logbook — fate settles the course
+    // at once (synchronous, so no seat ever waits on a phantom navigator).
+    if (s.officers.navigator === null) fateSettle(s);
   }
 }
 
@@ -473,6 +506,23 @@ function navLogbook(s: GameState, a: Extract<Action, { type: 'navLogbook' }>): v
   // The discard settles the course — flip and apply the card immediately.
   // The captain's separate reveal step was pure ceremony (the settled card
   // was already public in the view) and only added a dead click.
+  executeRevealed(s);
+}
+
+/** p.12: no navigator aboard — fate settles the course. Both cards are
+ *  shuffled and one is discarded face up (public), the other executes. */
+function fateSettle(s: GameState): void {
+  assert(s.phase === 'navigation', 'not navigating');
+  assert(s.navigation.logbook.length === 2, 'logbook not ready');
+  assert(s.officers.navigator === null, 'a navigator is aboard');
+  const { discarded, kept } = withRng(s, (rng) => {
+    const shuffled = rng.shuffle(s.navigation.logbook);
+    return { discarded: shuffled[0]!, kept: shuffled[1]! };
+  });
+  s.navigation.logbook = [kept];
+  discardCard(s, discarded);
+  s.log.push({ t: 'randomSettle', discarded, kept });
+  s.navigation.revealed = kept;
   executeRevealed(s);
 }
 
@@ -526,10 +576,15 @@ function startCardEffect(s: GameState, card: NavCardId): void {
       s.pending = { kind: 'mermaid', by: s.officers.captain!, data: { step: 'choose' } };
       return;
     case 'armed':
+      // Fate-seated round (navigator is null): no one holds the post for the
+      // effect to land on — the card fizzles (p.12: fate merely settles the
+      // course; there is no crew member to arm).
+      if (s.officers.navigator === null) { finishNavigation(s); return; }
       grantGuns(s, s.officers.navigator!, 1);
       finishNavigation(s);
       return;
     case 'disarmed':
+      if (s.officers.navigator === null) { finishNavigation(s); return; }
       takeGuns(s, s.officers.navigator!, 1);
       finishNavigation(s);
       return;
@@ -765,6 +820,15 @@ function denialOfCommand(s: GameState, a: Extract<Action, { type: 'denialOfComma
 
 function emergencyNav(s: GameState, a: Extract<Action, { type: 'emergencyNav' }>): void {
   assert(s.pending?.kind === 'emergencyNav' && s.pending.by === a.actor, 'not your call');
+  // p.12: below three players nobody is left to appoint — fate takes the
+  // helm directly (no player choice; the pending just dissolves).
+  if (livingPlayers(s).length < 3) {
+    s.officers.navigator = null;
+    s.pending = null;
+    s.log.push({ t: 'officers', lieutenant: s.officers.lieutenant, navigator: null });
+    beginNavigation(s);
+    return;
+  }
   const nav = s.players[a.navigator];
   assert(nav && nav.alive, 'invalid emergency navigator');
   assert(a.navigator !== a.actor, 'the captain cannot navigate');
@@ -871,6 +935,8 @@ function forceAdvance(s: GameState, a: Extract<Action, { type: 'forceAdvance' }>
         return;
       }
       if (s.navigation.logbook.length === 2) {
+        // A fate-seated navigator is resolved synchronously inside
+        // navContribute, so reaching here means a real navigator is aboard.
         navLogbook(s, { type: 'navLogbook', actor: s.officers.navigator!, discard: s.navigation.logbook[0]! });
         return;
       }

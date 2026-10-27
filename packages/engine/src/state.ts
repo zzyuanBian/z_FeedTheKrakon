@@ -211,12 +211,6 @@ export interface Player {
 
 /* ============================= officers / ship ========================== */
 
-export interface Officers {
-  captain: PlayerId | null;
-  lieutenant: PlayerId | null;
-  navigator: PlayerId | null;
-}
-
 export interface Ship {
   spaceId: number;
   /** Set during a Denial of Command; cleared once a navigation succeeds. */
@@ -279,6 +273,17 @@ export interface Pending {
   data?: Record<string, unknown>;
 }
 
+/**
+ * The navigation team. p.12: below three living players, open positions are
+ * resolved randomly by the captain (in the digital game: by fate) — a
+ * lieutenant/navigator may legitimately be null from then on.
+ */
+export interface Officers {
+  captain: PlayerId | null;
+  lieutenant: PlayerId | null;
+  navigator: PlayerId | null;
+}
+
 /** A private fact one player has learned about another (Cabin Search, Flogging).
  *  SECRET to everyone but `viewer`. Stored centrally so `view.ts` can project
  *  exactly the viewer's own entries. */
@@ -294,10 +299,17 @@ export interface PrivateKnowledge {
 
 export type LogEntry =
   | { t: 'round'; round: number; captain: PlayerId }
-  | { t: 'officers'; lieutenant: PlayerId; navigator: PlayerId }
+  | { t: 'officers'; lieutenant: PlayerId | null; navigator: PlayerId | null }
   | { t: 'mutiny'; total: number; success: boolean; newCaptain: PlayerId | null; pledges: Partial<Record<PlayerId, number>> }
   | { t: 'moved'; from: number; to: number; color: ArrowColor }
   | { t: 'card'; card: NavCardId; captain: PlayerId }
+  // p.12: below three players fate fills the open positions. randomDraw =
+  // fate replacing the lieutenant's contribution (the discarded card is
+  // public — it lands face up on the discard pile; the kept one stays
+  // hidden in the logbook). randomSettle = fate replacing the navigator
+  // (both cards become public the instant the course settles).
+  | { t: 'randomDraw'; card: NavCardId }
+  | { t: 'randomSettle'; discarded: NavCardId; kept: NavCardId }
   | { t: 'ritual'; card: RitualCardId }
   | { t: 'ritualGuns'; grants: { to: PlayerId; guns: number }[] }
   | { t: 'mapAction'; kind: 'cabinSearch' | 'feedKraken'; actor: PlayerId; target: PlayerId }

@@ -93,7 +93,10 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
     }
     case 'officers':
       return (
-        <>任命：大副 <B tone="gold">{nameOf(view, e.lieutenant)}</B>，领航员 <B tone="gold">{nameOf(view, e.navigator)}</B></>
+        <>
+          任命：大副 <B tone="gold">{e.lieutenant ? nameOf(view, e.lieutenant) : '🎲 命运补位'}</B>
+          ，领航员 <B tone="gold">{e.navigator ? nameOf(view, e.navigator) : '🎲 命运补位'}</B>
+        </>
       );
     case 'mutiny':
       return (
@@ -148,6 +151,16 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
     case 'jump':
       return (
         <><B tone="red">{nameOf(view, e.player)}</B> 跳海抗命，被淘汰</>
+      );
+    case 'randomDraw':
+      // p.12 fate draw (no lieutenant): the discarded card is public.
+      return (
+        <><B tone="gold">命运</B> 代大副分牌：翻开 <B tone="gold">{NAV_CARD_LABEL[e.card]}</B> 弃入深海</>
+      );
+    case 'randomSettle':
+      // p.12 fate settle (no navigator): both cards are public.
+      return (
+        <><B tone="gold">命运</B> 定航向：<B tone="gold">{NAV_CARD_LABEL[e.discarded]}</B> 入海，执行 <B tone="gold">{NAV_CARD_LABEL[e.kept]}</B></>
       );
     case 'converted':
       return '有人被转化为邪教徒…';

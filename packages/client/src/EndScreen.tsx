@@ -175,7 +175,7 @@ function Recap({
 function eventLine(e: LogEntry, nameOf: (id: string) => string): string {
   switch (e.t) {
     case 'officers':
-      return `任命大副 ${nameOf(e.lieutenant)}、领航员 ${nameOf(e.navigator)}`;
+      return `任命大副 ${e.lieutenant ? nameOf(e.lieutenant) : '命运补位'}、领航员 ${e.navigator ? nameOf(e.navigator) : '命运补位'}`;
     case 'mutiny': {
       const base = e.success
         ? `哗变成功（${e.total} 枪）— 新船长 ${e.newCaptain ? nameOf(e.newCaptain) : '?'}`

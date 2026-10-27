@@ -3161,3 +3161,39 @@ html.ftk-scroll-lock { overflow: hidden; }
 .elim-notice__name { font-size: 18px; font-weight: 700; color: var(--gold-bright); }
 .elim-notice__fate { font-size: 12px; letter-spacing: 0.1em; color: #f5b0b8; }
 .elim-notice__close { width: 100%; }
+
+/* ------------------------- 命运公示 (FateNotice) -------------------------- */
+/* Below three players fate fills the open positions (p.12) — the notice
+   shows the card(s) chance produced, with the same modal skeleton as the
+   elimination notice. The 命运 chip in the appoint form shares the gold. */
+.chip--fate {
+  border-style: dashed;
+  color: var(--gold);
+  background: rgba(138, 106, 40, 0.12);
+}
+.chip--fate-on {
+  border-color: var(--gold);
+  background: rgba(138, 106, 40, 0.3);
+  box-shadow: 0 0 0 1px var(--gold) inset;
+}
+.fate-notice__box { max-width: 400px; text-align: center; }
+.fate-notice__glyph { display: block; font-size: 40px; margin-bottom: 6px; }
+.fate-notice__title { margin: 0 0 8px; font-family: var(--font-serif); color: var(--gold); font-size: 22px; }
+.fate-notice__sub { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
+.fate-notice__cards {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.fate-notice__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.fate-notice__card .navcard { width: 108px; }
+.fate-notice__tag { font-size: 12px; letter-spacing: 0.08em; }
+.fate-notice__tag--keep { color: var(--gold-bright); }
+.fate-notice__tag--drop { color: #8fa3c8; }
+.fate-notice__close { width: 100%; }

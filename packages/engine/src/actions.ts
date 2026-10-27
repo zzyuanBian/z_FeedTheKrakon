@@ -34,8 +34,10 @@ export type Action =
    *  exactly the ghost that would deadlock the start gate). Host-only, and
    *  only while the config is still open. */
   | { type: 'clearSeat'; actor: PlayerId; target: PlayerId }
-  /* phase 1 — appointing the navigation team */
-  | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId; navigator: PlayerId }
+  /* phase 1 — appointing the navigation team. p.12: below three living
+   * players the open positions are fate-resolved — either seat may be null
+   * (only when no eligible candidate exists). */
+  | { type: 'appointTeam'; actor: PlayerId; lieutenant: PlayerId | null; navigator: PlayerId | null }
   /* phase 2 — a question of loyalty */
   | { type: 'mutinyPledge'; actor: PlayerId; guns: number }
   | { type: 'mutinyTieBreak'; actor: PlayerId; standDown: PlayerId }
