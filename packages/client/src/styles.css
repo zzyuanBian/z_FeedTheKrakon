@@ -2801,10 +2801,39 @@ button:disabled { cursor: not-allowed; }
 .endscreen__funwait, .endscreen__funvote { text-align: center; }
 .endscreen__funroster { text-align: left; }
 .endscreen__funresult { text-align: center; padding: 20px; border: 1px solid var(--gold); border-radius: var(--radius-lg); background: var(--bg-panel-2); }
+/* The Avalon-port rotating fool meme sits above the 🤡, anchoring the result. */
+.endscreen__funmeme {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  margin: 0 auto 4px;
+  display: block;
+  filter: drop-shadow(0 6px 18px rgba(212, 167, 74, 0.35));
+  transition: opacity 0.4s ease;
+}
 .endscreen__funresult-icon { font-size: 56px; display: block; }
 .endscreen__funresult-name { font-family: var(--font-serif); font-size: 22px; color: var(--gold-bright); margin: 8px 0 4px; }
 .endscreen__funresult-name .endscreen__team { font-size: 13px; margin-left: 8px; }
 .endscreen__funresult-sub { color: var(--ink-dim); font-size: 13px; margin: 0; }
+/* Full ranking under the result (Avalon port): top rows, the winner gold. */
+.endscreen__funrank {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 10px 6px 0;
+  border-top: 1px dashed var(--line);
+  text-align: left;
+}
+.endscreen__funrank li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.endscreen__funrank li.is-top { color: var(--gold-bright); font-weight: 700; }
+.endscreen__funrank-votes { font-variant-numeric: tabular-nums; }
+.endscreen__funrank li.is-top .endscreen__funrank-votes { color: var(--blood); font-weight: 700; }
 
 .endscreen__back { margin-top: 8px; min-width: 200px; }
 

@@ -18,7 +18,7 @@
  * controls live in the top bar as before.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PlayerView, LogEntry } from '@ftk/engine';
 import {
   FACTION_LABEL,
@@ -207,6 +207,10 @@ function eventLine(e: LogEntry, nameOf: (id: string) => string): string {
 
 /* ---------------------------- 3. the fun vote ---------------------------- */
 
+/** The Avalon port's rotating fool memes: 4 images, one every 5s, shared by
+ *  every seat so the table sees the same face at the same time. */
+const FOOL_IMGS = ['/img/fool1.png', '/img/fool2.png', '/img/fool3.png', '/img/fool4.png'];
+
 function FunVote({
   view,
   nameOf,
@@ -224,6 +228,12 @@ function FunVote({
   const candidates = [view.you, ...view.others].filter((p) => !p.benched);
   const votedCount = votedIds.length;
   const totalVoters = candidates.length;
+  // Meme rotation: local interval is fine — the draw is decor, not data.
+  const [foolImg, setFoolImg] = useState(1);
+  useEffect(() => {
+    const timer = setInterval(() => setFoolImg((prev) => (prev % 4) + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   if (result) {
     const top = result[0];
@@ -231,6 +241,12 @@ function FunVote({
     const winner = top && byId.get(top.playerId);
     return (
       <div className="endscreen__funresult">
+        <img
+          src={FOOL_IMGS[foolImg - 1]}
+          alt="最愚玩家"
+          className="endscreen__funmeme"
+          draggable={false}
+        />
         <span className="endscreen__funresult-icon" aria-hidden="true">🤡</span>
         <p className="endscreen__funresult-name">
           {winner ? nameOf(winner.id) : '?'}
@@ -241,10 +257,26 @@ function FunVote({
           )}
         </p>
         <p className="endscreen__funresult-sub">
-          以 {top?.count ?? 0} / {totalVoters} 票当选本局最愚玩家
+          荣获本局最愚称号！以 {top?.count ?? 0} / {totalVoters} 票当选
         </p>
         {result.length > 1 && result[1]!.count === top?.count && (
           <p className="hint">（并列票数取先投者）</p>
+        )}
+        {/* Full ranking (Avalon port): top 5 with vote counts. */}
+        {result.length > 1 && (
+          <ul className="endscreen__funrank">
+            {result.slice(0, 5).map((r, i) => {
+              const p = byId.get(r.playerId);
+              return (
+                <li key={r.playerId} className={i === 0 ? 'is-top' : ''}>
+                  <span className="endscreen__funrank-name">
+                    {i === 0 ? '🤡' : `${i + 1}.`} {p ? nameOf(p.id) : '?'}
+                  </span>
+                  <span className="endscreen__funrank-votes">{r.count} 票</span>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     );
