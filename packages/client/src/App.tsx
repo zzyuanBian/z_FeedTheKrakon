@@ -963,16 +963,17 @@ export function App() {
           </button>
           <span className="pill">你是 {youName}</span>
           {/* Tap to mask/unmask: play over someone's shoulder without
-              showing your faction. ❓ keeps pill width stable. */}
+              showing your faction. Text-only per request (no icon); the
+              ❓ keeps pill width stable when masked. */}
           <button
             type="button"
             className="pill pill--team"
             title={factionMasked ? '身份已隐藏（点击显示）' : '点击隐藏身份'}
             onClick={toggleFactionMask}
           >
-            {factionMasked ? '❓' : FACTION_ICON[view.you.team]}
-            {!factionMasked && <span className="pill__team-word">{FACTION_LABEL[view.you.team]}</span>}
-            {!factionMasked && view.you.cultLeader && <span className="pill__team-word"> · 首领</span>}
+            {factionMasked ? '❓' : (
+              <span className="pill__team-word">{FACTION_LABEL[view.you.team]}{view.you.cultLeader ? ' · 首领' : ''}</span>
+            )}
           </button>
           {view.isHost && <span className="pill pill--host">房主</span>}
         </div>

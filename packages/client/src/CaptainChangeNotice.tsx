@@ -19,17 +19,24 @@ import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 
 /** `cc:<logLength>` while the newest entry is a fresh non-mutiny captain
- *  hand-over, else null. */
+ *  hand-over — or the game's OPENING round line (the table learns who
+ *  captain starts), else null. */
 export function captainChangeKey(view: PlayerView): string | null {
   if (view.winner !== null || view.log.length === 0) return null;
   const tail = view.log[view.log.length - 1]!;
   if (tail.t !== 'round') return null;
-  // The previous round line: the OLD captain's record.
+  // Opening announcement: the FIRST round line is news too — everyone
+  // should learn the starting captain the same way a hand-over lands.
   const prevRound = [...view.log]
     .slice(0, -1)
     .reverse()
     .find((e) => e.t === 'round');
-  if (!prevRound || prevRound.t !== 'round' || prevRound.captain === tail.captain) return null;
+  if (!prevRound || prevRound.t !== 'round') {
+    // A round line at index > 0 means appointments/loyalty already ran in
+    // between — the opening window has passed; refreshes must not replay it.
+    return view.log.indexOf(tail) === 0 ? `cc:${view.log.length}` : null;
+  }
+  if (prevRound.captain === tail.captain) return null;
   // A mutiny between the two round lines owns its own reveal veil.
   const mutinyIdx = view.log.findLastIndex((e) => e.t === 'mutiny');
   if (mutinyIdx > view.log.lastIndexOf(prevRound)) return null;
@@ -47,13 +54,17 @@ export function CaptainChangeNotice({
   const seatOf = (id: string) =>
     (id === view.you.id ? view.you : view.others.find((p) => p.id === id));
   const fresh = tail.t === 'round' ? seatOf(tail.captain) : undefined;
+  // Opening line (log index 0) = the game's first captain, not a hand-over.
+  const opening = view.log.indexOf(tail) === 0;
 
   return (
-    <div className="modal captain-change" role="alertdialog" aria-label="船长更替">
+    <div className="modal captain-change" role="alertdialog" aria-label={opening ? '首任船长' : '船长更替'}>
       <div className="modal__box captain-change__box">
-        <span className="captain-change__glyph" aria-hidden="true">🍺</span>
-        <h3 className="captain-change__title">船长更替</h3>
-        <p className="captain-change__sub">醉汉上头，船长跌跌撞撞下了台</p>
+        <span className="captain-change__glyph" aria-hidden="true">{opening ? '🧭' : '🍺'}</span>
+        <h3 className="captain-change__title">{opening ? '首任船长' : '船长更替'}</h3>
+        <p className="captain-change__sub">
+          {opening ? '起航了——本局由他掌舵' : '醉汉上头，船长跌跌撞撞下了台'}
+        </p>
         {fresh && (
           <div className="captain-change__captain">
             <AvatarImage avatarId={fresh.avatar} size={72} />

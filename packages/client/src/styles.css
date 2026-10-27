@@ -2334,9 +2334,12 @@ button:disabled { cursor: not-allowed; }
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  /* 115% zoom, same as the mobile panes: the source scan carries baked-in
+     dark corners — at cover they surface at the pane's left/right edges
+     and read as mysterious shadows. Zooming past them crops them off. */
   background:
     linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
-    url('/img/log-bg.webp') center 40% / cover no-repeat,
+    url('/img/log-bg.webp') 50% 40% / 115% auto no-repeat,
     linear-gradient(180deg, #101c30, #0a1322);
 }
 .log__list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
@@ -2938,9 +2941,12 @@ button:disabled { cursor: not-allowed; }
      present even when a pane's content is short — the page, not the pane,
      is the scrollport now. */
   .side-pane--crew, .side-pane--action {
+    /* background-size 115% + weighted position: zooms past the art's own
+       baked-in edge vignette (the source scan has dark corners) instead of
+       showing it at the pane's left/right edges. */
     background:
       linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
-      url('/img/log-bg.webp') center 40% / cover no-repeat,
+      url('/img/log-bg.webp') 50% 40% / 115% auto no-repeat,
       linear-gradient(180deg, #101c30, #0a1322);
   }
   .side-pane--off { display: none; }
@@ -2982,9 +2988,8 @@ button:disabled { cursor: not-allowed; }
   .topbar__right .pill { font-size: 12px; padding: 3px 8px; }
   /* 你是 X: the roster + chat already carry the name — drop the pill. */
   .topbar__right .pill:nth-child(2) { display: none; }
-  /* Faction: icon only on mobile (the icon carries it; full label rides
-     the title tooltip and the role-reveal card). */
-  .topbar__right .pill--team .pill__team-word { display: none; }
+  /* Faction pill is text-only now (no icon); it IS compact enough for the
+     one-line bar. */
   .topbar__right .pill--host { font-size: 0; padding: 3px 7px; }
   .topbar__right .pill--host::before { content: '👑'; font-size: 12px; }
   .code-input__slot { width: 40px; height: 52px; font-size: 24px; }
