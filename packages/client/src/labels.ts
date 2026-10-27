@@ -73,3 +73,22 @@ export const PHASE_LABEL: Record<string, string> = {
   offDuty: '歇班',
   gameOver: '游戏结束',
 };
+
+/** ── 开场序章 (StoryPrologue) ────────────────────────────────────────────
+ *  The per-game cold open, shown during the shared launch countdown. Three
+ *  beats read in order (typewriter + fade); the last line names the game.
+ *  Kept here so the story stays editable next to the rest of the copy. */
+export const PROLOGUE_STANZAS: readonly string[] = [
+  '风暴散去，星图尽毁。「海燕号」在无边的黑海上漂流，桅顶的灯是唯一的光。',
+  '老水手说，这片海域之下沉睡着古老的存在。它饥饿，它在等。唯有回到人类的航线，才能活着离开。',
+  '可登船名册上藏着名字——并非每个人，都想回家。有人揣着另一张海图，有人听见了海底的低语。睁大眼睛，别让这艘船，喂了海怪。',
+];
+
+/** The role card's faction whisper (RoleReveal): one line per team, spoken
+ *  to the player alone right after they see their secret identity. The cult
+ *  leader gets their own — the flock line already shows their known cultists. */
+export const ROLE_WHISPER: Record<Faction, string> = {
+  sailor: '你攥紧了船票。无论海底藏着什么——你要回家。',
+  pirate: '回家？这艘船才是家。让它永远航行下去。',
+  cult: '低语早已找到你。它很饿。',
+};

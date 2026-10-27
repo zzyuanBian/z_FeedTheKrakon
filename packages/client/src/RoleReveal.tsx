@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
+import { ROLE_WHISPER } from './labels.js';
 
 export interface RoleRevealProps {
   view: PlayerView;
@@ -155,6 +156,11 @@ export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
       {flipped && (
         <div className="role-reveal__info">
           <p className="role-reveal__copy">{copy}</p>
+          {/* The faction whisper — the story speaking to THIS seat alone,
+              right after the secret is seen. Italic sea-voice line. */}
+          <p className="role-reveal__whisper">
+            “{ROLE_WHISPER[team] ?? ''}”
+          </p>
           {mateNames.length > 0 && (
             <div className="role-reveal__known">
               <div className="role-reveal__known-title">{mateTitle}</div>

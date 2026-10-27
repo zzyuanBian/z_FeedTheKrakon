@@ -2861,7 +2861,11 @@ button:disabled { cursor: not-allowed; }
   /* .col's overflow:auto would each trap the page scroll here (and an
      auto/hidden scrollport on .col--side would break the tabs' sticky). */
   .col--board, .col--side { overflow: visible; }
-  .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px; }
+  /* 38vh band + a reserved right strip: the map is a SQUARE centred by
+     `meet`, so a fixed right pad slides the whole art left and the corner
+     floats (弃牌 buoy, ⛶ 放大 chip) live over empty letterbox — nothing
+     overlaps the map art on any phone width. */
+  .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px 96px 8px 8px; }
   /* The left wing dissolves on mobile (display:contents): its 歇班 art box
      hides outright (the 船员 tab has the text-only version) and the discard
      sea becomes the map-corner buoy, positioned against .main itself. */
@@ -2884,20 +2888,18 @@ button:disabled { cursor: not-allowed; }
   .drawpile__back { width: 34px; max-width: none; border-radius: 6px; }
   .drawpile__count { font-size: 12px; }
   /* The discard sea becomes the map-corner buoy: square plinth, painted
-     art hidden, card-back pile + count badge only. Both right-corner
-     floats (this buoy, the ⛶ 放大 chip) share the map's right edge — on a
-     38vh band they used to collide. The buoy tucks tighter into the top
-     corner and shrinks a touch; the zoom chip moves to the LEFT edge so
-     the two stack vertically apart. */
+     art hidden, card-back pile + count badge only (the 76px size stayed —
+     the user liked it). It sits over the reserved right strip (see
+     .col--board above), not over the art. */
   .discard-sea {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 5;
-    width: 68px;
+    width: 76px;
     margin: 0;
   }
-  .discard-sea__artbox { flex: none; height: 68px; } /* square plinth */
+  .discard-sea__artbox { flex: none; height: 76px; } /* square plinth */
   .discard-sea__art { display: none; }
   /* Buoy layout: pile centred in the plinth's UPPER area, the count rides
      the bottom edge on its own dark chip — the two never overlap (the card
@@ -2906,7 +2908,7 @@ button:disabled { cursor: not-allowed; }
      cqw stopped being reliable here (the container is display:contents
      away from the layout box it used to size against). */
   .discard-sea__stack { top: 38%; }
-  .discard-sea__card { width: 36px; border-width: 1px; }
+  .discard-sea__card { width: 40px; border-width: 1px; }
   .discard-sea__label {
     bottom: 3px;
     font-size: 10px;
@@ -2921,9 +2923,17 @@ button:disabled { cursor: not-allowed; }
      background needs the inverse palette: the base rules keep the
      parchment's deep-brown ink for the PC art, which is unreadable here. */
   .side-pane__offduty { display: block; }
-  /* The ⛶ 放大 chip moves to the bottom-LEFT corner on mobile: the discard
-     buoy owns the right edge (they collided on the 38vh map band). */
-  .board__expand { right: auto; left: 8px; }
+  /* The ⛶ 放大 chip joins the reserved right strip, directly under the
+     discard buoy — the two stack in the letterbox band, clear of the art. */
+  .board__expand {
+    right: 8px;
+    left: auto;
+    top: 94px;
+    bottom: auto;
+    width: 76px;
+    text-align: center;
+    box-sizing: border-box;
+  }
   .side-pane__offduty .offduty {
     aspect-ratio: auto;
     height: auto;
@@ -3244,3 +3254,103 @@ html.ftk-scroll-lock { overflow: hidden; }
 .fate-notice__tag--keep { color: var(--gold-bright); }
 .fate-notice__tag--drop { color: #8fa3c8; }
 .fate-notice__close { width: 100%; }
+
+/* ══════════════════════════ 开场序章 (StoryPrologue) ═════════════════════════
+   The per-game cold open, shown during the shared 5s launch countdown. The
+   storm-deck art sits under a deep-sea veil; the three stanzas fade in one
+   after another. 跳过 » sits bottom-right; the countdown itself is hidden —
+   the story paces itself and the board takes over when it lands. */
+.prologue {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #050a14;
+}
+.prologue__art {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(5, 9, 20, 0.55), rgba(5, 9, 20, 0.8)),
+    url('/img/log-bg.webp') 50% 40% / cover no-repeat;
+  animation: prologue-art-in 2.4s ease-out;
+}
+@keyframes prologue-art-in {
+  from { opacity: 0; transform: scale(1.06); }
+  to { opacity: 1; transform: scale(1); }
+}
+.prologue__veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 70% at 50% 42%, transparent 30%, rgba(4, 7, 14, 0.85) 100%);
+  pointer-events: none;
+}
+.prologue__text {
+  position: relative;
+  max-width: 560px;
+  padding: 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.prologue__kicker {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em; /* balance the trailing tracking */
+  color: var(--teal-bright);
+  text-align: center;
+  margin-bottom: 8px;
+  text-shadow: 0 0 24px rgba(72, 194, 207, 0.35);
+}
+.prologue__stanza {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--ink);
+  text-align: justify;
+  text-align-last: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  animation: prologue-stanza-in 0.9s ease-out both;
+}
+.prologue__stanza:last-child {
+  color: var(--gold-bright);
+  text-shadow: 0 0 18px rgba(212, 167, 74, 0.3), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+@keyframes prologue-stanza-in {
+  from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.prologue__skip {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  background: rgba(8, 13, 24, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+@media (max-width: 900px) {
+  .prologue__text { max-width: 100%; padding: 0 24px; }
+  .prologue__stanza { font-size: 15px; line-height: 1.85; }
+}
+
+/* The role card's faction whisper (RoleReveal): the one line the story
+   speaks to the seat alone, right under the role's rules copy. */
+.role-reveal__whisper {
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--teal-bright);
+  text-shadow: 0 0 14px rgba(72, 194, 207, 0.25);
+  text-align: center;
+}

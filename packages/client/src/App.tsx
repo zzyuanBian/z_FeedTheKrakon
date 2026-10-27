@@ -31,6 +31,7 @@ import { ActionPanel } from './ActionPanel.js';
 import { LogPanel } from './LogPanel.js';
 import { ChatBubble } from './ChatBubble.js';
 import { RoleReveal } from './RoleReveal.js';
+import { StoryPrologue } from './StoryPrologue.js';
 import { lobby, clearSession, loadSession, leaveMatch, useGame } from './useGame.js';
 import type { Session } from './session.js';
 import { MAX_PLAYERS, MIN_PLAYERS, GAME_NAME } from './config.js';
@@ -938,6 +939,23 @@ export function App() {
     );
   }
   const allSeatsConfirmed = view.roleConfirmations.confirmed >= view.roleConfirmations.total;
+  // 开场序章 (StoryPrologue): while the shared countdown runs, the whole
+  // screen IS the story — the reveal screen (and its countdown number) hides
+  // underneath it. 跳过 or countdown-zero both land in `markLaunched` (the
+  // board); the story never holds the launch up. Seen-flag lives inside the
+  // component (sessionStorage per match+seat): a refresh inside the window
+  // skips straight through.
+  if (counting && launchCountdown !== null && launchCountdown > 0) {
+    return shell(
+      <div className="app app--lobby">
+        <StoryPrologue
+          sessionKey={`${session.matchID}:${session.playerID}`}
+          soundOn={reminderOn}
+          onDone={markLaunched}
+        />
+      </div>
+    );
+  }
   if (!view.you.roleConfirmed || !allSeatsConfirmed || !launched) {
     return shell(
       <div className="app app--lobby">
