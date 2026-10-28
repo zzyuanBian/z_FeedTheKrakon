@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { SHORT_MAP } from '@ftk/engine';
 import { MAP_IMAGE_URL, SHIP_URL } from './assets.js';
+import { MARK_HALOS, HALO_R } from './Board.js';
 
 const SHIP_SIZE = 660; // same marker sizing as the board
 const MIN_ZOOM = 1;
@@ -194,6 +195,13 @@ export function MapViewer({ view, onClose }: { view: PlayerView; onClose: () => 
         style={{ touchAction: 'none' }}
       >
         <image href={MAP_IMAGE_URL} x={0} y={0} width={SHORT_MAP.imageWidth} height={SHORT_MAP.imageHeight} />
+        {/* Same mark halos as the in-page board — the zoom view exists to
+            read the faint marks, so the glow must ride along. */}
+        <g aria-hidden="true">
+          {MARK_HALOS.map((h) => (
+            <circle key={`${h.x}:${h.y}`} className="board__mark-halo" cx={h.x} cy={h.y} r={HALO_R} />
+          ))}
+        </g>
         {ship && (
           <image
             className="board__ship mapviewer__ship"
