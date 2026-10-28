@@ -220,6 +220,31 @@ export interface ChatLine {
   message: string;
 }
 
+/** Chat history survives a refresh: bgio replays chat only over the live
+ *  socket, so a reload used to blank the drawer. The transcript is mirrored
+ *  to sessionStorage per match (everyone's client sees the same public
+ *  lines, so one bucket per room — not per seat) and re-seeded on the next
+ *  connection; ids come from bgio (nanoid), so dedupe against the mirror
+ *  is exact. Capped: the last ~200 lines, then the drawer keeps scrolling
+ *  without growing the blob forever. */
+const CHAT_KEEP = 200;
+function chatKey(matchID: string): string {
+  return `ftk-chat:${matchID}`;
+}
+function loadChatMirror(matchID: string): ChatLine[] {
+  try {
+    const raw = sessionStorage.getItem(chatKey(matchID));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChatLine[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+function saveChatMirror(matchID: string, lines: ChatLine[]): void {
+  try {
+    sessionStorage.setItem(chatKey(matchID), JSON.stringify(lines.slice(-CHAT_KEEP)));
+  } catch { /* private mode / quota — chat simply doesn't survive */ }
+}
+
 export interface GameConnection {
   view: PlayerView | null;
   moves: Record<string, (...args: unknown[]) => void>;
@@ -273,7 +298,7 @@ export function useGame(
     setConnected(false);
     setIsActive(false);
     setGameover(undefined);
-    setChat([]);
+    setChat(loadChatMirror(session.matchID));
     const client = Client({
       game: FtkGame,
       // boardgame.io mounts a Svelte debug panel to document.body by default
@@ -298,7 +323,7 @@ export function useGame(
       if (!state) return;
       gotFirstSync = true;
       const g = state.G as unknown as PlayerView | null;
-      if (g) {
+      if (g && import.meta.env.DEV) {
         console.info(
           '[ftk] sync',
           `phase=${g.phase}`,
@@ -311,14 +336,14 @@ export function useGame(
       setIsActive(state.isActive);
       setGameover(state.ctx.gameover);
       // bgio wraps each chat payload as { id, sender, payload: <what we sent> }.
-      setChat(
-        client.chatMessages.map((m) => ({
-          id: m.id,
-          sender: m.sender,
-          message:
-            typeof m.payload === 'string' ? m.payload : JSON.stringify(m.payload),
-        })),
-      );
+      const lines = client.chatMessages.map((m) => ({
+        id: m.id,
+        sender: m.sender,
+        message:
+          typeof m.payload === 'string' ? m.payload : JSON.stringify(m.payload),
+      }));
+      setChat(lines);
+      saveChatMirror(session.matchID, lines);
       // Bridge the lobby-side display name into GameState exactly once per
       // session. bgio's joinMatch only updates the lobby metadata, so the
       // reducer's players[p].name would otherwise stay on the setup-time
@@ -356,7 +381,7 @@ export function useGame(
     const proxy: Record<string, (...args: unknown[]) => void> = {};
     for (const name of Object.keys(FtkGame.moves ?? {})) {
       proxy[name] = (...args: unknown[]) => {
-        console.info(`[ftk] move ${name}`, JSON.stringify(args));
+        if (import.meta.env.DEV) console.info(`[ftk] move ${name}`, JSON.stringify(args));
         const fn = clientRef.current?.moves[name] as ((...a: unknown[]) => void) | undefined;
         if (!fn) { console.warn(`[ftk] move ${name}: no bound client move`); return; }
         fn(...args);

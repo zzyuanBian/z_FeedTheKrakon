@@ -564,17 +564,50 @@ export function App() {
   const prologueUp = allConfirmedAndFresh && graceDone && launchLeft <= 0;
   const launchCountdown = counting ? launchLeft : null;
 
+  // Seen-latches (公示已读记录): every one-shot notice latches its key here
+  // once dismissed, and the latch PERSISTS in sessionStorage per match+seat —
+  // a refresh no longer replays notices the seat has already read (they were
+  // memory-only, so any reload popped the whole history again). Reads happen
+  // during render (storage is sync + tiny); writes bump a counter so the
+  // recomputed booleans pick the change up. The scope rides the session, so
+  // each room+seat latches independently and the next room starts clean.
+  const seenScope = session ? `${session.matchID}:${session.playerID}` : '';
+  const seenStore = useMemo(() => {
+    const key = (name: string) => `ftk-seen-${name}:${seenScope}`;
+    return {
+      read: (name: string): string | null => {
+        if (!seenScope) return null;
+        try { return sessionStorage.getItem(key(name)); } catch { return null; }
+      },
+      write: (name: string, v: string | null): void => {
+        if (!seenScope) return;
+        try {
+          if (v === null) sessionStorage.removeItem(key(name));
+          else sessionStorage.setItem(key(name), v);
+        } catch { /* private mode */ }
+      },
+    };
+  }, [seenScope]);
+  const [, setSeenBump] = useState(0);
+  const markSeen = useCallback((name: string, v: string | null) => {
+    seenStore.write(name, v);
+    setSeenBump((b) => b + 1);
+  }, [seenStore]);
+
   // Mutiny reveal veil (成功与失败都弹): edge-triggered on the reveal
   // broadcast. Every client sees the same public pledges at the same moment.
-  // Dismissing sets the flag; when the mutiny window ends (`revealed` back
-  // to false — next round's appointment clears it) the flag resets so the
-  // NEXT mutiny re-pops the veil. Success stays true through the tie-break
-  // chain, so the veil persists until the new captain is known + dismissed.
-  const [mutinyDismissed, setMutinyDismissed] = useState(false);
+  // Dismissing latches the flag (persisted); when the mutiny window ends
+  // (`revealed` back to false — next round's appointment clears it) the flag
+  // resets so the NEXT mutiny re-pops the veil. Success stays true through
+  // the tie-break chain, so the veil persists until the new captain is known
+  // + dismissed.
   const mutinyRevealed = !!game.view?.mutiny.revealed;
+  const mutinySeen = seenStore.read('mutiny') === '1';
+  const mutinyDismissed = mutinySeen;
+  const setMutinyDismissed = useCallback(() => { markSeen('mutiny', '1'); }, [markSeen]);
   useEffect(() => {
-    if (!mutinyRevealed) setMutinyDismissed(false);
-  }, [mutinyRevealed]);
+    if (!mutinyRevealed && mutinySeen) markSeen('mutiny', null);
+  }, [mutinyRevealed, mutinySeen, markSeen]);
 
   // 航海牌揭示弹框: every client pops the settled card + its rules text the
   // moment the navigator flips it. Keyed on `round:card` — a key never seen
@@ -582,7 +615,7 @@ export function App() {
   // into navigation, so this also covers the voyage's first reveal; the
   // card stays visible in the board's own widgets after dismissal.
   const cardKey = game.view ? cardRevealKey(game.view) : null;
-  const [seenCardKey, setSeenCardKey] = useState<string | null>(null);
+  const seenCardKey = seenStore.read('card');
   const cardRevealOpen = cardKey !== null && cardKey !== seenCardKey;
 
   // 哗变表决弹框 (MutinyPrompt): pops for seats that must ACT — crew who
@@ -671,13 +704,13 @@ export function App() {
   // loyalty phase — nothing else lingers.
   useEffect(() => {
     if (!ritualVeilActive) return;
-    if (cardRevealOpen) setSeenCardKey(cardKey);
-    if (cabinNoticeOpen) setSeenCsKey(csKey);
-    if (gunsNoticeOpen) setSeenGsKey(gsKey);
-    if (captainChangeOpen) setSeenCcKey(ccKey);
-    if (elimEntry) setSeenElimIdx(elimEntry.idx);
-    if (fateEntry) setSeenFateIdx(fateEntry.idx);
-    if (mutinyRevealed && !mutinyDismissed) setMutinyDismissed(true);
+    if (cardRevealOpen) markSeen('card', cardKey);
+    if (cabinNoticeOpen) markSeen('cabin', csKey);
+    if (gunsNoticeOpen) markSeen('guns', gsKey);
+    if (captainChangeOpen) markSeen('cc', ccKey);
+    if (elimEntry) markSeen('elim', String(elimEntry.idx));
+    if (fateEntry) markSeen('fate', String(fateEntry.idx));
+    if (mutinyRevealed && !mutinyDismissed) markSeen('mutiny', '1');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ritualVeilActive]);
   // Latch the conversion the moment the veil is dismissed — keying on the
@@ -691,12 +724,12 @@ export function App() {
   // 放大镜(船舱搜查)通知: pops for EVERY seat while the mapAction pending
   // for a magnify space is live; keyed per round, dismissed per key.
   const csKey = game.view ? cabinSearchKey(game.view) : null;
-  const [seenCsKey, setSeenCsKey] = useState<string | null>(null);
+  const seenCsKey = seenStore.read('cabin');
   const cabinNoticeOpen = csKey !== null && csKey !== seenCsKey;
   // 邪教囤枪公示: pops when the ritualGuns log entry is the newest event;
   // keyed on the entry's index so each stash notifies exactly once.
   const gsKey = game.view ? gunsStashKey(game.view) : null;
-  const [seenGsKey, setSeenGsKey] = useState<string | null>(null);
+  const seenGsKey = seenStore.read('guns');
   const gunsNoticeOpen = gsKey !== null && gsKey !== seenGsKey;
   // 船长更替公示 (drunk-card hand-overs — mutiny has its own veil): keyed on
   // the log length at the moment the fresh `round` line landed. The OPENING
@@ -704,7 +737,7 @@ export function App() {
   // unfold is the stage, the announcement is the line that follows it;
   // refresh/mid-game entries (no animation) show it at once.
   const ccKey = game.view ? captainChangeKey(game.view) : null;
-  const [seenCcKey, setSeenCcKey] = useState<string | null>(null);
+  const seenCcKey = seenStore.read('cc');
   // revealDone turns true ONLY via the timer — it must start false, or the
   // initializer (evaluated while boardFirstEntry is still false) would
   // pre-clear the gate and the notice would land on top of the animation.
@@ -718,12 +751,23 @@ export function App() {
     ccKey !== null && ccKey !== seenCcKey && (!boardFirstEntry || revealDone);
   // 出局公示 (feedKraken / jump): the tail elimination entry until seen.
   const elimEntry = game.view ? eliminationKey(game.view) : null;
-  const [seenElimIdx, setSeenElimIdx] = useState<number | null>(null);
-  const eliminationOpen = elimEntry !== null && elimEntry.idx !== seenElimIdx;
+  const seenElimIdx = seenStore.read('elim');
+  const eliminationOpen =
+    elimEntry !== null && String(elimEntry.idx) !== seenElimIdx;
   // 命运公示 (fate draws/settles below three players): same latch shape.
   const fateEntry = game.view ? fateKey(game.view) : null;
-  const [seenFateIdx, setSeenFateIdx] = useState<number | null>(null);
-  const fateOpen = fateEntry !== null && fateEntry.idx !== seenFateIdx;
+  const seenFateIdx = seenStore.read('fate');
+  const fateOpen = fateEntry !== null && String(fateEntry.idx) !== seenFateIdx;
+
+  // 公示队列: when several notices land in the same broadcast they used to
+  // ALL mount at once, stacked by z-index into an unreadable pile. Instead
+  // the queue admits exactly ONE at a time, in table order (game-speak first:
+  // who leads / who is out / what fate did, then the map-action stingers).
+  // Dismissing the front latches it (persistently, via markSeen) and the next
+  // one steps up. The non-queue veils (mutiny reveal, ritual peek, map
+  // reveal, ritual choice, card reveal, mutiny prompt) keep their own
+  // ordering — they are flow beats, not pile-ups, and their stacking order
+  // in the JSX already reads correctly.
 
   // On mobile the side column is tabs; auto-focus the action tab when the
   // player has something to do. The navigation contribute/logbook stages set
@@ -1007,6 +1051,17 @@ export function App() {
       </div>
     );
   }
+  // (队列 derivation) — see the comment above the latches: the six
+  // public notices queue one-at-a-time instead of stacking.
+  const noticeQueue: ('cc' | 'elim' | 'fate' | 'cabin' | 'guns' | 'card')[] = [];
+  if (captainChangeOpen) noticeQueue.push('cc');
+  if (eliminationOpen) noticeQueue.push('elim');
+  if (fateOpen) noticeQueue.push('fate');
+  if (cabinNoticeOpen) noticeQueue.push('cabin');
+  if (gunsNoticeOpen) noticeQueue.push('guns');
+  if (cardRevealOpen) noticeQueue.push('card');
+  const queueFront = noticeQueue[0];
+
   if (!view.you.roleConfirmed || !allSeatsConfirmed || !launched) {
     return shell(
       <div className="app app--lobby">
@@ -1163,7 +1218,7 @@ export function App() {
       {mutinyRevealed && !mutinyDismissed && (
         <MutinyReveal
           view={view}
-          onDone={() => setMutinyDismissed(true)}
+          onDone={setMutinyDismissed}
           // Tie-break: the veil is full-screen, so the picker's vote must
           // live INSIDE it — the old in-panel TargetPicker was behind the
           // veil and its clicks never landed (game deadlock).
@@ -1180,10 +1235,6 @@ export function App() {
         <RitualPeek view={view} onDone={() => setPeeking(false)} />
       )}
 
-      {cabinNoticeOpen && (
-        <CabinSearchNotice onDone={() => setSeenCsKey(csKey)} />
-      )}
-
       {/* The captain's PRIVATE result beat — rendered after the public
           notices so it sits on top of them if both are up. 知道了 acks and
           the navigation resumes. */}
@@ -1191,32 +1242,32 @@ export function App() {
         <MapReveal view={view} onAck={() => game.moves.mapActionRevealAck!()} />
       )}
 
-      {gunsNoticeOpen && (
-        <GunsStashNotice view={view} onDone={() => setSeenGsKey(gsKey)} />
+      {/* 公示队列 front: only ONE of the six ever mounts (see the queue
+          derivation above). */}
+      {queueFront === 'cc' && (
+        <CaptainChangeNotice view={view} onDone={() => markSeen('cc', ccKey)} />
       )}
-
-      {/* 船长更替公示 (drunk-card hand-over) — after the notices so it stacks
-          over them if two land in the same broadcast. */}
-      {captainChangeOpen && (
-        <CaptainChangeNotice view={view} onDone={() => setSeenCcKey(ccKey)} />
+      {queueFront === 'elim' && elimEntry && (
+        <EliminationNotice view={view} entry={elimEntry} onDone={() => markSeen('elim', String(elimEntry.idx))} />
       )}
-
-      {eliminationOpen && elimEntry && (
-        <EliminationNotice view={view} entry={elimEntry} onDone={() => setSeenElimIdx(elimEntry.idx)} />
+      {queueFront === 'fate' && fateEntry && (
+        <FateNotice view={view} entry={fateEntry} onDone={() => markSeen('fate', String(fateEntry.idx))} />
       )}
-
-      {fateOpen && fateEntry && (
-        <FateNotice view={view} entry={fateEntry} onDone={() => setSeenFateIdx(fateEntry.idx)} />
+      {queueFront === 'cabin' && (
+        <CabinSearchNotice onDone={() => markSeen('cabin', csKey)} />
+      )}
+      {queueFront === 'guns' && (
+        <GunsStashNotice view={view} onDone={() => markSeen('guns', gsKey)} />
       )}
 
       {pickGateOpen && (
         <RitualChoice view={view} onPick={(slot) => game.moves.ritualPick!(slot)} />
       )}
 
-      {cardRevealOpen && game.view.winner === null && (
+      {queueFront === 'card' && game.view.winner === null && (
         <CardReveal
           view={view}
-          onDone={() => setSeenCardKey(cardKey)}
+          onDone={() => markSeen('card', cardKey)}
           // Cult Uprising opens the captain's ritual-pick window next — give
           // the table 3s to read the card before anyone can dismiss. Rendered
           // AFTER RitualChoice so it sits on top: read the card first (locked
