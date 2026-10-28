@@ -2588,6 +2588,9 @@ button:disabled { cursor: not-allowed; }
   width: 100%;
   max-width: 420px;
   max-height: 70vh;
+  /* dvh override: on iOS the drawer opened over the board must respect the
+     real visual viewport, not the largest one the URL bar pretends at. */
+  max-height: 70dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg-panel-2);
@@ -3004,7 +3007,9 @@ button:disabled { cursor: not-allowed; }
   /* .col's overflow:auto would each trap the page scroll here (and an
      auto/hidden scrollport on .col--side would break the tabs' sticky). */
   .col--board, .col--side { overflow: visible; }
-  .col--board { flex: 0 0 38vh; min-height: 0; padding: 8px; }
+  /* dvh tracks the real visual viewport (iOS Safari's URL bar shrinks vh);
+     the plain vh first keeps old browsers on a sane fallback. */
+  .col--board { flex: 0 0 38vh; flex-basis: 38dvh; min-height: 0; padding: 8px; }
   /* The left wing dissolves on mobile (display:contents): its 歇班 art box
      hides outright (the 船员 tab has the text-only version) and the discard
      sea becomes the map-corner buoy, positioned against .main itself. */
