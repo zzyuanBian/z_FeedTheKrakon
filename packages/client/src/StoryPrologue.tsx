@@ -21,9 +21,8 @@ import { PROLOGUE_STANZAS } from './labels.js';
 
 /** Reading pace: one stanza every 4s (user-tuned — char-based pacing read
  *  as dead air). 跳过 » always skips straight to the board; the final beat
- *  holds 1.6s after the last stanza before boarding. */
+ *  holds the same 4s before boarding. */
 const STANZA_EVERY_MS = 4000;
-const FINAL_HOLD_MS = 1600;
 const FADE_MS = 900;
 
 /** Per-stanza start offsets: 0s / 4s / 8s. */
@@ -32,9 +31,9 @@ const STANZA_MS: readonly number[] = PROLOGUE_STANZAS.map(
 );
 
 /** Milliseconds from mount until the story completes (the parent's
- *  auto-board timing). */
+ *  auto-board timing): the last stanza gets its full 4s slot too. */
 export const PROLOGUE_TOTAL_MS =
-  STANZA_MS[STANZA_MS.length - 1]! + FINAL_HOLD_MS;
+  STANZA_MS[STANZA_MS.length - 1]! + STANZA_EVERY_MS;
 
 /** One-shot synthesized ambience: filtered noise swell (surf) + a couple of
  *  low groans (hull). Best-effort like the chime — never worth crashing. */
