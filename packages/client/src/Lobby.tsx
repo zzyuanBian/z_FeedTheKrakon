@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TEAM_COMPOSITIONS, type FactionCounts } from '@ftk/engine';
 import { CODE_LENGTH, isRoomCode, normalizeRoomCode } from '@ftk/room-code';
-import { createMatch, joinMatch, lobby } from './useGame.js';
+import { createMatch, joinMatch, findNameConflict, lobby } from './useGame.js';
 import { AVATARS, AvatarImage, pickAvatarId } from './Avatars.js';
 import { ArtImage } from './ArtImage.js';
 import type { Session } from './session.js';
@@ -460,6 +460,9 @@ function JoinRoom({
 }) {
   const [code, setCode] = useState(normalizeRoomCode(initialCode));
   const [busy, setBusy] = useState(false);
+  // Seat-claim confirm: a typed name that matches a seated player would
+  // silently take over their body (role, guns, history). Ask first.
+  const [claimName, setClaimName] = useState<string | null>(null);
   // Portraits already claimed by seated players — polled from the lobby API
   // while the typed code looks like a real room code. Stale by a beat at
   // worst; the server's 409 guard is the hard backstop.
@@ -505,12 +508,20 @@ function JoinRoom({
     if (!valid || !nameOk) return;
     setBusy(true);
     try {
+      // Same-name seat exists? Confirm the takeover — a duplicate name typed
+      // by two different friends must not silently hijack the first one.
+      const conflict = await findNameConflict(code, name.trim());
+      if (conflict && claimName === null) {
+        setClaimName(conflict);
+        return;
+      }
       const session = await joinMatch(code, name.trim(), avatarId);
       onReady(session);
     } catch (e) {
       onError(errorMessage(e));
     } finally {
       setBusy(false);
+      setClaimName(null);
     }
   };
 
@@ -526,6 +537,24 @@ function JoinRoom({
         <CodeInput value={code} onChange={setCode} disabled={busy} />
         <AvatarPicker value={avatarId} onChange={setAvatarId} takenIds={valid ? taken : undefined} />
         {error && <p className="error-line">{error}</p>}
+        {claimName && (
+          <div className="claim-confirm" role="alertdialog" aria-label="接管座位确认">
+            <p className="claim-confirm__text">
+              「<strong>{claimName}</strong>」已在座——接管他的座位？
+              <span className="claim-confirm__hint">（重连时选"接管"，走错房间请改名）</span>
+            </p>
+            <div className="claim-confirm__actions">
+              <button type="button" className="btn-ghost btn-ghost--sm" disabled={busy}
+                onClick={() => setClaimName(null)}>
+                取消
+              </button>
+              <button type="button" className="btn-cthulhu btn-cthulhu--gold btn-cthulhu--sm"
+                disabled={busy} onClick={join}>
+                {busy ? '接管中…' : '接管座位'}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="card-actions">
           <button type="button" className="btn-ghost" onClick={onBack} disabled={busy}>
             ← 返回

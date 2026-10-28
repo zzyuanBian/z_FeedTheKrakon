@@ -216,6 +216,19 @@ button:disabled { cursor: not-allowed; }
 /* Already claimed by another seat in the room: dimmed, refuses clicks. */
 .avatar-pick--taken { cursor: not-allowed; opacity: 0.25; filter: grayscale(1); }
 
+/* 接管座位确认 (JoinRoom): an inline strip between the error line and the
+   action row — loud enough to be read, small enough not to restack the card. */
+.claim-confirm {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  background: rgba(212, 167, 74, 0.08);
+}
+.claim-confirm__text { margin: 0; font-size: 14px; color: var(--gold-bright); }
+.claim-confirm__hint { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-dim); }
+.claim-confirm__actions { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; }
+
 .error-line {
   margin: 14px 0 0;
   padding: 10px 12px;

@@ -86,7 +86,12 @@ export async function createMatch(opts: CreateOptions): Promise<Session> {
 /** Join the first open seat in a match. If the name matches a seat that is
  *  already taken, the seat is CLAIMED instead (friends-table reconnect):
  *  the server re-issues that seat's credential and the returning player
- *  takes over their old body — role, guns, resumes all intact. */
+ *  takes over their old body — role, guns, resumes all intact.
+ *
+ *  The claim is opt-in: call findNameConflict first and confirm with the
+ *  player before calling this — a name typed independently by two friends
+ *  would otherwise let the later joiner silently hijack the earlier one's
+ *  seat (role, guns, chat history and all). */
 export async function joinMatch(
   matchID: string,
   playerName: string,
@@ -141,6 +146,20 @@ export async function joinMatch(
   };
   saveSession(session);
   return session;
+}
+
+/** Find the seated player whose name matches `playerName` (case/space-
+ *  insensitive), if any — the joiner would CLAIM that seat. Returns the
+ *  seated name as recorded, so the UI can ask 「接管他的座位？」 */
+export async function findNameConflict(
+  matchID: string,
+  playerName: string,
+): Promise<string | null> {
+  const match = await lobby.getMatch(GAME_NAME, matchID);
+  const hit = match.players.find(
+    (p) => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase(),
+  );
+  return hit?.name ?? null;
 }
 
 /** Take over an existing seat by display name via the server's claim
