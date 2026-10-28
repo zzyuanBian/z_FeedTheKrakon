@@ -238,7 +238,7 @@ export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProp
           status line in the flow, then the veiled countdown takes over. */}
       {grace && countdown === null && (
         <div className="role-reveal__grace" role="status" aria-live="polite">
-          全员已准备 · 稍作阅读，即将启航…
+          全员已准备，即将启航…
         </div>
       )}
     </div>
