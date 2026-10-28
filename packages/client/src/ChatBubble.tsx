@@ -157,7 +157,9 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
                       <span className="chat__who">
                         {nameOf(m.sender)}
                         {isCaptain(m.sender) && (
-                          <span className="chat__captain" title="船长">🧭 船长</span>
+                          <span className="chat__captain" title="船长">
+                            <img src="img/crest-captain.png" alt="" draggable={false} /> 船长
+                          </span>
                         )}
                       </span>
                       <span className="chat__ava-wrap">

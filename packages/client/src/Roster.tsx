@@ -105,7 +105,7 @@ export function Roster({
             >
               {/* Officer crests as corner badges (rulebook medal scans). */}
               {officers.captain === p.id && (
-                <span className="roster__token-crest" title="船长">🧭</span>
+                <img className="roster__token-medal" src="img/crest-captain.png" alt="船长" title="船长" draggable={false} />
               )}
               {officers.lieutenant === p.id && (
                 <img className="roster__token-medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />
@@ -163,7 +163,7 @@ export function Roster({
             >
               <AvatarImage avatarId={p.avatar} size={24} title={p.name} className="roster__row-ava" />
               <span className="roster__row-name">
-                {officers.captain === p.id && <em title="船长">🧭</em>}
+                {officers.captain === p.id && <img className="roster__row-medal" src="img/crest-captain.png" alt="船长" title="船长" draggable={false} />}
                 {officers.lieutenant === p.id && <img className="roster__row-medal" src="img/crest-lieutenant.png" alt="大副" title="大副" draggable={false} />}
                 {officers.navigator === p.id && <img className="roster__row-medal" src="img/crest-navigator.png" alt="领航员" title="领航员" draggable={false} />}
                 {mateOf(p.id) === 'master' && <em className="roster__row-mate roster__row-mate--cult" title="邪教首领（转化了你）">🐙</em>}
