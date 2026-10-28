@@ -18,6 +18,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { PROLOGUE_STANZAS } from './labels.js';
+import { unlockAudio, sharedAudioCtx } from './TurnNudge.js';
 
 /** Reading pace: one stanza every 3.5s (user-tuned). After the final beat
  *  holds its slot, the ⚓ 登船 button appears and waits for the click. */
@@ -38,11 +39,10 @@ export const PROLOGUE_TOTAL_MS =
  *  low groans (hull). Best-effort like the chime — never worth crashing. */
 function playAmbience(): void {
   try {
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
-    const ctx = new Ctor();
+    // Shared singleton (unlocked by the flip/登船 gestures) — a fresh
+    // non-gesture AudioContext would be born suspended on iOS.
+    const ctx = sharedAudioCtx();
+    if (!ctx) return;
     const t0 = ctx.currentTime;
     const master = ctx.createGain();
     master.gain.setValueAtTime(0.0001, t0);
@@ -156,7 +156,7 @@ export function StoryPrologue({
         <button
           type="button"
           className="btn btn--primary prologue__board"
-          onClick={() => { setSkip(true); onDoneRef.current(); }}
+          onClick={() => { unlockAudio(); setSkip(true); onDoneRef.current(); }}
         >
           ⚓ 登船
         </button>

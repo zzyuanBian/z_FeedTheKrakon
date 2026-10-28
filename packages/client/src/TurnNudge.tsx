@@ -53,13 +53,34 @@ export function useTurnReminderPref(): [boolean, () => void] {
    (no user gesture yet, e.g. a fresh page load) resumes best-effort or
    stays silent — the visual layers always fired regardless. */
 let audioCtx: AudioContext | null = null;
-function chime(): void {
+
+/** iOS unlock: a suspended AudioContext only resumes inside a USER GESTURE
+ *  handler — the chime fires from a timer, so it must find the context
+ *  already awake. Call this from the table-wide gestures everyone makes
+ *  (role-card flip, ⚓ 登船, any first pointerdown). Idempotent. */
+export function unlockAudio(): void {
   try {
     const Ctor =
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
     audioCtx ??= new Ctor();
+    if (audioCtx.state === 'suspended') void audioCtx.resume().catch(() => {});
+  } catch {
+    /* audio unsupported — the visual layers carry the nudge */
+  }
+}
+
+/** Read-only access for sibling effects (prologue ambience) — may be null
+ *  before any gesture; callers must tolerate that. */
+export function sharedAudioCtx(): AudioContext | null {
+  return audioCtx;
+}
+
+function chime(): void {
+  try {
+    if (!audioCtx) unlockAudio(); // last resort: may stay suspended on iOS
+    if (!audioCtx) return;
     if (audioCtx.state === 'suspended') void audioCtx.resume().catch(() => {});
     const t0 = audioCtx.currentTime;
     const master = audioCtx.createGain();

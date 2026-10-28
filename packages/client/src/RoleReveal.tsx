@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlayerView } from '@ftk/engine';
 import { AvatarImage } from './Avatars.js';
 import { ROLE_WHISPER } from './labels.js';
+import { unlockAudio } from './TurnNudge.js';
 
 export interface RoleRevealProps {
   view: PlayerView;
@@ -95,6 +96,7 @@ export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
 
   const handleFlip = () => {
     if (flipped || sentRef.current) return;
+    unlockAudio(); // iOS: wake the shared ctx inside this gesture
     setFlipped(true);
     // Let the 0.8s flip animation finish so the player has actually SEEN
     // their card before readiness registers.

@@ -39,6 +39,7 @@ import { FACTION_ICON, FACTION_LABEL, PHASE_LABEL } from './labels.js';
 import { copyText, roomShareUrl } from './clipboard.js';
 import { TurnToast, useTurnNudge, useTurnReminderPref } from './TurnNudge.js';
 import { iOweMutinyPledge } from './actions.js';
+import { unlockAudio } from './TurnNudge.js';
 
 /** How long the connecting screen waits before auto-resetting to the lobby.
  *  Must match the stale-session timeout in useGame. */
@@ -754,6 +755,13 @@ export function App() {
   // gate is re-derived from game.view here — `pickGateOpen` below is the
   // same expression once `view` exists.
   const [reminderOn, toggleReminder] = useTurnReminderPref();
+  // iOS audio unlock fallback: the flip + 登船 gestures cover most seats;
+  // this catches anyone who somehow reaches a nudge without either.
+  useEffect(() => {
+    const once = () => unlockAudio();
+    document.addEventListener('pointerdown', once, { once: true });
+    return () => document.removeEventListener('pointerdown', once);
+  }, []);
   // 身份掩码 (faction pill privacy): tapping the topbar's faction pill
   // toggles a ❓ mask — for playing over someone's shoulder. Per
   // match+seat in sessionStorage: the mask is a per-game courtesy, it
