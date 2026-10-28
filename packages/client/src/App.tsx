@@ -527,13 +527,17 @@ export function App() {
     !!game.view
     && game.view.roleConfirmations.total > 0
     && game.view.roleConfirmations.confirmed >= game.view.roleConfirmations.total;
-  const counting = allConfirmed && !launched;
+  const allConfirmedAndFresh = allConfirmed && !launched;
+  // Two staged beats: the reveal screen holds a shared 5s countdown FIRST;
+  // when it hits zero the story takes the whole screen (its ⚓ 登船 click
+  // fires markLaunched). `counting` = countdown running; `prologueUp` =
+  // countdown done (or a refresh mid-story), story owns the screen.
   const [launchAt, setLaunchAt] = useState<number | null>(null);
   const [launchLeft, setLaunchLeft] = useState(5);
   useEffect(() => {
-    if (counting && launchAt === null) setLaunchAt(Date.now());
-    if (!counting && launchAt !== null) setLaunchAt(null);
-  }, [counting, launchAt]);
+    if (allConfirmedAndFresh && launchAt === null) setLaunchAt(Date.now());
+    if (!allConfirmedAndFresh && launchAt !== null) setLaunchAt(null);
+  }, [allConfirmedAndFresh, launchAt]);
   useEffect(() => {
     if (launchAt === null) return;
     const tick = () => setLaunchLeft(Math.max(0, Math.ceil((launchAt + 5000 - Date.now()) / 1000)));
@@ -541,6 +545,8 @@ export function App() {
     const t = window.setInterval(tick, 250);
     return () => window.clearInterval(t);
   }, [launchAt]);
+  const counting = allConfirmedAndFresh && launchLeft > 0;
+  const prologueUp = allConfirmedAndFresh && launchLeft <= 0;
   const launchCountdown = counting ? launchLeft : null;
 
   // Mutiny reveal veil (成功与失败都弹): edge-triggered on the reveal
@@ -955,7 +961,7 @@ export function App() {
   // story never holds the launch up — it just waits for the click. Seen-flag
   // lives inside the component (sessionStorage per match+seat): a refresh
   // inside the window skips straight through.
-  if (counting) {
+  if (prologueUp) {
     return shell(
       <div className="app app--lobby">
         <StoryPrologue
