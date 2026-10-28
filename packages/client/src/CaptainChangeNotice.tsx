@@ -60,7 +60,11 @@ export function CaptainChangeNotice({
   return (
     <div className="modal captain-change" role="alertdialog" aria-label={opening ? '首任船长' : '船长更替'}>
       <div className="modal__box captain-change__box">
-        <span className="captain-change__glyph" aria-hidden="true">{opening ? '🧭' : '🍺'}</span>
+        {opening ? (
+          <img className="captain-change__crest" src="img/crest-captain.png" alt="" draggable={false} />
+        ) : (
+          <span className="captain-change__glyph" aria-hidden="true">🍺</span>
+        )}
         <h3 className="captain-change__title">{opening ? '首任船长' : '船长更替'}</h3>
         <p className="captain-change__sub">
           {opening ? '起航了——本轮由他掌舵' : '醉汉上头，船长跌跌撞撞下了台'}
@@ -71,7 +75,9 @@ export function CaptainChangeNotice({
             <span className="captain-change__name">
               {fresh.name}{fresh.id === view.you.id && '（你）'}
             </span>
-            <span className="captain-change__medal">🧭 新任船长</span>
+            <span className="captain-change__medal">
+              <img src="img/crest-captain.png" alt="" draggable={false} /> 新任船长
+            </span>
           </div>
         )}
         <button type="button" className="btn btn--primary captain-change__close" onClick={onDone}>

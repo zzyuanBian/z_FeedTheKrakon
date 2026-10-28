@@ -1314,6 +1314,9 @@ button:disabled { cursor: not-allowed; }
 /* 船长更替公示 (drunk-card hand-over): same notice family. */
 .captain-change__box { max-width: 340px; text-align: center; }
 .captain-change__glyph { display: block; font-size: 40px; margin-bottom: 6px; }
+/* The captain crest (img/crest-captain.png) opening the announcement and
+   fronting the 新任船长 medal — same art as roster/chat, sized to sit. */
+.captain-change__crest { display: block; width: 84px; margin: 0 auto 10px; filter: drop-shadow(0 4px 14px rgba(212, 167, 74, 0.35)); }
 .captain-change__title { margin: 0 0 8px; font-family: var(--font-serif); color: var(--gold); font-size: 22px; }
 .captain-change__sub { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--ink-dim); }
 .captain-change__captain {
@@ -1329,6 +1332,7 @@ button:disabled { cursor: not-allowed; }
 }
 .captain-change__name { font-size: 18px; font-weight: 700; color: var(--gold-bright); }
 .captain-change__medal { font-size: 12px; letter-spacing: 0.1em; color: var(--ink-dim); }
+.captain-change__medal img { width: 16px; height: 16px; vertical-align: -4px; margin-right: 3px; }
 .captain-change__close { width: 100%; }
 
 /* Ritual veil (RitualReveal.tsx): 闭眼仪式 — two eyelids slide over the
