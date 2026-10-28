@@ -2,9 +2,9 @@
  * 开场序章 (StoryPrologue). The per-game cold open: the moment the shared
  * launch countdown starts (all seats confirmed), every screen swaps to a
  * full-veil reading of the voyage's opening story — three stanzas fading in
- * one after another over the storm-deck art, each held until it has been
- * read (~0.16s/character + a breathing tail; ≈18s total). The player taps
- * 跳过 to board at once; once the story completes, the board takes over.
+ * one after another over the storm-deck art, one every 4 seconds (≈9.6s
+ * total). The player taps 跳过 to board at once; once the story completes,
+ * the board takes over.
  * Nothing is stored engine-side; sessionStorage per match+seat keeps a
  * mid-game refresh from replaying it.
  *
@@ -19,33 +19,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { PROLOGUE_STANZAS } from './labels.js';
 
-/** Reading pace: each stanza owns the screen until it has been READ —
- *  ~0.16s per character plus a 1.4s breathing tail, and the next one only
- *  then fades in. Total ≈ 18s; 跳过 » always skips straight to the board,
- *  and the final beat holds 1.6s after the last stanza before boarding. */
-const MS_PER_CHAR = 160;
-const STANZA_TAIL_MS = 1400;
+/** Reading pace: one stanza every 4s (user-tuned — char-based pacing read
+ *  as dead air). 跳过 » always skips straight to the board; the final beat
+ *  holds 1.6s after the last stanza before boarding. */
+const STANZA_EVERY_MS = 4000;
 const FINAL_HOLD_MS = 1600;
 const FADE_MS = 900;
 
-/** Per-stanza start offsets computed from the copy itself, so editing the
- *  text in labels.ts re-paces the story automatically. */
-const STANZA_MS: readonly number[] = (() => {
-  const starts: number[] = [];
-  let t = 0;
-  for (const stanza of PROLOGUE_STANZAS) {
-    starts.push(t);
-    t += stanza.length * MS_PER_CHAR + STANZA_TAIL_MS;
-  }
-  return starts;
-})();
+/** Per-stanza start offsets: 0s / 4s / 8s. */
+const STANZA_MS: readonly number[] = PROLOGUE_STANZAS.map(
+  (_, i) => i * STANZA_EVERY_MS,
+);
 
-/** Milliseconds from mount until the story is fully read (for the parent's
+/** Milliseconds from mount until the story completes (the parent's
  *  auto-board timing). */
 export const PROLOGUE_TOTAL_MS =
-  STANZA_MS[STANZA_MS.length - 1]! +
-  PROLOGUE_STANZAS[PROLOGUE_STANZAS.length - 1]!.length * MS_PER_CHAR +
-  FINAL_HOLD_MS;
+  STANZA_MS[STANZA_MS.length - 1]! + FINAL_HOLD_MS;
 
 /** One-shot synthesized ambience: filtered noise swell (surf) + a couple of
  *  low groans (hull). Best-effort like the chime — never worth crashing. */
