@@ -929,10 +929,10 @@ export function App() {
   const allSeatsConfirmed = view.roleConfirmations.confirmed >= view.roleConfirmations.total;
   // 开场序章 (StoryPrologue): while the shared countdown runs, the whole
   // screen IS the story — the reveal screen (and its countdown number) hides
-  // underneath it. 跳过 or countdown-zero both land in `markLaunched` (the
-  // board); the story never holds the launch up. Seen-flag lives inside the
-  // component (sessionStorage per match+seat): a refresh inside the window
-  // skips straight through.
+  // underneath it. The ⚓ 登船 click lands in `markLaunched` (the board); the
+  // story never holds the launch up — it just waits for the click. Seen-flag
+  // lives inside the component (sessionStorage per match+seat): a refresh
+  // inside the window skips straight through.
   if (counting) {
     return shell(
       <div className="app app--lobby">
@@ -1003,6 +1003,11 @@ export function App() {
             {factionMasked ? '❓' : (
               <span className="pill__team-word">{FACTION_LABEL[view.you.team]}{view.you.cultLeader ? ' · 首领' : ''}</span>
             )}
+            {/* 常显提示 (the title tooltip is hover-only — phones never
+                see it): the pill is a privacy mask, say so on its face. */}
+            <span className="pill__mask-hint">
+              {factionMasked ? '(点击显示身份)' : '(点击隐藏身份)'}
+            </span>
           </button>
           {view.isHost && <span className="pill pill--host">房主</span>}
         </div>

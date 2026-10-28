@@ -795,6 +795,9 @@ button:disabled { cursor: not-allowed; }
 .pill--ok { background: rgba(42, 122, 138, 0.18); color: var(--teal-bright); border-color: var(--teal); }
 .pill--bad { background: rgba(178, 58, 72, 0.18); color: #f5b0b8; border-color: var(--blood); }
 .pill--team { background: var(--cult); color: #f0e1f7; border-color: var(--cult); }
+/* The faction pill's always-visible privacy hint: dim sub-text inside the
+   pill (the title tooltip is hover-only, phones never see it). */
+.pill__mask-hint { font-size: 11px; opacity: 0.72; white-space: nowrap; }
 
 .pill--room {
   background: var(--bg-panel-2);
@@ -2535,6 +2538,15 @@ button:disabled { cursor: not-allowed; }
   max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--ink-ghost); font-size: 10px; line-height: 1.2;
 }
+/* 船长 tag beside the sender's name — gold, crest-fronted, matching the
+   roster's officer marker (🧭). Width-capped so long names still elide. */
+.chat__captain {
+  display: inline-block;
+  margin-top: 1px;
+  max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 9px;
+  color: var(--gold-bright);
+}
 .chat__bubble {
   max-width: 78%; padding: 6px 11px; border-radius: 12px; font-size: 14px;
   background: var(--bg-panel); border: 1px solid var(--line);
@@ -3336,18 +3348,6 @@ html.ftk-scroll-lock { overflow: hidden; }
 @keyframes prologue-stanza-in {
   from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-.prologue__skip {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 2;
-  padding: 6px 14px;
-  font-size: 13px;
-  color: var(--ink-dim);
-  background: rgba(8, 13, 24, 0.6);
-  border: 1px solid var(--line);
-  border-radius: 999px;
 }
 /* 登船: the story ends on a click, not a timer — a prominent centred
    button surfacing under the stanzas (the 跳过 pill retires in the same

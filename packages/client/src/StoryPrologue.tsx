@@ -3,8 +3,8 @@
  * launch countdown starts (all seats confirmed), every screen swaps to a
  * full-veil reading of the voyage's opening story — three stanzas fading in
  * one after another over the storm-deck art, one every 4 seconds (≈13.6s
- * total). 跳过 » boards at once; when the story completes, a ⚓ 登船 button
- * surfaces — the board takes over only on the player's click.
+ * total). When the story completes, a ⚓ 登船 button surfaces — the board
+ * takes over only on the player's click.
  * Nothing is stored engine-side; sessionStorage per match+seat keeps a
  * mid-game refresh from replaying it.
  *
@@ -20,8 +20,8 @@ import { useEffect, useRef, useState } from 'react';
 import { PROLOGUE_STANZAS } from './labels.js';
 
 /** Reading pace: one stanza every 4s (user-tuned — char-based pacing read
- *  as dead air). 跳过 » always skips straight to the board; after the final
- *  beat holds its 4s, the ⚓ 登船 button appears and waits for the click. */
+ *  as dead air). After the final beat holds its 4s, the ⚓ 登船 button
+ *  appears and waits for the click. */
 const STANZA_EVERY_MS = 4000;
 const FADE_MS = 900;
 
@@ -113,8 +113,8 @@ export function StoryPrologue({
   const [skip, setSkip] = useState(false);
   const [beat, setBeat] = useState(0); // index of the newest stanza on stage
   // The story no longer auto-boards: once the last stanza's slot closes,
-  // 登船 surfaces and the player boards at their own pace (跳过 » still
-  // short-circuits at any time).
+  // 登船 surfaces and the player boards at their own pace. `skip` doubles
+  // as the clicked-guard so 登船 can't fire onDone twice.
   const [read, setRead] = useState(false);
   const seenRef = useRef(false);
   const onDoneRef = useRef(onDone);
@@ -160,15 +160,6 @@ export function StoryPrologue({
           onClick={() => { setSkip(true); onDoneRef.current(); }}
         >
           ⚓ 登船
-        </button>
-      )}
-      {!read && !skip && (
-        <button
-          type="button"
-          className="btn prologue__skip"
-          onClick={() => { setSkip(true); onDoneRef.current(); }}
-        >
-          跳过 »
         </button>
       )}
       {/* (soundOn drives the ambience fire in App — see the mount gate.) */}

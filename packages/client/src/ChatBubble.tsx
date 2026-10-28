@@ -99,6 +99,12 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
   };
   // Marks are keyed by engine id ('p3'), chat senders by bgio seat ('2').
   const marksOf = (sender: string): string[] => marks[engineIdOf(sender)] ?? [];
+  // 船长标注: the current captain's messages carry a crest + word tag, so
+  // table talk can be read against the authority (rulebook: the captain
+  // leads discussion). officers.captain is an engine id ('p3').
+  const captainSeat = view?.officers.captain ?? null;
+  const isCaptain = (sender: string): boolean =>
+    captainSeat !== null && engineIdOf(sender) === captainSeat;
 
   const submit = () => {
     const t = text.trim();
@@ -148,7 +154,12 @@ export function ChatBubble({ view, chat, sendChat, muted, mySeat, myName, myAvat
                 return (
                   <div key={m.id} className={'chat__row' + (me ? ' chat__row--me' : '')}>
                     <div className="chat__ava">
-                      <span className="chat__who">{nameOf(m.sender)}</span>
+                      <span className="chat__who">
+                        {nameOf(m.sender)}
+                        {isCaptain(m.sender) && (
+                          <span className="chat__captain" title="船长">🧭 船长</span>
+                        )}
+                      </span>
                       <span className="chat__ava-wrap">
                         <AvatarImage avatarId={avatarOf(m.sender)} size={26} title={nameOf(m.sender)} />
                         <MarkDots playerMarks={marksOf(m.sender)} playerId={m.sender} />
