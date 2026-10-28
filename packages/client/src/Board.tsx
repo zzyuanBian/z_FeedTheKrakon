@@ -17,6 +17,14 @@
  * faint (physical copies get wooden tokens on top). The art itself stays
  * untouched — a soft halo under each mark lifts it out of the sea at
  * screen scale, and removing the overlay restores the original scan.
+ *
+ * 海图展开 (first-entry animation): when `firstEntry` is set — the board
+ * mounted by the prologue's ⚓ 登船 click, not a refresh — the map plays a
+ * folded-chart reveal: a centre sliver unrolls sideways under a moving
+ * crease highlight, a warm lamplight sweep brings the colour up from sepia
+ * dusk, and the ship drops in last. Pure CSS (one class swap per stage on
+ * the wrapper div + two overlay layers); the jpg itself is untouched, and
+ * `prefers-reduced-motion` skips straight to the lit board.
  */
 
 import { useEffect, useState } from 'react';
@@ -44,7 +52,18 @@ export interface BoardProps {
   view: PlayerView;
   /** Mobile only: tapping the board opens the full-screen MapViewer. */
   onExpand?: (() => void) | undefined;
+  /** True only for the board mounted by the prologue's ⚓ 登船 click: play
+   *  the folded-chart reveal once, then settle into the plain board. */
+  firstEntry?: boolean | undefined;
 }
+
+/** Stages of the first-entry reveal: the unroll (crease sweep + clip
+ *  widening), then the lamp sweep (colour wakes up), then done — overlays
+ *  unmount and the board is the plain everyday one. Timing mirrors the CSS
+ *  ( unfold 1100ms → lamp 900ms overlapping from 700ms → settle ~1900ms). */
+const UNFOLD_MS = 1100;
+const LAMP_MS = 900;
+const SETTLE_MS = 700; // lamp starts this deep into the unfold
 
 /* One decode per browser session, hot across remounts (module-level). */
 let mapReady = false;
@@ -64,9 +83,14 @@ function decodeMap(url: string): Promise<void> {
   return mapDecode;
 }
 
-export function Board({ view, onExpand }: BoardProps) {
+export function Board({ view, onExpand, firstEntry }: BoardProps) {
   const ship = SHORT_MAP.spaces.find((s) => s.id === view.ship.spaceId);
   const [ready, setReady] = useState(mapReady);
+  // Reveal stage: 'folded' → (UNFOLD_MS) → 'lamp' → (LAMP_MS) → 'done'.
+  // Non-first entries start at 'done' and never mount the overlays.
+  const [stage, setStage] = useState<'folded' | 'lamp' | 'done'>(
+    firstEntry ? 'folded' : 'done',
+  );
 
   useEffect(() => {
     if (mapReady) return;
@@ -75,8 +99,22 @@ export function Board({ view, onExpand }: BoardProps) {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (stage === 'folded') {
+      const t = window.setTimeout(() => setStage('lamp'), UNFOLD_MS - SETTLE_MS);
+      return () => window.clearTimeout(t);
+    }
+    if (stage === 'lamp') {
+      const t = window.setTimeout(() => setStage('done'), LAMP_MS);
+      return () => window.clearTimeout(t);
+    }
+  }, [stage]);
+
+  const reveal =
+    stage === 'folded' ? ' board--folded' : stage === 'lamp' ? ' board--lamp' : '';
+
   return (
-    <div className={'board' + (onExpand ? ' board--tappable' : '')}>
+    <div className={'board' + reveal + (onExpand ? ' board--tappable' : '')}>
       <svg
         className="board__svg"
         viewBox={`0 0 ${SHORT_MAP.imageWidth} ${SHORT_MAP.imageHeight}`}
@@ -88,12 +126,33 @@ export function Board({ view, onExpand }: BoardProps) {
         {ready && (
           <>
             <image
+              className="board__map"
               href={MAP_IMAGE_URL}
               x={0}
               y={0}
               width={SHORT_MAP.imageWidth}
               height={SHORT_MAP.imageHeight}
             />
+            {stage !== 'done' && (
+              <g className="board__reveal-fx" aria-hidden="true">
+                {/* 折痕高光: a narrow vertical band riding the unroll edge. */}
+                <rect
+                  className="board__crease"
+                  x={0}
+                  y={0}
+                  width={SHORT_MAP.imageWidth * 0.16}
+                  height={SHORT_MAP.imageHeight}
+                />
+                {/* 灯光扫过: a wide soft gradient bringing warmth from the left. */}
+                <rect
+                  className="board__lamp"
+                  x={-SHORT_MAP.imageWidth * 0.5}
+                  y={0}
+                  width={SHORT_MAP.imageWidth * 0.5}
+                  height={SHORT_MAP.imageHeight}
+                />
+              </g>
+            )}
             {/* Halos UNDER the ship layer, over the art: a faint warm glow
                 that lifts each faint mark out of the sea without repainting
                 it (CSS owns the look; delete the group to restore the bare
@@ -117,7 +176,7 @@ export function Board({ view, onExpand }: BoardProps) {
                   r={SHIP_SIZE * 0.72}
                 />
                 <image
-                  className="board__ship"
+                  className={'board__ship' + (stage !== 'done' ? ' board__ship--late' : '')}
                   href={SHIP_URL}
                   x={ship.x - SHIP_SIZE / 2}
                   y={ship.y - SHIP_SIZE / 2}

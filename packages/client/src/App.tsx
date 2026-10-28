@@ -508,15 +508,22 @@ export function App() {
   // for this match, a reload drops straight through to it.
   const launchGateKey = session ? `ftk-launched:${session.matchID}:${session.playerID}` : '';
   const [launched, setLaunched] = useState(false);
+  // 海图展开动画 plays ONLY on the genuine first entry — the board mounted
+  // by the prologue's ⚓ 登船 click. A refresh (flag already stored) or a
+  // mid-game arrival skips it; boardFirstEntry is set in markLaunched, so
+  // it is true exactly when launched flips via the story's click.
+  const [boardFirstEntry, setBoardFirstEntry] = useState(false);
   useEffect(() => {
     if (!launchGateKey) return;
     let ever = false;
     try { ever = sessionStorage.getItem(launchGateKey) === '1'; } catch { /* private mode */ }
     setLaunched(ever);
+    if (ever) setBoardFirstEntry(false);
   }, [launchGateKey]);
   const markLaunched = useCallback(() => {
     if (!launchGateKey) return;
     setLaunched(true);
+    setBoardFirstEntry(true);
     try { sessionStorage.setItem(launchGateKey, '1'); } catch { /* private mode */ }
   }, [launchGateKey]);
   // The countdown is BACK (user request): a shared 5s number on the reveal
@@ -1067,7 +1074,7 @@ export function App() {
         </div>
 
         <section className="col col--board">
-          <Board view={view} onExpand={coarsePointer ? () => setMapExpanded(true) : undefined} />
+          <Board view={view} onExpand={coarsePointer ? () => setMapExpanded(true) : undefined} firstEntry={boardFirstEntry} />
         </section>
 
         <aside className="col col--log">
