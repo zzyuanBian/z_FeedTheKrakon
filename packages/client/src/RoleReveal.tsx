@@ -21,8 +21,12 @@ import { ROLE_WHISPER } from './labels.js';
 export interface RoleRevealProps {
   view: PlayerView;
   onConfirm: () => void;
-  /** Shared launch countdown, owned by App (null while still waiting). */
+  /** Shared launch countdown, owned by App (null while still waiting —
+   *  including the post-confirm grace window). */
   countdown: number | null;
+  /** True during the 5s post-confirm grace: the count hasn't started, the
+   *  table is finishing reading their cards. Shows a quiet status line. */
+  grace: boolean;
 }
 
 /** True physical card art, scanned from the tabletop edition.
@@ -69,7 +73,7 @@ const ROLE_COPY: Record<string, string> = {
   cult: '你是克苏鲁的仆从。等待时机，转化船员。',
 };
 
-export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
+export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProps) {
   const artReady = useCardArtReady();
   const alreadyConfirmed = view.you.roleConfirmed;
   const [flipped, setFlipped] = useState(alreadyConfirmed);
@@ -227,6 +231,11 @@ export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
         <div className="role-reveal__launch" role="status" aria-live="assertive">
           <p className="role-reveal__launch-label">全员已准备，即将启航</p>
           <span className="role-reveal__launch-num">{countdown}</span>
+        </div>
+      )}
+      {grace && countdown === null && (
+        <div className="role-reveal__launch" role="status" aria-live="polite">
+          <p className="role-reveal__launch-label">全员已准备 · 稍作阅读，即将启航…</p>
         </div>
       )}
     </div>

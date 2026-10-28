@@ -103,7 +103,7 @@ export function MutinyReveal({ view, onDone, standDownCandidates, onStandDown }:
                 title={nameOf(m.newCaptain!)}
               />
               <span className="mutiny-reveal__captain-name">
-                {nameOf(m.newCaptain!)}{m.newCaptain === view.you.id && '（你）'}
+                新船长上任：{nameOf(m.newCaptain!)}{m.newCaptain === view.you.id && '（你）'}
               </span>
             </div>
           ) : (

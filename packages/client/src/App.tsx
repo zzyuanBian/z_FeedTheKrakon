@@ -528,16 +528,24 @@ export function App() {
     && game.view.roleConfirmations.total > 0
     && game.view.roleConfirmations.confirmed >= game.view.roleConfirmations.total;
   const allConfirmedAndFresh = allConfirmed && !launched;
-  // Two staged beats: the reveal screen holds a shared 5s countdown FIRST;
-  // when it hits zero the story takes the whole screen (its ⚓ 登船 click
-  // fires markLaunched). `counting` = countdown running; `prologueUp` =
-  // countdown done (or a refresh mid-story), story owns the screen.
+  // Three staged beats: all seats confirm → a 5s GRACE (the last player to
+  // flip deserves those seconds with their role card + whisper — the flip
+  // itself fires confirm, so "all confirmed" can catch them mid-read) →
+  // the shared 5s countdown on the reveal screen → the story takes the
+  // screen (its ⚓ 登船 click fires markLaunched). A refresh mid-grace
+  // restarts the grace, which is harmless (same 5s, same beat).
   const [launchAt, setLaunchAt] = useState<number | null>(null);
   const [launchLeft, setLaunchLeft] = useState(5);
+  const [graceDone, setGraceDone] = useState(false);
   useEffect(() => {
-    if (allConfirmedAndFresh && launchAt === null) setLaunchAt(Date.now());
-    if (!allConfirmedAndFresh && launchAt !== null) setLaunchAt(null);
-  }, [allConfirmedAndFresh, launchAt]);
+    if (!allConfirmedAndFresh) { setGraceDone(false); return; }
+    const t = window.setTimeout(() => setGraceDone(true), 5000);
+    return () => window.clearTimeout(t);
+  }, [allConfirmedAndFresh]);
+  useEffect(() => {
+    if (graceDone && launchAt === null) setLaunchAt(Date.now());
+    if (!graceDone && launchAt !== null) setLaunchAt(null);
+  }, [graceDone, launchAt]);
   useEffect(() => {
     if (launchAt === null) return;
     const tick = () => setLaunchLeft(Math.max(0, Math.ceil((launchAt + 5000 - Date.now()) / 1000)));
@@ -545,8 +553,8 @@ export function App() {
     const t = window.setInterval(tick, 250);
     return () => window.clearInterval(t);
   }, [launchAt]);
-  const counting = allConfirmedAndFresh && launchLeft > 0;
-  const prologueUp = allConfirmedAndFresh && launchLeft <= 0;
+  const counting = allConfirmedAndFresh && graceDone && launchLeft > 0;
+  const prologueUp = allConfirmedAndFresh && graceDone && launchLeft <= 0;
   const launchCountdown = counting ? launchLeft : null;
 
   // Mutiny reveal veil (成功与失败都弹): edge-triggered on the reveal
@@ -570,16 +578,19 @@ export function App() {
   const [seenCardKey, setSeenCardKey] = useState<string | null>(null);
   const cardRevealOpen = cardKey !== null && cardKey !== seenCardKey;
 
-  // 哗变表决弹框 (MutinyPrompt): pops for every seat the moment the game
-  // enters the loyalty phase, input included — nobody has to notice a tab
-  // changed. Once THIS seat has pledged (guns or loyalty) the prompt
-  // minimizes itself: the 行动 tab keeps the progress line (已表态 x / x)
-  // and its 打开哗变表决 button for anyone who wants the roster back up.
+  // 哗变表决弹框 (MutinyPrompt): pops for seats that must ACT — crew who
+  // still owe a pledge get it the moment the loyalty phase opens. The
+  // CAPTAIN's waiting view (你任命的团队正在接受质询) stays CLOSED: he has
+  // nothing to input, the 行动 tab already mirrors the tally, and the
+  // auto-pop only covered his screen mid-appointment. Once THIS seat has
+  // pledged, the prompt minimizes itself (same rationale).
   const loyaltyLive = !!game.view && game.view.phase === 'loyalty' && game.view.mutiny.active;
+  const iOwePledgeNow = !!game.view && iOweMutinyPledge(game.view);
   const [mutinyPromptOpen, setMutinyPromptOpen] = useState(false);
-  const mutinyRef = useRef<{ phase: boolean }>({ phase: false });
-  if (loyaltyLive && !mutinyRef.current.phase) setMutinyPromptOpen(true);
+  const mutinyRef = useRef<{ phase: boolean; owed: boolean }>({ phase: false, owed: false });
+  if (loyaltyLive && iOwePledgeNow && !mutinyRef.current.owed) setMutinyPromptOpen(true);
   mutinyRef.current.phase = loyaltyLive;
+  mutinyRef.current.owed = iOwePledgeNow;
   useEffect(() => {
     if (!loyaltyLive) setMutinyPromptOpen(false);
   }, [loyaltyLive]);
@@ -587,11 +598,8 @@ export function App() {
   // on the next sync) the prompt minimizes itself — the waiting roster has
   // said its piece. 打开哗变表决 on the 行动 tab still brings it back for
   // anyone following the tally.
-  const iOwePledgeNow = !!game.view && iOweMutinyPledge(game.view);
-  const owedRef = useRef(false);
-  owedRef.current = owedRef.current || iOwePledgeNow;
   useEffect(() => {
-    if (owedRef.current && !iOwePledgeNow) setMutinyPromptOpen(false);
+    if (mutinyRef.current.owed && !iOwePledgeNow) setMutinyPromptOpen(false);
   }, [iOwePledgeNow]);
 
   // Ritual veil (闭眼仪式): eyelids slide shut for every seat while a
@@ -975,7 +983,12 @@ export function App() {
   if (!view.you.roleConfirmed || !allSeatsConfirmed || !launched) {
     return shell(
       <div className="app app--lobby">
-        <RoleReveal view={view} onConfirm={game.confirmRole} countdown={launchCountdown} />
+        <RoleReveal
+          view={view}
+          onConfirm={game.confirmRole}
+          countdown={launchCountdown}
+          grace={allConfirmedAndFresh && !graceDone}
+        />
       </div>
     );
   }
