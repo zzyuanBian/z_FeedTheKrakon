@@ -778,6 +778,18 @@ button:disabled { cursor: not-allowed; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Current-officer chips inside the mid bar: softer than the phase text so
+   the two read as primary/secondary at a glance. Hidden on phones — the
+   bar is only ~92vw wide there and the chips would crush the phase. */
+.topbar__officers {
+  margin-left: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.85;
+  letter-spacing: 0.04em;
+}
+.topbar__officer { margin-left: 8px; }
 /* With the mid out of flow, push the right group to the edge. */
 .topbar__right { margin-left: auto; }
 
@@ -3174,6 +3186,7 @@ button:disabled { cursor: not-allowed; }
      Still absolutely centered on the bar (identical on every seat). */
   .topbar { padding-top: 34px; }
   .topbar__mid { top: 24px; max-width: 92vw; font-size: 15px; }
+  .topbar__officers { display: none; }
   /* One bar, no mid-word wraps: the left group packs down instead —
      config pill goes (it also lives in the waiting room + tooltips),
      the room pill drops its 房间 label, the connection pill only shows

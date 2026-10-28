@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { type FactionCounts, type PlayerId } from '@ftk/engine';
+import { type FactionCounts, type PlayerId, type PlayerView } from '@ftk/engine';
 import {
   CountStepper, FactionStepper, Lobby, canShift, presetFor, scaleCounts, shiftSeat,
 } from './Lobby.js';
@@ -463,6 +463,18 @@ function WaitingRoom({
       </button>
     </div>
   );
+}
+
+/** One officer chip for the topbar: role glyph + seat name (blank when the
+ *  chair is empty, e.g. mid-mutiny or before the first appointment). */
+function OfficerName({ view, id, glyph }: {
+  view: PlayerView; id: string | null; glyph: string;
+}): ReactNode {
+  if (!id) return null;
+  const name =
+    view.you.id === id ? view.you.name
+    : view.others.find((p) => p.id === id)?.name ?? '';
+  return <span className="topbar__officer">{glyph}{name}</span>;
 }
 
 export function App() {
@@ -1100,6 +1112,14 @@ export function App() {
         </div>
         <div className="topbar__mid">
           第 {view.round} 回合 · {PHASE_LABEL[view.phase] ?? view.phase}
+          {/*  Current officers, always visible — the roster hides them one
+              tab deep (and phones fold it away entirely), yet 骗子跟船长走
+              is the game's central question. */}
+          <span className="topbar__officers">
+            <OfficerName view={view} id={view.officers.captain} glyph="🧭" />
+            <OfficerName view={view} id={view.officers.lieutenant} glyph="⚓" />
+            <OfficerName view={view} id={view.officers.navigator} glyph="🔭" />
+          </span>
         </div>
         <div className="topbar__right">
           {/* 🔔 轮到提醒 mute toggle (layer 2): sound+vibration only — the

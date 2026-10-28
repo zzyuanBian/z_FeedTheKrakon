@@ -135,8 +135,11 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
         </>
       );
     case 'moved':
-      // The ship's move is already visible on the map; the log stays quiet.
-      return null;
+      // One quiet line: the map shows WHERE the fleet is, the log preserves
+      // the voyage trail (same copy as the EndScreen recap).
+      return (
+        <>船队 <B tone="gold">{COLOR_LABEL[e.color]} {COLOR_GLYPH[e.color]}</B>：{e.from} → {e.to}</>
+      );
     case 'card':
       return (
         <>{nameOf(view, e.captain)} 翻开航海卡：<B tone="gold">{NAV_CARD_LABEL[e.card]}</B>，航向 <Course card={e.card} /></>
@@ -179,7 +182,9 @@ function renderEntry(view: PlayerView, e: PlayerView['log'][number], idx: number
         <><B tone="gold">命运</B> 定航向：<B tone="gold">{NAV_CARD_LABEL[e.discarded]}</B> 入海，执行 <B tone="gold">{NAV_CARD_LABEL[e.kept]}</B>，航向 <Course card={e.kept} /></>
       );
     case 'converted':
-      return '有人被转化为邪教徒…';
+      return (
+        <>有人被转化为<B tone="red">邪教徒</B>…</>
+      );
     case 'gameOver':
       return (
         <>游戏结束：<B tone="gold">{FACTION_LABEL[e.winner]}</B> 获胜（{e.reason}）</>
