@@ -1202,6 +1202,9 @@ export function App() {
                 <h3>游戏结束</h3>
                 <p>{view.winner && FACTION_LABEL[view.winner]} 获胜</p>
                 <p className="hint">{view.winReason}</p>
+                <button className="btn btn--primary" onClick={() => setShowEndScreen(true)}>
+                  查看终局
+                </button>
               </div>
             ) : (
               <ActionPanel view={view} moves={game.moves} onOpenMutiny={() => setMutinyPromptOpen(true)} />
@@ -1305,7 +1308,12 @@ export function App() {
           <div className="modal__box" onClick={(e) => e.stopPropagation()}>
             <h2>{view.winner && FACTION_LABEL[view.winner]} 获胜！</h2>
             <p>{view.winReason}</p>
-            <button className="btn btn--primary" onClick={() => setShowEndScreen(true)}>查看终局</button>
+            <button
+              className="btn btn--primary"
+              onClick={() => { setShowGameOver(false); setShowEndScreen(true); }}
+            >
+              查看终局
+            </button>
           </div>
         </div>
       )}
