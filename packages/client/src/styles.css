@@ -3349,6 +3349,29 @@ html.ftk-scroll-lock { overflow: hidden; }
   border: 1px solid var(--line);
   border-radius: 999px;
 }
+/* 登船: the story ends on a click, not a timer — a prominent centred
+   button surfacing under the stanzas (the 跳过 pill retires in the same
+   beat). The soft rise mirrors the stanza entrance so it reads as the
+   story's closing line. */
+.prologue__board {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  z-index: 2;
+  margin: 0;
+  padding: 13px 46px;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  letter-spacing: 0.35em;
+  text-indent: 0.35em; /* balance the trailing tracking */
+  animation: prologue-board-in 0.9s ease-out both;
+}
+.prologue__board:hover { box-shadow: 0 0 26px rgba(212, 167, 74, 0.35); }
+@keyframes prologue-board-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(14px); filter: blur(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); filter: blur(0); }
+}
 @media (max-width: 900px) {
   .prologue__text { max-width: 100%; padding: 0 24px; }
   .prologue__stanza { font-size: 15px; line-height: 1.85; }

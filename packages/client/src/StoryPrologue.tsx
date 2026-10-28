@@ -2,9 +2,9 @@
  * 开场序章 (StoryPrologue). The per-game cold open: the moment the shared
  * launch countdown starts (all seats confirmed), every screen swaps to a
  * full-veil reading of the voyage's opening story — three stanzas fading in
- * one after another over the storm-deck art, one every 4 seconds (≈9.6s
- * total). The player taps 跳过 to board at once; once the story completes,
- * the board takes over.
+ * one after another over the storm-deck art, one every 4 seconds (≈13.6s
+ * total). 跳过 » boards at once; when the story completes, a ⚓ 登船 button
+ * surfaces — the board takes over only on the player's click.
  * Nothing is stored engine-side; sessionStorage per match+seat keeps a
  * mid-game refresh from replaying it.
  *
@@ -20,8 +20,8 @@ import { useEffect, useRef, useState } from 'react';
 import { PROLOGUE_STANZAS } from './labels.js';
 
 /** Reading pace: one stanza every 4s (user-tuned — char-based pacing read
- *  as dead air). 跳过 » always skips straight to the board; the final beat
- *  holds the same 4s before boarding. */
+ *  as dead air). 跳过 » always skips straight to the board; after the final
+ *  beat holds its 4s, the ⚓ 登船 button appears and waits for the click. */
 const STANZA_EVERY_MS = 4000;
 const FADE_MS = 900;
 
@@ -30,8 +30,8 @@ const STANZA_MS: readonly number[] = PROLOGUE_STANZAS.map(
   (_, i) => i * STANZA_EVERY_MS,
 );
 
-/** Milliseconds from mount until the story completes (the parent's
- *  auto-board timing): the last stanza gets its full 4s slot too. */
+/** Milliseconds from mount until the story completes (the 登船 button's
+ *  cue): the last stanza gets its full 4s slot too. */
 export const PROLOGUE_TOTAL_MS =
   STANZA_MS[STANZA_MS.length - 1]! + STANZA_EVERY_MS;
 
@@ -112,6 +112,10 @@ export function StoryPrologue({
   const seenKey = `ftk-prologue:${sessionKey}`;
   const [skip, setSkip] = useState(false);
   const [beat, setBeat] = useState(0); // index of the newest stanza on stage
+  // The story no longer auto-boards: once the last stanza's slot closes,
+  // 登船 surfaces and the player boards at their own pace (跳过 » still
+  // short-circuits at any time).
+  const [read, setRead] = useState(false);
   const seenRef = useRef(false);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -124,14 +128,13 @@ export function StoryPrologue({
     } catch { /* private mode: every load replays — fine */ }
   }, [seenKey, onDone]);
 
-  // Stanza timeline + the auto-board beat: each stanza appears when its
-  // reading slot opens; when the whole story is read (FINAL_HOLD after the
-  // last stanza) the parent's onDone boards everyone. 跳过 » short-circuits.
+  // Stanza timeline: each stanza appears when its reading slot opens; when
+  // the last slot closes, 登船 surfaces — boarding is the player's click.
   useEffect(() => {
     const timers = STANZA_MS.map((ms, i) =>
       window.setTimeout(() => setBeat(i + 1), ms),
     );
-    const done = window.setTimeout(() => onDoneRef.current(), PROLOGUE_TOTAL_MS);
+    const done = window.setTimeout(() => setRead(true), PROLOGUE_TOTAL_MS);
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
       window.clearTimeout(done);
@@ -150,7 +153,16 @@ export function StoryPrologue({
           </p>
         ))}
       </div>
-      {!skip && (
+      {read && !skip && (
+        <button
+          type="button"
+          className="btn btn--primary prologue__board"
+          onClick={() => { setSkip(true); onDoneRef.current(); }}
+        >
+          ⚓ 登船
+        </button>
+      )}
+      {!read && !skip && (
         <button
           type="button"
           className="btn prologue__skip"
