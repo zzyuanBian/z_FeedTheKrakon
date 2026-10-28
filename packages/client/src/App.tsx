@@ -704,13 +704,17 @@ export function App() {
   // refresh/mid-game entries (no animation) show it at once.
   const ccKey = game.view ? captainChangeKey(game.view) : null;
   const [seenCcKey, setSeenCcKey] = useState<string | null>(null);
-  const [revealDone, setRevealDone] = useState(!boardFirstEntry);
+  // revealDone turns true ONLY via the timer — it must start false, or the
+  // initializer (evaluated while boardFirstEntry is still false) would
+  // pre-clear the gate and the notice would land on top of the animation.
+  const [revealDone, setRevealDone] = useState(false);
   useEffect(() => {
-    if (!boardFirstEntry) { setRevealDone(true); return; }
+    if (!boardFirstEntry) return; // refresh/mid-game: no animation, no wait
     const t = window.setTimeout(() => setRevealDone(true), 3200);
     return () => window.clearTimeout(t);
   }, [boardFirstEntry]);
-  const captainChangeOpen = ccKey !== null && ccKey !== seenCcKey && revealDone;
+  const captainChangeOpen =
+    ccKey !== null && ccKey !== seenCcKey && (!boardFirstEntry || revealDone);
   // 出局公示 (feedKraken / jump): the tail elimination entry until seen.
   const elimEntry = game.view ? eliminationKey(game.view) : null;
   const [seenElimIdx, setSeenElimIdx] = useState<number | null>(null);
