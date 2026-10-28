@@ -115,7 +115,9 @@ export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProp
         <div className="role-reveal__ornament" aria-hidden="true">🕯️</div>
         <h2 className="role-reveal__title">身份确认</h2>
         <p className="role-reveal__sub">
-          {alreadyConfirmed
+          {grace
+            ? '全员已准备，即将启航…'
+            : alreadyConfirmed
             ? '你已确认身份，等待其他船员'
             : '翻开你的卡牌，确认你在船上的身份'}
         </p>
