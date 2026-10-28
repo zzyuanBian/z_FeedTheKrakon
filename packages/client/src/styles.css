@@ -1068,6 +1068,20 @@ button:disabled { cursor: not-allowed; }
   background: rgba(4, 6, 13, 0.82);
   backdrop-filter: blur(3px);
 }
+/* Grace window status: an inline hint, NOT the fullscreen veil — the five
+   seconds exist so the table can finish READING their cards. */
+.role-reveal__grace {
+  margin-top: 6px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  text-align: center;
+  animation: grace-fade 0.6s ease-out both;
+}
+@keyframes grace-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .role-reveal__launch-label {
   font-family: var(--font-serif);
   font-size: 16px;

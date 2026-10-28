@@ -233,9 +233,12 @@ export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProp
           <span className="role-reveal__launch-num">{countdown}</span>
         </div>
       )}
+      {/* Grace status must NOT use the fullscreen launch veil — it would
+          cover the very cards the grace exists to let people read. A plain
+          status line in the flow, then the veiled countdown takes over. */}
       {grace && countdown === null && (
-        <div className="role-reveal__launch" role="status" aria-live="polite">
-          <p className="role-reveal__launch-label">全员已准备 · 稍作阅读，即将启航…</p>
+        <div className="role-reveal__grace" role="status" aria-live="polite">
+          全员已准备 · 稍作阅读，即将启航…
         </div>
       )}
     </div>
