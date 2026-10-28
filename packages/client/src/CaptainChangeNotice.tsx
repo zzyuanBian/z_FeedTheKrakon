@@ -67,7 +67,11 @@ export function CaptainChangeNotice({
         )}
         <h3 className="captain-change__title">{opening ? '首任船长' : '船长更替'}</h3>
         <p className="captain-change__sub">
-          {opening ? '起航了——本轮由他掌舵' : '醉汉上头，船长跌跌撞撞下了台'}
+          {opening
+            ? fresh?.id === view.you.id
+              ? '起航了——本轮由你掌舵'
+              : '起航了——本轮由他掌舵'
+            : '醉汉上头，船长跌跌撞撞下了台'}
         </p>
         {fresh && (
           <div className="captain-change__captain">
