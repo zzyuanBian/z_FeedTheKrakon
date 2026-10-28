@@ -239,7 +239,7 @@ function AppointForm({ view, moves }: { view: PlayerView; moves: ActionPanelProp
   const pickLt = (id: PlayerId): void => { setLt(id); if (nav === id) setNav(null); };
   const pickNav = (id: PlayerId): void => { setNav(id); if (lt === id) setLt(null); };
   return (
-    <div className="panel">
+    <div className="panel appoint-form">
       <h3 className="panel__title">任命领航团队</h3>
       <p className="hint">
         {ltFate && navFate

@@ -3003,19 +3003,30 @@ button:disabled { cursor: not-allowed; }
     padding: 6px 8px;
   }
   .side-pane { min-height: 60vh; }
-  /* 船员 keeps the 记录栏's storm-deck backdrop (roster rows read well over
-     it); 行动 drops it per user preference — the appointment/split forms'
-     own .panel backgrounds are the surface there, no page-level backdrop. */
-  .side-pane--crew {
-    /* background-size 115% + weighted position: zooms past the art's own
-       baked-in edge vignette (the source scan has dark corners) instead of
-       showing it at the pane's left/right edges. */
+  /* Both tabs keep the 记录栏's storm-deck backdrop so all three panes read
+     as the same weathered log (记录 paints its own via the .log child).
+     background-size 115% + weighted position: zooms past the art's own
+     baked-in edge vignette (the source scan has dark corners) instead of
+     showing it at the pane's left/right edges. */
+  .side-pane--crew, .side-pane--action {
     background:
       linear-gradient(rgba(5, 9, 20, 0.5), rgba(5, 9, 20, 0.5)),
       url('/img/log-bg.webp') 50% 40% / 115% auto no-repeat,
       linear-gradient(180deg, #101c30, #0a1322);
   }
-  .side-pane--action { background: none; }
+  /* The storm-deck art IS the action tab's surface: the forms' own .panel
+     cards go translucent (no opaque #141d30 slab covering the art) and the
+     AppointForm's outer .panel loses its card chrome entirely. */
+  .side-pane--action .panel {
+    background: rgba(20, 29, 48, 0.45);
+    backdrop-filter: blur(2px);
+  }
+  .side-pane--action .appoint-form {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
   .side-pane--off { display: none; }
   /* The log pane is PC-hidden (base display:none); on mobile the active
      记录 tab flips it back on, and its .log canvas stretches to fill the
