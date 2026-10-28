@@ -2,9 +2,9 @@
  * 开场序章 (StoryPrologue). The per-game cold open: the moment the shared
  * launch countdown starts (all seats confirmed), every screen swaps to a
  * full-veil reading of the voyage's opening story — three stanzas fading in
- * one after another over the storm-deck art, one every 4 seconds (≈13.6s
- * total). When the story completes, a ⚓ 登船 button surfaces — the board
- * takes over only on the player's click.
+ * one after another over the storm-deck art, one every 3.5 seconds (≈10.5s
+ * + a final hold). When the story completes, a ⚓ 登船 button surfaces — the
+ * board takes over only on the player's click.
  * Nothing is stored engine-side; sessionStorage per match+seat keeps a
  * mid-game refresh from replaying it.
  *
@@ -19,19 +19,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { PROLOGUE_STANZAS } from './labels.js';
 
-/** Reading pace: one stanza every 4s (user-tuned — char-based pacing read
- *  as dead air). After the final beat holds its 4s, the ⚓ 登船 button
- *  appears and waits for the click. */
-const STANZA_EVERY_MS = 4000;
+/** Reading pace: one stanza every 3.5s (user-tuned). After the final beat
+ *  holds its slot, the ⚓ 登船 button appears and waits for the click. */
+const STANZA_EVERY_MS = 3500;
 const FADE_MS = 900;
 
-/** Per-stanza start offsets: 0s / 4s / 8s. */
+/** Per-stanza start offsets: 0s / 3.5s / 7s. */
 const STANZA_MS: readonly number[] = PROLOGUE_STANZAS.map(
   (_, i) => i * STANZA_EVERY_MS,
 );
 
 /** Milliseconds from mount until the story completes (the 登船 button's
- *  cue): the last stanza gets its full 4s slot too. */
+ *  cue): the last stanza gets its full slot too. */
 export const PROLOGUE_TOTAL_MS =
   STANZA_MS[STANZA_MS.length - 1]! + STANZA_EVERY_MS;
 

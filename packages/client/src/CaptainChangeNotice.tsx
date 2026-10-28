@@ -75,9 +75,11 @@ export function CaptainChangeNotice({
             <span className="captain-change__name">
               {fresh.name}{fresh.id === view.you.id && '（你）'}
             </span>
-            <span className="captain-change__medal">
-              <img src="img/crest-captain.png" alt="" draggable={false} /> 新任船长
-            </span>
+            {!opening && (
+              <span className="captain-change__medal">
+                <img src="img/crest-captain.png" alt="" draggable={false} /> 新任船长
+              </span>
+            )}
           </div>
         )}
         <button type="button" className="btn btn--primary captain-change__close" onClick={onDone}>

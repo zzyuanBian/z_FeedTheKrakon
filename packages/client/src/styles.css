@@ -1168,6 +1168,9 @@ button:disabled { cursor: not-allowed; }
 .mutiny-reveal__ballot-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .mutiny-reveal__ballot-go { align-self: center; min-width: 140px; }
 .mutiny-reveal__captain-label { font-size: 12px; letter-spacing: 0.2em; color: var(--gold); }
+/* Crest + portrait + name: the new captain block leads with the crest art
+   (same as roster/chat), the seated player's avatar beside it. */
+.mutiny-reveal__captain-crest { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(212, 167, 74, 0.4)); }
 .mutiny-reveal__captain-name { font-family: var(--font-serif); font-size: 19px; font-weight: 700; color: var(--gold-bright); }
 .mutiny-reveal__close { margin-top: 14px; width: 100%; }
 /* Failed mutiny: same veil, calmer palette — teal/steel instead of blood,

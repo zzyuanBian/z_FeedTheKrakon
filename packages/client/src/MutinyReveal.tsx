@@ -92,9 +92,18 @@ export function MutinyReveal({ view, onDone, standDownCandidates, onStandDown }:
             <TieBallot view={view} candidates={standDownCandidates} onStandDown={onStandDown} />
           ) : captainKnown ? (
             <div className="mutiny-reveal__captain">
-              <span className="mutiny-reveal__captain-label">新任船长</span>
+              <img className="mutiny-reveal__captain-crest" src="img/crest-captain.png" alt="" draggable={false} />
+              <AvatarImage
+                avatarId={
+                  m.newCaptain === view.you.id
+                    ? view.you.avatar
+                    : view.others.find((p) => p.id === m.newCaptain)?.avatar ?? -1
+                }
+                size={44}
+                title={nameOf(m.newCaptain!)}
+              />
               <span className="mutiny-reveal__captain-name">
-                🧭 {nameOf(m.newCaptain!)}{m.newCaptain === view.you.id && '（你）'}
+                {nameOf(m.newCaptain!)}{m.newCaptain === view.you.id && '（你）'}
               </span>
             </div>
           ) : (

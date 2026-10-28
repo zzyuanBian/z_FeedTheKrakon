@@ -519,16 +519,29 @@ export function App() {
     setLaunched(true);
     try { sessionStorage.setItem(launchGateKey, '1'); } catch { /* private mode */ }
   }, [launchGateKey]);
-  // The countdown window is the prologue's budget now (15s of story, skip
-  // anytime): markLaunched fires from the story's own completion instead of
-  // a bare timer, so a slow reader is never cut off mid-stanza. The number
-  // itself is gone from the reveal screen — StoryPrologue owns the beat.
+  // The countdown is BACK (user request): a shared 5s number on the reveal
+  // screen the moment all seats confirm. It's cosmetic staging — the story
+  // gate renders on `counting`, and its ⚓ 登船 click is what fires
+  // markLaunched; the number just gives the table a beat to breathe.
   const allConfirmed =
     !!game.view
     && game.view.roleConfirmations.total > 0
     && game.view.roleConfirmations.confirmed >= game.view.roleConfirmations.total;
   const counting = allConfirmed && !launched;
-  const launchCountdown = counting ? 0 : null; // gates the RoleReveal countdown UI off
+  const [launchAt, setLaunchAt] = useState<number | null>(null);
+  const [launchLeft, setLaunchLeft] = useState(5);
+  useEffect(() => {
+    if (counting && launchAt === null) setLaunchAt(Date.now());
+    if (!counting && launchAt !== null) setLaunchAt(null);
+  }, [counting, launchAt]);
+  useEffect(() => {
+    if (launchAt === null) return;
+    const tick = () => setLaunchLeft(Math.max(0, Math.ceil((launchAt + 5000 - Date.now()) / 1000)));
+    tick();
+    const t = window.setInterval(tick, 250);
+    return () => window.clearInterval(t);
+  }, [launchAt]);
+  const launchCountdown = counting ? launchLeft : null;
 
   // Mutiny reveal veil (成功与失败都弹): edge-triggered on the reveal
   // broadcast. Every client sees the same public pledges at the same moment.
