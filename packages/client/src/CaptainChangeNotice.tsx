@@ -37,8 +37,11 @@ export function captainChangeKey(view: PlayerView): string | null {
     return view.log.indexOf(tail) === 0 ? `cc:${view.log.length}` : null;
   }
   if (prevRound.captain === tail.captain) return null;
-  // A mutiny between the two round lines owns its own reveal veil.
-  const mutinyIdx = view.log.findLastIndex((e) => e.t === 'mutiny');
+  // A SUCCESSFUL mutiny between the two round lines owns its own reveal
+  // veil. A FAILED one (e.g. a mutiny beaten late in a round) must not
+  // swallow this notice: findLastIndex used to match ANY mutiny entry and
+  // the drunk hand-over that followed went silently unannounced.
+  const mutinyIdx = view.log.findLastIndex((e) => e.t === 'mutiny' && e.success);
   if (mutinyIdx > view.log.lastIndexOf(prevRound)) return null;
   return `cc:${view.log.length}`;
 }
