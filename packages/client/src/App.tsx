@@ -1138,7 +1138,7 @@ export function App() {
               ❓ keeps pill width stable when masked. */}
           <button
             type="button"
-            className="pill pill--team"
+            className={'pill pill--team pill--team--' + view.you.team}
             title={factionMasked ? '身份已隐藏（点击显示）' : '点击隐藏身份'}
             onClick={toggleFactionMask}
           >

@@ -806,7 +806,12 @@ button:disabled { cursor: not-allowed; }
 }
 .pill--ok { background: rgba(42, 122, 138, 0.18); color: var(--teal-bright); border-color: var(--teal); }
 .pill--bad { background: rgba(178, 58, 72, 0.18); color: #f5b0b8; border-color: var(--blood); }
-.pill--team { background: var(--cult); color: #f0e1f7; border-color: var(--cult); }
+/* Faction pill wears its OWN team colour (end-screen palette): it used to
+   be fixed cult-purple, so a water tarred every loyalist as a cultist. */
+.pill--team { border-width: 1px; }
+.pill--team--sailor { background: rgba(90, 167, 214, 0.22); color: #6cb7e8; border-color: #5aa7d6; }
+.pill--team--pirate { background: rgba(224, 122, 122, 0.18); color: #e07a7a; border-color: #b23a48; }
+.pill--team--cult   { background: rgba(122, 58, 138, 0.28); color: #e3c9f0; border-color: var(--cult); }
 /* The faction pill's always-visible privacy hint: dim sub-text inside the
    pill (the title tooltip is hover-only, phones never see it). */
 .pill__mask-hint { font-size: 11px; opacity: 0.72; white-space: nowrap; }
