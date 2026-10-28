@@ -551,17 +551,13 @@ export function App() {
   const [seenCardKey, setSeenCardKey] = useState<string | null>(null);
   const cardRevealOpen = cardKey !== null && cardKey !== seenCardKey;
 
-  // 哗变表决弹框 (MutinyPrompt): pops for every seat the moment the game
-  // enters the loyalty phase, input included — nobody has to notice a tab
-  // changed. `open` re-arms on each NEW loyalty window (the next round's
-  // appointment); minimizing just closes it for now — the action tab keeps
-  // a reopen button while the pledge is still owed, and a page refresh
-  // re-opens (the window is still live, the pledge still unfinished).
+  // 哗变表决弹框 (MutinyPrompt): CLOSED by default — the 行动 tab carries
+  // the live progress line (已表态 x / x) and its 打开哗变表决 button is the
+  // only way up. Nothing auto-pops (the mid-game takeover annoyed more than
+  // it informed); `open` still resets between loyalty windows, a page refresh
+  // starts closed again, and needsMe keeps nudging while the pledge is owed.
   const loyaltyLive = !!game.view && game.view.phase === 'loyalty' && game.view.mutiny.active;
   const [mutinyPromptOpen, setMutinyPromptOpen] = useState(false);
-  const mutinyRef = useRef<{ phase: boolean }>({ phase: false });
-  if (loyaltyLive && !mutinyRef.current.phase) setMutinyPromptOpen(true);
-  mutinyRef.current.phase = loyaltyLive;
   useEffect(() => {
     if (!loyaltyLive) setMutinyPromptOpen(false);
   }, [loyaltyLive]);
