@@ -1622,6 +1622,22 @@ button:disabled { cursor: not-allowed; }
   0%, 100% { transform: scale(0.86); opacity: 0.9; }
   50% { transform: scale(1.12); opacity: 0.35; }
 }
+/* 淡淡的高亮光圈 (mark halos): the art paints the magnifier/kraken marks
+   faint — physical play puts wooden tokens on top. A soft warm disc under
+   each mark lifts it out of the sea; the art itself is untouched. Blur
+   (not a stroke) keeps it a glow, not a ring. */
+.board__mark-halo {
+  fill: rgba(255, 236, 190, 0.16);
+  filter: blur(60px);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mark-halo-breathe 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes mark-halo-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
 .board__banner { font-size: 300px; fill: var(--blood); font-weight: 800; paint-order: stroke; stroke: #000; stroke-width: 16px; }
 /* 海图放大 affordance (mobile only — the prop is undefined on PC): a small
    chip pinned to the map's corner; the whole SVG also taps through. */

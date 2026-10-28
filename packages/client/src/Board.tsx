@@ -13,10 +13,10 @@
  * clean reveal, nothing half-drawn. The decoded copy sits in the browser
  * cache, so the subsequent <image> paints in a single frame.
  *
- * Deliberately nothing else: the map art already paints the route arrows,
- * the Cabin Search / Feed the Kraken marks, and the win-space medallions.
- * Number labels and rings on top of that read as clutter, so the overlay
- * is just the ship.
+ * Highlight rings: the art's magnifier / kraken marks are painted very
+ * faint (physical copies get wooden tokens on top). The art itself stays
+ * untouched — a soft halo under each mark lifts it out of the sea at
+ * screen scale, and removing the overlay restores the original scan.
  */
 
 import { useEffect, useState } from 'react';
@@ -27,6 +27,18 @@ import { MAP_IMAGE_URL, SHIP_URL } from './assets.js';
 /* The marker is centred on the space and sized in map-space units (the map
  * paints at ~1/3 scale, so 660 units ≈ 220 jpg px on screen). */
 const SHIP_SIZE = 660;
+
+/* 淡淡的高亮光圈: centres of the art's five small marks (3 magnifiers =
+ * Cabin Search, 2 octopuses = Feed the Kraken), in viewBox units — measured
+ * from the jpg (2200×2197) and scaled ×4.5 into the 9900×9887 space. */
+const MARK_HALOS: readonly { x: number; y: number }[] = [
+  { x: 2601, y: 5508 }, // magnifier, west of the central island
+  { x: 3784, y: 6224 }, // magnifier, south-west sea
+  { x: 6116, y: 6201 }, // magnifier, south-east sea
+  { x: 3744, y: 3551 }, // octopus, north-west sea
+  { x: 6075, y: 3596 }, // octopus, north-east sea
+];
+const HALO_R = 340; // mark radius is ~315 units; a little air reads as a halo
 
 export interface BoardProps {
   view: PlayerView;
@@ -82,6 +94,15 @@ export function Board({ view, onExpand }: BoardProps) {
               width={SHORT_MAP.imageWidth}
               height={SHORT_MAP.imageHeight}
             />
+            {/* Halos UNDER the ship layer, over the art: a faint warm glow
+                that lifts each faint mark out of the sea without repainting
+                it (CSS owns the look; delete the group to restore the bare
+                scan). */}
+            <g aria-hidden="true">
+              {MARK_HALOS.map((h) => (
+                <circle key={`${h.x}:${h.y}`} className="board__mark-halo" cx={h.x} cy={h.y} r={HALO_R} />
+              ))}
+            </g>
             {ship && (
               <>
                 {/* 呼吸红圈: a pulsing ring under the ship so the marker
