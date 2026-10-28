@@ -551,16 +551,29 @@ export function App() {
   const [seenCardKey, setSeenCardKey] = useState<string | null>(null);
   const cardRevealOpen = cardKey !== null && cardKey !== seenCardKey;
 
-  // 哗变表决弹框 (MutinyPrompt): CLOSED by default — the 行动 tab carries
-  // the live progress line (已表态 x / x) and its 打开哗变表决 button is the
-  // only way up. Nothing auto-pops (the mid-game takeover annoyed more than
-  // it informed); `open` still resets between loyalty windows, a page refresh
-  // starts closed again, and needsMe keeps nudging while the pledge is owed.
+  // 哗变表决弹框 (MutinyPrompt): pops for every seat the moment the game
+  // enters the loyalty phase, input included — nobody has to notice a tab
+  // changed. Once THIS seat has pledged (guns or loyalty) the prompt
+  // minimizes itself: the 行动 tab keeps the progress line (已表态 x / x)
+  // and its 打开哗变表决 button for anyone who wants the roster back up.
   const loyaltyLive = !!game.view && game.view.phase === 'loyalty' && game.view.mutiny.active;
   const [mutinyPromptOpen, setMutinyPromptOpen] = useState(false);
+  const mutinyRef = useRef<{ phase: boolean }>({ phase: false });
+  if (loyaltyLive && !mutinyRef.current.phase) setMutinyPromptOpen(true);
+  mutinyRef.current.phase = loyaltyLive;
   useEffect(() => {
     if (!loyaltyLive) setMutinyPromptOpen(false);
   }, [loyaltyLive]);
+  // 表态即收起: once this seat's pledge lands (the engine flips `hasPledged`
+  // on the next sync) the prompt minimizes itself — the waiting roster has
+  // said its piece. 打开哗变表决 on the 行动 tab still brings it back for
+  // anyone following the tally.
+  const iOwePledgeNow = !!game.view && iOweMutinyPledge(game.view);
+  const owedRef = useRef(false);
+  owedRef.current = owedRef.current || iOwePledgeNow;
+  useEffect(() => {
+    if (owedRef.current && !iOwePledgeNow) setMutinyPromptOpen(false);
+  }, [iOwePledgeNow]);
 
   // Ritual veil (闭眼仪式): eyelids slide shut for every seat while a
   // ritual's pending is open, plus a one-shot secret beat for the player

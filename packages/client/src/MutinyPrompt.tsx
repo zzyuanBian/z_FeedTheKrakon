@@ -1,7 +1,8 @@
 /**
- * 哗变表决弹框（收表态环节）. Opens ONLY on the player's click — the 行动
- * tab mirrors the live tally (已表态 x / x) and its 打开哗变表决 button
- * mounts this modal:
+ * 哗变表决弹框（收表态环节）. Pops for every seat the moment the loyalty
+ * window opens, and MINIMIZES ITSELF once this seat has pledged (guns or
+ * 宣誓忠诚) — the 行动 tab's tally line (已表态 x / x) and 打开哗变表决
+ * button carry the rest of the window:
  *
  *  - a crew member who has not pledged: the appointment result, the public
  *    pledged/not-pledged roster, and the pledge input — one button per gun
@@ -9,10 +10,10 @@
  *  - the captain, an off-duty/dead seat, or someone who already pledged:
  *    the same modal in its waiting form — roster + progress, no input.
  *
- * Dismissal is a MINIMIZE, not a cancel: 稍后决定/收起 unmount the modal and
- * the 行动 tab keeps the reopen button until the phase resolves. The open
- * flag lives in App (`mutinyPromptOpen`); nothing is stored locally — a
- * refresh starts closed, with the tab button still one tap away.
+ * Dismissal (稍后决定/收起 or the auto-minimize) is a MINIMIZE, not a
+ * cancel: the 行动 tab keeps the reopen button until the phase resolves.
+ * The open flag lives in App (`mutinyPromptOpen`); nothing is stored
+ * locally — a refresh re-derives it from the game state.
  *
  * (The 成功揭晓 fullscreen veil is MutinyReveal, a separate beat.)
  */
