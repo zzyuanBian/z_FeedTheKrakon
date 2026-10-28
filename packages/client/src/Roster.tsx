@@ -84,6 +84,20 @@ export function Roster({
         <div className="roster__hub" aria-hidden="true">
           <span className="roster__hub-glyph">⚓</span>
           <span className="roster__hub-count">{n} 人</span>
+          {/* 本局角色配置 (public: same numbers the waiting room shows).
+              Lives in the hub — mobile has no topbar config pill, and the
+              table centre is the one spot every seat looks at. */}
+          <span className="roster__hub-config">
+            {FACTION_ICON.sailor}{view.factionCounts.sailor}
+            {' · '}
+            {FACTION_ICON.pirate}{view.factionCounts.pirate}
+            {view.factionCounts.cult > 0 && (
+              <>
+                {' · '}
+                {FACTION_ICON.cult}{view.factionCounts.cult}
+              </>
+            )}
+          </span>
         </div>
         {seats.map((p, i) => {
           const self = p.id === view.you.id;
