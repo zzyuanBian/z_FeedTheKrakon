@@ -83,14 +83,27 @@ export function Board({ view, onExpand }: BoardProps) {
               height={SHORT_MAP.imageHeight}
             />
             {ship && (
-              <image
-                className="board__ship"
-                href={SHIP_URL}
-                x={ship.x - SHIP_SIZE / 2}
-                y={ship.y - SHIP_SIZE / 2}
-                width={SHIP_SIZE}
-                height={SHIP_SIZE}
-              />
+              <>
+                {/* 呼吸红圈: a pulsing ring under the ship so the marker
+                    reads at phone scale (the sprite alone used to get lost
+                    in the map art). SVG scales the ring with the map; CSS
+                    owns the breathing (transform-box keeps the pulse
+                    centred on the ring, not the viewBox origin). */}
+                <circle
+                  className="board__ship-ring"
+                  cx={ship.x}
+                  cy={ship.y}
+                  r={SHIP_SIZE * 0.72}
+                />
+                <image
+                  className="board__ship"
+                  href={SHIP_URL}
+                  x={ship.x - SHIP_SIZE / 2}
+                  y={ship.y - SHIP_SIZE / 2}
+                  width={SHIP_SIZE}
+                  height={SHIP_SIZE}
+                />
+              </>
             )}
             {view.ship.emergency && (
               <text

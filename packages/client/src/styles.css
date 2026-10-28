@@ -1602,6 +1602,23 @@ button:disabled { cursor: not-allowed; }
   50% { opacity: 1; }
 }
 .board__ship { filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.5)); }
+/* 呼吸红圈 under the ship: stroke-only ring, blood red, breathing between a
+   tight bright pulse and a wide faint one. transform-box: fill-box keeps the
+   scale pulse centred on the ring itself; SVG units ride the map's own
+   scaling, so the ring hugs the ship at every zoom. */
+.board__ship-ring {
+  fill: none;
+  stroke: var(--blood);
+  stroke-width: 90;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ship-ring-breathe 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ship-ring-breathe {
+  0%, 100% { transform: scale(0.86); opacity: 0.9; }
+  50% { transform: scale(1.12); opacity: 0.35; }
+}
 .board__banner { font-size: 300px; fill: var(--blood); font-weight: 800; paint-order: stroke; stroke: #000; stroke-width: 16px; }
 /* 海图放大 affordance (mobile only — the prop is undefined on PC): a small
    chip pinned to the map's corner; the whole SVG also taps through. */
@@ -2986,12 +3003,10 @@ button:disabled { cursor: not-allowed; }
     padding: 6px 8px;
   }
   .side-pane { min-height: 60vh; }
-  /* The 记录栏's storm-deck backdrop carries over to the other two tabs so
-     all three panes read as the same weathered log (记录 paints its own via
-     the .log child; this paints 船员 + 行动). min-height keeps the art
-     present even when a pane's content is short — the page, not the pane,
-     is the scrollport now. */
-  .side-pane--crew, .side-pane--action {
+  /* 船员 keeps the 记录栏's storm-deck backdrop (roster rows read well over
+     it); 行动 drops it per user preference — the appointment/split forms'
+     own .panel backgrounds are the surface there, no page-level backdrop. */
+  .side-pane--crew {
     /* background-size 115% + weighted position: zooms past the art's own
        baked-in edge vignette (the source scan has dark corners) instead of
        showing it at the pane's left/right edges. */
@@ -3000,6 +3015,7 @@ button:disabled { cursor: not-allowed; }
       url('/img/log-bg.webp') 50% 40% / 115% auto no-repeat,
       linear-gradient(180deg, #101c30, #0a1322);
   }
+  .side-pane--action { background: none; }
   .side-pane--off { display: none; }
   /* The log pane is PC-hidden (base display:none); on mobile the active
      记录 tab flips it back on, and its .log canvas stretches to fill the
