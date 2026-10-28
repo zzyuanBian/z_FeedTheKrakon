@@ -60,10 +60,12 @@ export interface BoardProps {
 /** Stages of the first-entry reveal: the unroll (crease sweep + clip
  *  widening), then the lamp sweep (colour wakes up), then done — overlays
  *  unmount and the board is the plain everyday one. Timing mirrors the CSS
- *  ( unfold 1100ms → lamp 900ms overlapping from 700ms → settle ~1900ms). */
-const UNFOLD_MS = 1100;
-const LAMP_MS = 900;
-const SETTLE_MS = 700; // lamp starts this deep into the unfold
+ *  (unfold 2200ms → lamp 1800ms overlapping from 1400ms → settle ~3200ms;
+ *  user-doubled from the original 1.1s/0.9s — the unhurried unroll reads
+ *  more ceremonial). */
+const UNFOLD_MS = 2200;
+const LAMP_MS = 1800;
+const SETTLE_MS = 1400; // lamp starts this deep into the unfold
 
 /* One decode per browser session, hot across remounts (module-level). */
 let mapReady = false;

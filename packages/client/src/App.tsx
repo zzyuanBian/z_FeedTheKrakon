@@ -535,18 +535,17 @@ export function App() {
     && game.view.roleConfirmations.total > 0
     && game.view.roleConfirmations.confirmed >= game.view.roleConfirmations.total;
   const allConfirmedAndFresh = allConfirmed && !launched;
-  // Three staged beats: all seats confirm → a 5s GRACE (the last player to
-  // flip deserves those seconds with their role card + whisper — the flip
-  // itself fires confirm, so "all confirmed" can catch them mid-read) →
-  // the shared 5s countdown on the reveal screen → the story takes the
-  // screen (its ⚓ 登船 click fires markLaunched). A refresh mid-grace
-  // restarts the grace, which is harmless (same 5s, same beat).
+  // Three staged beats: all seats confirm → a SILENT 3s hold (no banner —
+  // the table just reads; the last player to flip deserves those seconds
+  // with their role card + whisper) → the shared 5s countdown on the reveal
+  // screen → the story takes the screen (its ⚓ 登船 click fires
+  // markLaunched). A refresh mid-hold restarts it, which is harmless.
   const [launchAt, setLaunchAt] = useState<number | null>(null);
   const [launchLeft, setLaunchLeft] = useState(5);
   const [graceDone, setGraceDone] = useState(false);
   useEffect(() => {
     if (!allConfirmedAndFresh) { setGraceDone(false); return; }
-    const t = window.setTimeout(() => setGraceDone(true), 5000);
+    const t = window.setTimeout(() => setGraceDone(true), 3000);
     return () => window.clearTimeout(t);
   }, [allConfirmedAndFresh]);
   useEffect(() => {
@@ -699,10 +698,19 @@ export function App() {
   const [seenGsKey, setSeenGsKey] = useState<string | null>(null);
   const gunsNoticeOpen = gsKey !== null && gsKey !== seenGsKey;
   // 船长更替公示 (drunk-card hand-overs — mutiny has its own veil): keyed on
-  // the log length at the moment the fresh `round` line landed.
+  // the log length at the moment the fresh `round` line landed. The OPENING
+  // announcement (首任船长) waits for the chart-reveal to settle — the map
+  // unfold is the stage, the announcement is the line that follows it;
+  // refresh/mid-game entries (no animation) show it at once.
   const ccKey = game.view ? captainChangeKey(game.view) : null;
   const [seenCcKey, setSeenCcKey] = useState<string | null>(null);
-  const captainChangeOpen = ccKey !== null && ccKey !== seenCcKey;
+  const [revealDone, setRevealDone] = useState(!boardFirstEntry);
+  useEffect(() => {
+    if (!boardFirstEntry) { setRevealDone(true); return; }
+    const t = window.setTimeout(() => setRevealDone(true), 3200);
+    return () => window.clearTimeout(t);
+  }, [boardFirstEntry]);
+  const captainChangeOpen = ccKey !== null && ccKey !== seenCcKey && revealDone;
   // 出局公示 (feedKraken / jump): the tail elimination entry until seen.
   const elimEntry = game.view ? eliminationKey(game.view) : null;
   const [seenElimIdx, setSeenElimIdx] = useState<number | null>(null);
@@ -994,7 +1002,6 @@ export function App() {
           view={view}
           onConfirm={game.confirmRole}
           countdown={launchCountdown}
-          grace={allConfirmedAndFresh && !graceDone}
         />
       </div>
     );

@@ -22,11 +22,8 @@ export interface RoleRevealProps {
   view: PlayerView;
   onConfirm: () => void;
   /** Shared launch countdown, owned by App (null while still waiting —
-   *  including the post-confirm grace window). */
+   *  including the silent post-confirm hold). */
   countdown: number | null;
-  /** True during the 5s post-confirm grace: the count hasn't started, the
-   *  table is finishing reading their cards. Shows a quiet status line. */
-  grace: boolean;
 }
 
 /** True physical card art, scanned from the tabletop edition.
@@ -73,7 +70,7 @@ const ROLE_COPY: Record<string, string> = {
   cult: '你是克苏鲁的仆从。等待时机，转化船员。',
 };
 
-export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProps) {
+export function RoleReveal({ view, onConfirm, countdown }: RoleRevealProps) {
   const artReady = useCardArtReady();
   const alreadyConfirmed = view.you.roleConfirmed;
   const [flipped, setFlipped] = useState(alreadyConfirmed);
@@ -115,9 +112,7 @@ export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProp
         <div className="role-reveal__ornament" aria-hidden="true">🕯️</div>
         <h2 className="role-reveal__title">身份确认</h2>
         <p className="role-reveal__sub">
-          {grace
-            ? '全员已准备，即将启航…'
-            : alreadyConfirmed
+          {alreadyConfirmed
             ? '你已确认身份，等待其他船员'
             : '翻开你的卡牌，确认你在船上的身份'}
         </p>
@@ -235,14 +230,7 @@ export function RoleReveal({ view, onConfirm, countdown, grace }: RoleRevealProp
           <span className="role-reveal__launch-num">{countdown}</span>
         </div>
       )}
-      {/* Grace status must NOT use the fullscreen launch veil — it would
-          cover the very cards the grace exists to let people read. A plain
-          status line in the flow, then the veiled countdown takes over. */}
-      {grace && countdown === null && (
-        <div className="role-reveal__grace" role="status" aria-live="polite">
-          全员已准备，即将启航…
-        </div>
-      )}
+
     </div>
   );
 }
